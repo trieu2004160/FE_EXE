@@ -13,7 +13,6 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Wishlist from "./pages/Wishlist";
 import Profile from "./pages/Profile";
-import Profile1 from "./pages/Profile1";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Catalog from "./pages/Catalog";
@@ -57,16 +56,6 @@ const App = () => (
             {/* Auth Routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-
-            {/* User Routes */}
-            <Route
-              path="/user/profile"
-              element={
-                <ProtectedRoute requiredRole="user">
-                  <Profile1 />
-                </ProtectedRoute>
-              }
-            />
 
             {/* Admin Routes */}
             <Route

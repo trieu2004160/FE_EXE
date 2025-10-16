@@ -44,7 +44,7 @@ const Header = () => {
     } else if (userRole === "admin") {
       navigate("/admin");
     } else {
-      navigate("/user/profile");
+      navigate("/profile");
     }
   };
   return (

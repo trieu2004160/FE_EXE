@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   User,
   Mail,
@@ -18,21 +18,70 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 const Profile = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [userInfo, setUserInfo] = useState({
-    name: "Nguyễn Văn A",
-    email: "nguyenvana@email.com",
-    phone: "0123456789",
-    address: "123 Đường ABC, Quận 1, TP.HCM",
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
     avatar: "",
-    bio: "Yêu thích các sản phẩm đồ cúng chất lượng cao",
+    bio: "",
   });
+
+  // Load user data from localStorage on component mount
+  useEffect(() => {
+    const userData = localStorage.getItem("userData");
+    const userToken = localStorage.getItem("userToken");
+
+    if (!userToken) {
+      // Redirect to login if no token
+      navigate("/login");
+      return;
+    }
+
+    if (userData) {
+      try {
+        const parsedUserData = JSON.parse(userData);
+        setUserInfo({
+          name:
+            parsedUserData.fullName || parsedUserData.name || "Chưa cập nhật",
+          email: parsedUserData.email || "Chưa cập nhật",
+          phone:
+            parsedUserData.phone ||
+            parsedUserData.phoneNumber ||
+            "Chưa cập nhật",
+          address: parsedUserData.address || "Chưa cập nhật",
+          avatar: parsedUserData.avatar || "",
+          bio:
+            parsedUserData.bio ||
+            parsedUserData.introduction ||
+            "Chưa có thông tin giới thiệu",
+        });
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+        // Use default empty values if parsing fails
+      }
+    }
+  }, [navigate]);
+
+  // Get user initials from name
+  const getInitials = (name: string) => {
+    if (!name) return "U";
+    const nameParts = name.trim().split(" ");
+    if (nameParts.length === 1) {
+      return nameParts[0].charAt(0).toUpperCase();
+    }
+    return (
+      nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0)
+    ).toUpperCase();
+  };
 
   // Mock data for orders
   const orders = [
@@ -60,11 +109,55 @@ const Profile = () => {
   ];
 
   const handleSaveProfile = () => {
-    // Here you would typically save to a backend API
-    setIsEditing(false);
+    try {
+      // Update localStorage with new user data
+      const currentUserData = localStorage.getItem("userData");
+      let updatedUserData = {};
+
+      if (currentUserData) {
+        updatedUserData = JSON.parse(currentUserData);
+      }
+
+      // Update the user data with new information
+      updatedUserData = {
+        ...updatedUserData,
+        fullName: userInfo.name,
+        name: userInfo.name,
+        email: userInfo.email,
+        phone: userInfo.phone,
+        phoneNumber: userInfo.phone,
+        address: userInfo.address,
+        bio: userInfo.bio,
+        introduction: userInfo.bio,
+        avatar: userInfo.avatar,
+      };
+
+      // Save back to localStorage
+      localStorage.setItem("userData", JSON.stringify(updatedUserData));
+
+      setIsEditing(false);
+      toast({
+        title: "Cập nhật thành công!",
+        description: "Thông tin cá nhân đã được lưu.",
+      });
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      toast({
+        title: "Lỗi!",
+        description: "Không thể lưu thông tin. Vui lòng thử lại.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("userToken");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("userData");
+    navigate("/");
     toast({
-      title: "Cập nhật thành công!",
-      description: "Thông tin cá nhân đã được lưu.",
+      title: "Đăng xuất thành công!",
+      description: "Hẹn gặp lại bạn.",
     });
   };
 
@@ -109,7 +202,7 @@ const Profile = () => {
                     <Avatar className="w-24 h-24">
                       <AvatarImage src={userInfo.avatar} />
                       <AvatarFallback className="bg-[#C99F4D] text-white text-2xl">
-                        {userInfo.name.charAt(0)}
+                        {getInitials(userInfo.name)}
                       </AvatarFallback>
                     </Avatar>
                     <Button
@@ -148,6 +241,7 @@ const Profile = () => {
                     <Button
                       variant="outline"
                       className="text-red-600 hover:text-red-700"
+                      onClick={handleLogout}
                     >
                       <LogOut className="h-4 w-4 mr-2" />
                       Đăng xuất
