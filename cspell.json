@@ -1,0 +1,41 @@
+{
+  "version": "0.2",
+  "language": "en,vi",
+  "words": [
+    "Hướng",
+    "Hương",
+    "Dương",
+    "Cúng",
+    "Tổ",
+    "Tiên",
+    "Nghiệp", 
+    "Kẹo",
+    "Quả",
+    "Uống",
+    "Tiết",
+    "Kiệm",
+    "Chè",
+    "Xôi",
+    "Tươi",
+    "Nến",
+    "Đậu",
+    "Gấc",
+    "Nếp",
+    "Nghệ",
+    "Cẩm",
+    "Bà",
+    "Thái",
+    "Lọc",
+    "Phu",
+    "Thê",
+    "Chưng",
+    "Rằm",
+    "Tháng",
+    "Giêng"
+  ],
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/.git/**"
+  ]
+}
