@@ -34,10 +34,10 @@ const About = () => {
   ];
 
   const stats = [
-    { number: "5+", label: "Năm kinh nghiệm", color: "text-primary" },
-    { number: "1000+", label: "Khách hàng tin tưởng", color: "text-primary" },
-    { number: "100+", label: "Sản phẩm đa dạng", color: "text-accent" },
-    { number: "99%", label: "Độ hài lòng", color: "text-primary" },
+    { number: "5+", label: "Năm kinh nghiệm" },
+    { number: "1000+", label: "Khách hàng tin tưởng" },
+    { number: "100+", label: "Sản phẩm đa dạng" },
+    { number: "99%", label: "Độ hài lòng" },
   ];
 
   return (
@@ -141,16 +141,16 @@ const About = () => {
               return (
                 <Card
                   key={index}
-                  className="group hover:shadow-medium transition-smooth bg-gradient-card border-border/50"
+                  className="group hover:shadow-medium transition-smooth bg-gradient-to-br from-white to-[#C99F4D]/5 border-[#C99F4D]/20 hover:border-[#C99F4D]/40"
                 >
                   <CardContent className="p-6 text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center group-hover:bg-primary/20 transition-smooth">
-                      <IconComponent className="h-8 w-8 text-primary" />
+                    <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-[#C99F4D]/20 to-[#8B7355]/20 rounded-full flex items-center justify-center transition-smooth">
+                      <IconComponent className="h-8 w-8 text-[#C99F4D]  transition-colors" />
                     </div>
-                    <h3 className="font-semibold text-foreground mb-2 text-lg">
+                    <h3 className="font-semibold text-[#C99F4D] mb-2 text-lg transition-colors">
                       {value.title}
                     </h3>
-                    <p className="text-muted-foreground leading-relaxed">
+                    <p className="text-muted-foreground leading-relaxed group-hover:text-foreground transition-colors">
                       {value.description}
                     </p>
                   </CardContent>
@@ -162,17 +162,23 @@ const About = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16">
+      <section className="py-16 bg-gradient-to-br from-[#C99F4D]/5 to-[#8B7355]/5">
         <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-foreground mb-4">
+              Thành Tựu Của Chúng Tôi
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Những con số ấn tượng chứng minh chất lượng dịch vụ
+            </p>
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats.map((stat, index) => (
-              <div key={index} className="text-center">
-                <div
-                  className={`text-4xl md:text-5xl font-bold ${stat.color} mb-2`}
-                >
+              <div key={index} className="text-center group">
+                <div className="bg-gradient-to-br from-[#C99F4D] to-[#8B7355] bg-clip-text text-transparent text-4xl md:text-5xl font-bold mb-2 group-hover:scale-110 transition-transform duration-300">
                   {stat.number}
                 </div>
-                <p className="text-muted-foreground font-medium">
+                <p className="text-muted-foreground font-medium group-hover:text-[#C99F4D] transition-colors duration-300">
                   {stat.label}
                 </p>
               </div>
@@ -194,54 +200,58 @@ const About = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="bg-gradient-card border-border/50">
+            <Card className="bg-gradient-to-br from-white to-[#C99F4D]/5 border-[#C99F4D]/20 hover:border-[#C99F4D]/40 hover:shadow-medium transition-smooth group">
               <CardContent className="p-6 text-center">
-                <img
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"
-                  alt="CEO"
-                  className="w-24 h-24 rounded-full mx-auto mb-4 object-cover"
-                />
-                <h3 className="font-semibold text-foreground text-lg mb-1">
+                <div className="relative mb-4">
+                  <img
+                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"
+                    alt="CEO"
+                    className="w-24 h-24 rounded-full mx-auto object-cover border-4 border-[#C99F4D]/20 group-hover:border-[#C99F4D]/40 transition-colors"
+                  />
+                </div>
+                <h3 className="font-semibold text-foreground text-lg mb-1 group-hover:text-[#C99F4D] transition-colors">
                   Nguyễn Minh Hoàng
                 </h3>
-                <p className="text-ellipsis font-medium mb-2">Founder & CEO</p>
-                <p className="text-muted-foreground text-sm">
+                <p className="text-[#C99F4D] font-medium mb-2">Founder & CEO</p>
+                <p className="text-muted-foreground text-sm group-hover:text-foreground transition-colors">
                   5+ năm kinh nghiệm trong lĩnh vực đồ cúng truyền thống
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-card border-border/50">
+            <Card className="bg-gradient-to-br from-white to-[#C99F4D]/5 border-[#C99F4D]/20 hover:border-[#C99F4D]/40 hover:shadow-medium transition-smooth group">
               <CardContent className="p-6 text-center">
-                <img
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"
-                  alt="Marketing Manager"
-                  className="w-24 h-24 rounded-full mx-auto mb-4 object-cover"
-                />
-                <h3 className="font-semibold text-foreground text-lg mb-1">
+                <div className="relative mb-4">
+                  <img
+                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"
+                    alt="Marketing Manager"
+                    className="w-24 h-24 rounded-full mx-auto object-cover border-4 border-[#C99F4D]/20 group-hover:border-[#C99F4D]/40 transition-colors"
+                  />
+                </div>
+                <h3 className="font-semibold text-foreground text-lg mb-1 group-hover:text-[#C99F4D] transition-colors">
                   Trần Thị Mai
                 </h3>
-                <p className="text-ellipsis font-medium mb-2">
+                <p className="text-[#C99F4D] font-medium mb-2">
                   Marketing Manager
                 </p>
-                <p className="text-muted-foreground text-sm">
+                <p className="text-muted-foreground text-sm group-hover:text-foreground transition-colors">
                   Chuyên gia về trải nghiệm khách hàng và phát triển sản phẩm
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-card border-border/50">
+            <Card className="bg-gradient-to-br from-white to-[#C99F4D]/5 border-[#C99F4D]/20 hover:border-[#C99F4D]/40 hover:shadow-medium transition-smooth group">
               <CardContent className="p-6 text-center">
-                <div className="w-24 h-24 rounded-full mx-auto mb-4 bg-gradient-primary flex items-center justify-center">
-                  <Users className="h-12 w-12 text-primary-foreground" />
+                <div className="w-24 h-24 rounded-full mx-auto mb-4 bg-gradient-to-br from-[#C99F4D] to-[#8B7355] flex items-center justify-center group-hover:from-[#8B7355] group-hover:to-[#C99F4D] transition-all duration-300">
+                  <Users className="h-12 w-12 text-white" />
                 </div>
-                <h3 className="font-semibold text-foreground text-lg mb-1">
+                <h3 className="font-semibold text-foreground text-lg mb-1 group-hover:text-[#C99F4D] transition-colors">
                   Đội Ngũ AI
                 </h3>
-                <p className="text-ellipsis font-medium mb-2">
+                <p className="text-[#C99F4D] font-medium mb-2">
                   Trợ lý thông minh
                 </p>
-                <p className="text-muted-foreground text-sm">
+                <p className="text-muted-foreground text-sm group-hover:text-foreground transition-colors">
                   Hệ thống AI tiên tiến hỗ trợ tư vấn 24/7
                 </p>
               </CardContent>

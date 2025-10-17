@@ -64,8 +64,8 @@ export const OfflineStatus = () => {
 
   return (
     <div className="space-y-4 max-w-md mx-auto">
-      {/* Connection Status */}
-      <Alert
+      Connection Status
+      {/* <Alert
         className={`border-l-4 ${
           isBackendAvailable === null
             ? "border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20"
@@ -116,10 +116,9 @@ export const OfflineStatus = () => {
           />
           Kiểm tra lại
         </Button>
-      </Alert>
-
+      </Alert> */}
       {/* Offline Mode Info */}
-      {isBackendAvailable === false && (
+      {/* {isBackendAvailable === false && (
         <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-900/20">
           <Info className="h-4 w-4 text-blue-600" />
           <AlertDescription className="text-blue-800 dark:text-blue-200 text-sm">
@@ -133,8 +132,7 @@ export const OfflineStatus = () => {
             </div>
           </AlertDescription>
         </Alert>
-      )}
-
+      )} */}
       {/* Offline Users Count */}
       {offlineUsersCount > 0 && (
         <Alert className="border-gray-200 bg-gray-50 dark:bg-gray-900/20">
@@ -147,9 +145,8 @@ export const OfflineStatus = () => {
           </AlertDescription>
         </Alert>
       )}
-
       {/* Demo Accounts */}
-      <Alert className="border-purple-200 bg-purple-50 dark:bg-purple-900/20">
+      {/* <Alert className="border-purple-200 bg-purple-50 dark:bg-purple-900/20">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Info className="h-4 w-4 text-purple-600" />
@@ -200,7 +197,7 @@ export const OfflineStatus = () => {
             ))}
           </div>
         )}
-      </Alert>
+      </Alert> */}
     </div>
   );
 };
