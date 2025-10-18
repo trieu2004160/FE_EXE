@@ -82,16 +82,6 @@ const relatedProducts = [
     isNew: true,
   },
   {
-    id: 5,
-    name: "Bộ Bánh Kẹo Truyền Thống",
-    price: 259000,
-    image:
-      "https://images.unsplash.com/photo-1576618148400-f54bed99fcfd?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    rating: 4,
-    reviews: 92,
-    category: "Bánh Kẹo",
-  },
-  {
     id: 6,
     name: "Trà Hoa Cúc Thanh Tịnh",
     price: 129000,
@@ -138,7 +128,7 @@ const ProductDetail = () => {
       isNew: product.isNew,
       isBestSeller: product.isBestSeller,
     };
-    
+
     const inWishlist = isInWishlist(product.id);
     if (inWishlist) {
       removeFromWishlist(product.id);
@@ -324,10 +314,16 @@ const ProductDetail = () => {
                   variant="outline"
                   size="lg"
                   onClick={handleAddToWishlist}
-                  className={isInWishlist(product.id) ? "text-primary border-primary" : ""}
+                  className={
+                    isInWishlist(product.id)
+                      ? "text-primary border-primary"
+                      : ""
+                  }
                 >
                   <Heart
-                    className={`h-5 w-5 ${isInWishlist(product.id) ? "fill-current" : ""}`}
+                    className={`h-5 w-5 ${
+                      isInWishlist(product.id) ? "fill-current" : ""
+                    }`}
                   />
                 </Button>
                 <Button variant="outline" size="lg">

@@ -82,7 +82,7 @@ const AdminDashboard = () => {
         category: "Combo",
         price: 300000,
         image: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0",
-        description: "Gói cơ bản với hoa tươi, hương nến và bánh kẹo",
+        description: "Gói cơ bản với hoa tươi và hương nến",
         inStock: true,
       },
     ];
@@ -455,7 +455,7 @@ const ProductForm = ({
     onSave(formData);
   };
 
-  const categories = ["Hoa Tươi", "Hương Nến", "Xôi Chè", "Bánh Kẹo", "Combo"];
+  const categories = ["Hoa Tươi", "Hương Nến", "Xôi Chè", "Combo"];
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">

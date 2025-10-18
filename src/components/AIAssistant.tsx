@@ -18,16 +18,16 @@ const AIAssistant = () => {
       id: 1,
       text: "Xin chào! Tôi là trợ lý AI của Đồ Cúng Online. Tôi có thể giúp bạn tìm kiếm sản phẩm phù hợp cho lễ tốt nghiệp. Bạn cần tư vấn gì ạ?",
       isBot: true,
-      timestamp: new Date()
-    }
+      timestamp: new Date(),
+    },
   ]);
   const [inputMessage, setInputMessage] = useState("");
 
   const mockResponses = [
-    "Để chuẩn bị lễ cúng tốt nghiệp, bạn sẽ cần: hoa quả 5 loại, hương nến chất lượng, bánh kẹo truyền thống và nước uống. Bạn có muốn tôi gợi ý combo nào phù hợp không?",
+    "Để chuẩn bị lễ cúng tốt nghiệp, bạn sẽ cần: hoa quả 5 loại, hương nến chất lượng và nước uống. Bạn có muốn tôi gợi ý combo nào phù hợp không?",
     "Hoa quả nên chọn những loại có ý nghĩa tốt như: cam (ý nghĩa viên mãn), chuối (ý nghĩa thuận lợi), táo (bình an), nho (sum vầy), lê (lợi ích). Tôi có thể giúp bạn đặt combo hoa quả cao cấp.",
     "Về hương nến, tôi khuyên nên chọn loại hương nụ tâm an hoặc hương trầm để tạo không gian trang nghiêm. Nến thờ nên chọn loại đỏ hoặc vàng mang ý nghĩa cát tường.",
-    "Combo tiết kiệm dành cho sinh viên: Bộ hoa quả 5 loại (199k) + Hương nến cơ bản (99k) + Bánh kẹo (149k) = Tổng 447k (giảm còn 399k). Bạn có muốn đặt không?"
+    "Combo tiết kiệm dành cho sinh viên: Bộ hoa quả 5 loại (199k) + Hương nến cơ bản (99k) + Bánh kẹo (149k) = Tổng 447k (giảm còn 399k). Bạn có muốn đặt không?",
   ];
 
   const handleSendMessage = () => {
@@ -38,10 +38,10 @@ const AIAssistant = () => {
       id: messages.length + 1,
       text: inputMessage,
       isBot: false,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setInputMessage("");
 
     // Simulate AI response
@@ -50,9 +50,9 @@ const AIAssistant = () => {
         id: messages.length + 2,
         text: mockResponses[Math.floor(Math.random() * mockResponses.length)],
         isBot: true,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
-      setMessages(prev => [...prev, botResponse]);
+      setMessages((prev) => [...prev, botResponse]);
     }, 1000);
   };
 
@@ -62,7 +62,7 @@ const AIAssistant = () => {
       <Button
         onClick={() => setIsOpen(true)}
         className={`fixed bottom-6 right-6 w-16 h-16 rounded-full shadow-strong z-50 transition-bounce ${
-          isOpen ? 'hidden' : 'flex'
+          isOpen ? "hidden" : "flex"
         } items-center justify-center bg-gradient-primary hover:shadow-glow`}
       >
         <MessageCircle className="h-6 w-6" />
@@ -85,32 +85,38 @@ const AIAssistant = () => {
               <X className="h-4 w-4" />
             </Button>
           </CardHeader>
-          
+
           <CardContent className="flex-1 flex flex-col p-0">
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`flex ${message.isBot ? 'justify-start' : 'justify-end'}`}
+                  className={`flex ${
+                    message.isBot ? "justify-start" : "justify-end"
+                  }`}
                 >
                   <div
                     className={`max-w-[80%] p-3 rounded-lg ${
                       message.isBot
-                        ? 'bg-muted text-foreground rounded-bl-none'
-                        : 'bg-primary text-primary-foreground rounded-br-none'
+                        ? "bg-muted text-foreground rounded-bl-none"
+                        : "bg-primary text-primary-foreground rounded-br-none"
                     }`}
                   >
                     <div className="flex items-start space-x-2">
-                      {message.isBot && <Bot className="h-4 w-4 mt-0.5 flex-shrink-0" />}
+                      {message.isBot && (
+                        <Bot className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                      )}
                       <p className="text-sm">{message.text}</p>
-                      {!message.isBot && <User className="h-4 w-4 mt-0.5 flex-shrink-0" />}
+                      {!message.isBot && (
+                        <User className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                      )}
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-            
+
             {/* Input */}
             <div className="p-4 border-t border-border">
               <div className="flex space-x-2">
@@ -118,7 +124,7 @@ const AIAssistant = () => {
                   placeholder="Nhập tin nhắn..."
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                  onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
                   className="flex-1"
                 />
                 <Button onClick={handleSendMessage} size="icon">

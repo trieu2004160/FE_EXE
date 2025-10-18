@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Flower, Flame, Apple, Cookie, Droplets, Gift } from "lucide-react";
+import { Flower, Flame, Apple, Droplets, Gift } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const categories = [
@@ -29,14 +29,6 @@ const categories = [
   },
   {
     id: 4,
-    name: "Bánh Kẹo",
-    icon: Cookie,
-    count: 24,
-    color: "text-yellow-600",
-    bgColor: "bg-yellow-50 dark:bg-yellow-900/20",
-  },
-  {
-    id: 5,
     name: "Xôi – Chè",
     icon: Droplets,
     count: 18,
@@ -59,7 +51,6 @@ const Categories = () => {
     const customRoutes: { [key: string]: string } = {
       "Hoa Tươi": "/category/hoa-tuoi",
       "Hương Nến": "/category/huong-nen",
-      "Bánh Kẹo": "/category/banh-keo",
       "Hoa Quả": "/category/hoa-qua",
       "Xôi – Chè": "/category/xoi-che",
       "Combo Tiết Kiệm": "/category/combo",
@@ -83,7 +74,7 @@ const Categories = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 p-9 ">
           {categories.map((category) => {
             const IconComponent = category.icon;
             return (
@@ -92,8 +83,8 @@ const Categories = () => {
                 to={getCategoryLink(category.name)}
                 className="block"
               >
-                <Card className="group hover:shadow-medium transition-smooth cursor-pointer bg-gradient-card border-border/50 hover:border-primary/30">
-                  <CardContent className="p-6 text-center">
+                <Card className="group hover:shadow-medium transition-smooth cursor-pointer bg-gradient-card border-border/50 hover:border-primary/30 h-full flex flex-col">
+                  <CardContent className="p-10 text-center flex-1 flex flex-col justify-center p-10">
                     <div
                       className={`w-16 h-16 mx-auto mb-4 rounded-full ${category.bgColor} flex items-center justify-center group-hover:scale-110 transition-bounce`}
                     >

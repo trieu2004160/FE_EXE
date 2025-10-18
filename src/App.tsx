@@ -21,7 +21,6 @@ import IncenseCategory from "./pages/IncenseCategory";
 import FruitsCategory from "./pages/FruitsCategory";
 import XoiCheCategory from "./pages/XoiCheCategory";
 import ComboCategory from "./pages/ComboCategory";
-import CandyCategory from "./pages/CandyCategory";
 import AdminDashboard from "./pages/AdminDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
@@ -51,7 +50,6 @@ const App = () => (
             <Route path="/category/hoa-qua" element={<FruitsCategory />} />
             <Route path="/category/xoi-che" element={<XoiCheCategory />} />
             <Route path="/category/combo" element={<ComboCategory />} />
-            <Route path="/category/banh-keo" element={<CandyCategory />} />
 
             {/* Auth Routes */}
             <Route path="/login" element={<Login />} />

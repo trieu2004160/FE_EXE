@@ -15,7 +15,7 @@ const Chatbot: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
-      text: "Xin chào! Tôi là AI Assistant. Tôi có thể giúp bạn tư vấn về bánh kẹo, hương nến và các sản phẩm lễ tốt nghiệp. Bạn cần hỗ trợ gì?",
+      text: "Xin chào! Tôi là AI Assistant. Tôi có thể giúp bạn tư vấn về hương nến và các sản phẩm lễ tốt nghiệp. Bạn cần hỗ trợ gì?",
       sender: "bot",
       timestamp: new Date(),
     },
@@ -79,9 +79,9 @@ const Chatbot: React.FC = () => {
 
       // Fallback responses khi API lỗi
       const fallbackResponses = [
-        "Xin lỗi, server AI tạm thời không khả dụng. Tôi có thể giúp bạn tư vấn sản phẩm bánh kẹo, hương nến cho lễ tốt nghiệp. Bạn cần hỗ trợ gì?",
-        "Đang có sự cố kỹ thuật. Trong thời gian này, bạn có thể xem các sản phẩm bánh kẹo và hương nến chất lượng cao trên website. Chúng tôi có nhiều combo ưu đãi cho lễ tốt nghiệp!",
-        "API tạm thời lỗi. Bạn có thể liên hệ hotline hoặc xem danh mục sản phẩm để chọn bánh kẹo, hương nến phù hợp cho lễ cúng tốt nghiệp.",
+        "Xin lỗi, server AI tạm thời không khả dụng. Tôi có thể giúp bạn tư vấn sản phẩm hương nến cho lễ tốt nghiệp. Bạn cần hỗ trợ gì?",
+        "Đang có sự cố kỹ thuật. Trong thời gian này, bạn có thể xem các sản phẩm hương nến chất lượng cao trên website. Chúng tôi có nhiều combo ưu đãi cho lễ tốt nghiệp!",
+        "API tạm thời lỗi. Bạn có thể liên hệ hotline hoặc xem danh mục sản phẩm để chọn hương nến phù hợp cho lễ cúng tốt nghiệp.",
       ];
 
       const randomResponse =

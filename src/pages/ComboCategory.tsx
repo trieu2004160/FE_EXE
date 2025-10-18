@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Package, Gift, Heart, Star } from "lucide-react";
+import { Package, Gift, Heart, Clock, Flower, Leaf, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -41,46 +41,73 @@ const ComboCategory = () => {
 
   const comboTypes = [
     {
-      name: "Combo Tốt Nghiệp Cơ Bản",
-      description: "Gói cơ bản với hoa tươi, hương nến và bánh kẹo",
+      name: "Combo Cúng Thần Tài",
+      description: "Mâm cúng trọn gói cầu tài lộc, bình an cho gia chủ.",
       image:
-        "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-      benefits: ["Tiết kiệm 20%", "Đầy đủ món", "Phù hợp mọi gia đình"],
+        "https://i.pinimg.com/736x/d9/fd/9f/d9fd9fc67ab6744269950f68b2cc5971.jpg",
+      price: "299.000đ",
+      benefits: [
+        "Đầy đủ lễ vật",
+        "Tiết kiệm 15%",
+        "Phù hợp cửa hàng, gia đình",
+      ],
     },
     {
-      name: "Combo Tốt Nghiệp Cao Cấp",
-      description: "Gói cao cấp với hoa nhập khẩu, hương cao cấp và đặc sản",
+      name: "Combo Cúng Khai Trương",
+      description: "Trọn gói lễ khai trương với đầy đủ lễ vật, sung túc.",
       image:
-        "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-      benefits: ["Tiết kiệm 25%", "Sản phẩm cao cấp", "Đóng gói sang trọng"],
+        "https://ksetup.net/wp-content/uploads/2025/01/mam-cung-khai-truong-3.jpg",
+      price: "399.000đ",
+      benefits: [
+        "Heo quay, xôi gấc, hoa quả",
+        "Tượng trưng tài lộc",
+        "Dịch vụ tận nơi",
+      ],
     },
     {
-      name: "Combo Tốt Nghiệp Đặc Biệt",
-      description: "Gói đặc biệt với đầy đủ tất cả loại sản phẩm",
+      name: "Combo Cúng Rằm",
+      description: "Mâm cúng truyền thống cho ngày rằm – gọn gàng.",
       image:
-        "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-      benefits: ["Tiết kiệm 30%", "Đầy đủ nhất", "Dịch vụ VIP"],
+        "https://i.pinimg.com/736x/cd/26/40/cd264001b9c820812fe62989952e0dd4.jpg",
+      price: "249.000đ",
+      benefits: ["Đầy đủ món cơ bản", "Tiết kiệm 20%", "Phù hợp mọi gia đình"],
     },
   ];
 
-  const occasions = [
+  const comboOfferings = [
     {
-      title: "Lễ Cúng Tổ Tiên",
-      description: "Combo đầy đủ cho lễ cúng trang trọng",
-      flowers: ["Hoa tươi", "Hương nến", "Bánh kẹo", "Xôi chè"],
+      title: "Combo Cúng Gia Tiên",
+      description:
+        "Trọn gói lễ vật trang trọng, thể hiện lòng hiếu kính tổ tiên.",
+      items: ["Hoa tươi", "Hương nến", "Xôi chè", "Trái cây ngũ quả"],
       color: "bg-amber-100 text-amber-800",
+      price: "250.000₫",
     },
     {
-      title: "Lễ Tốt Nghiệp Trọng Thể",
-      description: "Combo chúc mừng thành công rực rỡ",
-      flowers: ["Hoa chúc mừng", "Hương may mắn", "Bánh kem", "Hoa quả"],
+      title: "Combo Cúng Ông Công Ông Táo",
+      description:
+        "Mâm cúng tươm tất tiễn Táo Quân về trời, cầu năm mới bình an.",
+      items: [
+        "Ba con cá chép",
+        "Xôi gấc đỏ",
+        "Hương hoa quả",
+        "Trầu cau, rượu nếp",
+      ],
       color: "bg-yellow-100 text-yellow-800",
+      price: "330.000₫",
     },
     {
-      title: "Cúng Thần Tài May Mắn",
-      description: "Combo mang lại tài lộc và thịnh vượng",
-      flowers: ["Hoa vàng", "Hương tài lộc", "Bánh vàng", "Combo đặc biệt"],
-      color: "bg-amber-100 text-amber-800",
+      title: "Combo Cúng Tân Gia",
+      description:
+        "Lễ vật trọn gói chúc mừng nhà mới, mang tài lộc và bình an.",
+      items: [
+        "Heo quay mini",
+        "Trái cây phong thủy",
+        "Hoa tươi, hương nến",
+        "Rượu khai lộc",
+      ],
+      color: "bg-orange-100 text-orange-800",
+      price: "380.000₫",
     },
   ];
 
@@ -89,79 +116,140 @@ const ComboCategory = () => {
       <Header />
 
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-amber-50/70 via-white to-orange-50/70 overflow-hidden isolate">
-        <div className="container mx-auto px-4 py-20 lg:py-28 relative z-0">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
-              <Badge className="bg-gradient-to-r from-amber-50 to-orange-50 text-amber-700 border-amber-100 text-sm py-2 px-4 font-medium shadow-sm">
-                ✦ Bộ Sưu Tập Combo Cao Cấp
-              </Badge>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
-                <span className="text-[#C99F4D]">
-                  Combo Trọn Gói Lễ Tốt Nghiệp
-                </span>
-              </h1>
-              <p className="text-lg text-gray-600 leading-relaxed">
-                Gói combo tiết kiệm với đầy đủ sản phẩm cần thiết, mang lại sự
-                tiện lợi và ý nghĩa trọn vẹn cho ngày tốt nghiệp quan trọng của
-                bạn
-              </p>
-              <div className="flex flex-wrap gap-4 pt-4">
+      <section className="relative overflow-hidden bg-gradient-to-br from-amber-50 via-yellow-50/50 to-orange-50/5">
+        {/* Decorative Elements */}
+        <div className="absolute top-20 left-10 w-32 h-32 bg-gradient-to-br from-amber-200/30 to-yellow-200/30 rounded-full blur-xl"></div>
+        <div className="absolute bottom-20 right-10 w-40 h-40 bg-gradient-to-br from-orange-200/30 to-amber-200/30 rounded-full blur-xl"></div>
+
+        <div className="container mx-auto px-4 py-16 lg:py-24 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div className="space-y-8">
+              <div className="space-y-4">
+                <Badge className="bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 border-amber-200 text-sm py-2 px-6 font-semibold shadow-md hover:shadow-lg transition-all duration-300">
+                  ✨Combo Tiết Kiệm✨
+                </Badge>
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
+                  <span className="bg-gradient-to-r from-[#C99F4D] to-[#D4AF37] bg-clip-text text-transparent">
+                    Combo Tiết Kiệm
+                  </span>
+                  <br />
+                </h1>
+                <p className="text-xl text-gray-700 leading-relaxed max-w-xl">
+                  Combo đồ cúng trọn gói, đầy đủ lễ vật – tiện lợi, tiết kiệm và
+                  ý nghĩa cho mọi dịp lễ.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <Button
                   size="lg"
-                  className="bg-[#C99F4D] hover:bg-[#B8904A] text-white shadow-lg"
+                  className="bg-gradient-to-r from-[#C99F4D] to-[#B8904A] hover:from-[#B8904A] hover:to-[#A67C42] text-white shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 px-8 py-4 text-lg font-semibold"
                 >
+                  <Flower className="mr-2 h-5 w-5" />
                   Xem Combo
                 </Button>
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-2 border-[#C99F4D] text-[#C99F4D] hover:bg-[#C99F4D] hover:text-white"
+                  className="border-2 border-[#C99F4D] text-[#C99F4D] hover:bg-[#C99F4D] hover:text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 px-8 py-4 text-lg font-semibold"
                 >
-                  Tư Vấn Miễn Phí
+                  <Heart className="mr-2 h-5 w-5" />
+                  Tư Vấn Combo
                 </Button>
               </div>
+
+              {/* Trust Indicators */}
+              <div className="flex items-center gap-8 pt-8 border-t border-amber-200">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-[#C99F4D]">10+</div>
+                  <div className="text-sm text-gray-600">
+                    Năm kinh nghiệm chuẩn bị lễ vật
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-[#C99F4D]">50K+</div>
+                  <div className="text-sm text-gray-600">
+                    Khách hàng tin tưởng & hài lòng
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-[#C99F4D]">100%</div>
+                  <div className="text-sm text-gray-600">
+                    Lễ vật tươi mới & đầy đủ
+                  </div>
+                </div>
+              </div>
             </div>
+
             <div className="relative">
-              <div className="absolute inset-2 bg-gradient-to-t from-amber-100/50 to-orange-100/50 rounded-3xl transform rotate-3 scale-10 -z-10"></div>
-              <img
-                src="https://scontent.fsgn2-9.fna.fbcdn.net/v/t39.30808-6/545847489_641524629014973_5535955644678067889_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=127cfc&_nc_eui2=AeHX9MZ-q8EQDG4A_AourIKbth8wdN_xJx-2HzB03_EnH6IUoSCtfCKfQAHfeKukYsS9rpcRtwykwPnx5Hvhcpgy&_nc_ohc=LHjbYQj0nxoQ7kNvwGvlfhA&_nc_oc=AdndRmAqQzEU1cAh3n_QEFPJj6w2eawo--BE09uA8WLt_XJoCfPNTtZ1rCFQDNiB8Q0&_nc_zt=23&_nc_ht=scontent.fsgn2-9.fna&_nc_gid=lmL9WMUYZuHA5OL2WTcXqg&oh=00_Afe775xK1mjpuxjfQXLc4UeVrh72zoBcStPzqI5ih8DsXw&oe=68F4F54C"
-                alt="Xôi chè cao cấp cho lễ tốt nghiệp"
-                className="relative rounded-3xl shadow-2xl w-[500px] h-[500px] object-cover"
-              />
+              {/* Background decoration */}
+              <div className="absolute inset-0 bg-gradient-to-br w-[550px] ml-9 from-amber-100/40 to-orange-100/40 rounded-3xl transform rotate-3 scale-105"></div>
+              <div className="absolute inset-0 bg-gradient-to-tl  w-[550px] from-yellow-100/40 to-amber-100/40 rounded-3xl transform -rotate-2 scale-110"></div>
+
+              {/* Main image */}
+              <div className="relative">
+                <img
+                  src="https://scontent.fsgn2-9.fna.fbcdn.net/v/t39.30808-6/545847489_641524629014973_5535955644678067889_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=127cfc&_nc_eui2=AeHX9MZ-q8EQDG4A_AourIKbth8wdN_xJx-2HzB03_EnH6IUoSCtfCKfQAHfeKukYsS9rpcRtwykwPnx5Hvhcpgy&_nc_ohc=LHjbYQj0nxoQ7kNvwGvlfhA&_nc_oc=AdndRmAqQzEU1cAh3n_QEFPJj6w2eawo--BE09uA8WLt_XJoCfPNTtZ1rCFQDNiB8Q0&_nc_zt=23&_nc_ht=scontent.fsgn2-9.fna&_nc_gid=lmL9WMUYZuHA5OL2WTcXqg&oh=00_Afe775xK1mjpuxjfQXLc4UeVrh72zoBcStPzqI5ih8DsXw&oe=68F4F54C"
+                  alt="Combo xôi tiết kiệm thơm ngon mỗi ngày"
+                  className="relative rounded-3xl shadow-2xl w-[500px] h-[500px] transform hover:scale-105 transition-transform duration-500 ml-14"
+                />
+
+                {/* Floating badge */}
+                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-lg">
+                  <div className="flex items-center gap-2">
+                    <Star className="h-4 w-4 text-yellow-500 fill-current" />
+                    <span className="text-sm font-semibold text-gray-800">
+                      Chất lượng đảm bảo
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-gradient-to-br from-yellow-50/5 via-orange-50 to-yellow-50">
-        <div className="container mx-auto px-4">
-          <header className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#C99F4D] mb-4">
-              Đặc Điểm Nổi Bật
-            </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-              Tại sao nên chọn combo của chúng tôi cho các dịp quan trọng
-            </p>
-          </header>
+      <section className="py-20 bg-white relative">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-gradient-to-br from-amber-300 to-yellow-300 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-gradient-to-br from-orange-300 to-amber-300 rounded-full blur-3xl"></div>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="text-center mb-16">
+            <Badge className="bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 border-amber-200 mb-4 px-4 py-2 font-semibold">
+              Tại Sao Chọn Chúng Tôi
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold text-[#C99F4D] mb-6">
+              Combo Đồ Cúng Tiết Kiệm – Trọn Vẹn, Tươm Tất, Vừa Túi Tiền
+            </h2>
+            <p className="text-gray-600 max-w-3xl mx-auto text-lg leading-relaxed">
+              Chúng tôi cam kết mang đến những phần đồ cúng đầy đủ, tươm tất và
+              ý nghĩa, giúp bạn chuẩn bị lễ vật chu đáo, tiết kiệm chi phí mà
+              vẫn đảm bảo sự trang trọng và thành tâm.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {features.map((feature, index) => {
               const IconComponent = feature.icon;
               return (
                 <Card
                   key={index}
-                  className="text-center hover:shadow-lg transition-shadow border-amber-200"
+                  className="group hover:shadow-2xl transition-all duration-500 border-0 bg-gradient-to-br from-white to-amber-50/30 hover:from-amber-50 hover:to-yellow-50 transform hover:-translate-y-2"
                 >
-                  <CardContent className="p-6 flex-1 flex flex-col">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-amber-100 to-yellow-100 flex items-center justify-center">
-                      <IconComponent className="h-8 w-8 text-amber-700" />
+                  <CardContent className="p-8 text-center">
+                    <div
+                      className={`w-20 h-20 mx-auto mb-6 rounded-2xl bg-[#C99F4D]  flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all duration-300`}
+                    >
+                      <IconComponent className="h-10 w-10 text-white" />
                     </div>
-                    <h3 className="font-semibold text-gray-800 mb-2">
+                    <h3 className="font-bold text-xl text-gray-800 mb-4  transition-colors">
                       {feature.title}
                     </h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-gray-600 leading-relaxed">
                       {feature.description}
                     </p>
                   </CardContent>
@@ -173,46 +261,69 @@ const ComboCategory = () => {
       </section>
 
       {/* Types Section */}
-      <section className="py-16">
+      <section className="py-20 bg-gradient-to-br from-amber-50/50 via-yellow-50/30 to-orange-50/50">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-[#C99F4D] mb-4">
-              Phân Loại Combo
+          <div className="text-center mb-8">
+            <Badge className="bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 border-amber-200 mb-4 px-4 py-2 font-semibold">
+              Combo Nổi Bật
+            </Badge>
+            <h2 className="text-xl md:text-4xl font-bold text-[#C99F4D] mb-6">
+              Combo Đồ Cúng Trọn Gói
             </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Đa dạng gói combo tiết kiệm phù hợp với mọi nhu cầu
+            <p className="text-gray-600 text-lg max-w-2xl mx-auto leading-relaxed">
+              Đa dạng combo đồ cúng trọn gói, đầy đủ lễ vật và ý nghĩa cho mọi
+              dịp lễ quan trọng.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {comboTypes.map((type, index) => (
               <Card
                 key={index}
-                className="group hover:shadow-xl transition-all duration-300 overflow-hidden h-full flex flex-col"
+                className="group hover:shadow-2xl transition-all duration-500 overflow-hidden border-0 bg-white/80 backdrop-blur-sm transform hover:-translate-y-3"
               >
-                <div className="relative">
+                <div className="relative overflow-hidden">
+                  {type && (
+                    <div className="absolute top-4 left-4 z-10 bg-gradient-to-r from-red-500 to-pink-500 text-white px-3 py-1 rounded-full text-sm font-semibold shadow-lg">
+                      Phổ biến
+                    </div>
+                  )}
                   <img
                     src={type.image}
                     alt={type.name}
-                    className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300"
+                    className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t  transition-colors"></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent group-hover:from-black/30 transition-all duration-300"></div>
                 </div>
-                <CardContent className="p-6 flex-1 flex flex-col">
-                  <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                    {type.name}
-                  </h3>
-                  <p className="text-gray-600 mb-4">{type.description}</p>
-                  <div className="space-y-2 mb-4">
+
+                <CardContent className="p-8">
+                  <div className="flex justify-between items-start mb-4">
+                    <h3 className="text-2xl font-bold text-gray-800 group-hover:text-[#C99F4D] transition-colors">
+                      {type.name}
+                    </h3>
+                    <Badge className="bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 font-semibold">
+                      {type.price}
+                    </Badge>
+                  </div>
+
+                  <p className="text-gray-600 mb-6 leading-relaxed">
+                    {type.description}
+                  </p>
+
+                  <div className="space-y-3 mb-6">
                     {type.benefits.map((benefit, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full"></div>
-                        <span className="text-sm text-gray-600">{benefit}</span>
+                      <div key={idx} className="flex items-center gap-3">
+                        <div className="w-2 h-2 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full flex-shrink-0"></div>
+                        <span className="text-gray-700 font-medium">
+                          {benefit}
+                        </span>
                       </div>
                     ))}
                   </div>
-                  <Button className="w-full bg-[#C99F4D] hover:bg-[#B8904A] text-white mt-auto">
-                    Chọn combo ngay
+
+                  <Button className="w-full bg-gradient-to-r from-[#C99F4D] to-[#B8904A] hover:from-[#B8904A] hover:to-[#A67C42] text-white font-semibold py-3 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
+                    <Flower className="mr-2 h-4 w-4" />
+                    Xem Combo Ngay
                   </Button>
                 </CardContent>
               </Card>
@@ -222,35 +333,65 @@ const ComboCategory = () => {
       </section>
 
       {/* Occasions Section */}
-      <section className="py-16 section-bg-faded">
+      <section className="py-20 bg-gradient-to-b ">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-[#C99F4D] mb-4">
+            <Badge className="bg-[#FCE7A2] text-[#8B5E00] border-none mb-4 px-5 py-2 font-semibold tracking-wide shadow-sm">
+              Theo Từng Dịp Lễ
+            </Badge>
+            <h2 className="text-4xl font-bold text-[#C99F4D] mb-4">
               Combo Theo Dịp
             </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Mỗi dịp lễ có combo phù hợp riêng với đầy đủ sản phẩm
+            <p className="text-gray-600 max-w-2xl mx-auto text-lg leading-relaxed">
+              Mỗi dịp lễ mang ý nghĩa riêng, và một mâm đồ cúng tươm tất chính
+              là cách thể hiện lòng thành kính, tri ân và cầu mong may mắn trọn
+              vẹn nhất.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {occasions.map((occasion, index) => (
-              <Card key={index} className="hover:shadow-lg transition-shadow">
-                <CardContent className="p-6 flex-1 flex flex-col">
-                  <Badge className={`mb-4 ${occasion.color}`}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+            {comboOfferings.map((occasion, index) => (
+              <Card
+                key={index}
+                className="border-amber-200 bg-white shadow-md hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 rounded-2xl"
+              >
+                <div className="p-6 bg-amber-50 border-b border-amber-200">
+                  <Badge className="bg-[#FCE7A2] text-[#8B5E00] mb-3 hover:bg-[#FCE7A2] hover:text-[#8B5E00] hover:cursor-pointer py-1.5 px-3 font-medium text-xs uppercase tracking-wide">
                     {occasion.title}
                   </Badge>
-                  <h3 className="text-xl font-semibold text-gray-800 mb-3">
+
+                  <h3 className="text-xl font-semibold text-[#C99F4D] mb-1">
                     {occasion.description}
                   </h3>
-                  <div className="space-y-2">
-                    {occasion.flowers.map((item, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <Package className="h-4 w-4 text-amber-600" />
-                        <span className="text-gray-700">{item}</span>
+                  <p className="text-sm text-gray-600">
+                    Giá từ{" "}
+                    <span className="font-bold text-[#B7791F]">120.000₫</span>
+                  </p>
+                </div>
+
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    {occasion.items.map((flower, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-3 p-3 rounded-lg bg-amber-50/50 hover:bg-amber-100 transition-colors"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-[#C99F4D] flex items-center justify-center flex-shrink-0 shadow-sm">
+                          <Flower className="h-4 w-4 text-white" />
+                        </div>
+                        <span className="text-gray-700 font-medium">
+                          {flower}
+                        </span>
                       </div>
                     ))}
                   </div>
+
+                  <Button
+                    variant="outline"
+                    className="w-full mt-6 bg-[#C99F4D] text-white border-[#C99F4D] hover:bg-[#B88A3E] hover:border-[#B88A3E] font-semibold py-3 transition-all duration-300 rounded-xl"
+                  >
+                    Xem Chi Tiết
+                  </Button>
                 </CardContent>
               </Card>
             ))}
@@ -259,49 +400,87 @@ const ComboCategory = () => {
       </section>
 
       {/* Culture Section */}
-      <section className="py-16">
+      <section className="py-20 bg-gradient-to-br from-amber-50 via-yellow-50/50 to-orange-50">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="relative">
-              <img
-                src="https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"
-                alt="Combo tốt nghiệp truyền thống"
-                className="rounded-lg shadow-lg w-full"
-              />
-              <div className="absolute inset-0 bg-gradient-to-br from-amber-600/10 to-yellow-600/10 rounded-lg"></div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            {/* Hình ảnh minh họa */}
+            <div className="relative order-2 lg:order-1">
+              {/* Hiệu ứng nền */}
+              <div className="absolute -top-4 -left-4 w-[500px] h-full bg-gradient-to-br from-amber-200/30 to-yellow-200/30 rounded-2xl transform rotate-3"></div>
+
+              <div className="relative">
+                <img
+                  src="https://scontent.fdad3-4.fna.fbcdn.net/v/t39.30808-6/532464477_620527011114735_3462853838480093441_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=833d8c&_nc_eui2=AeGymVmtcAnik5jAhph2Ekp5eaLO-4DtpZd5os77gO2ll4sjK8vFTSJd4fZMlGAGKdet6Wyg2bYUm_qIPTL13oiY&_nc_ohc=yIQeM4GDnZwQ7kNvwEErRrt&_nc_oc=Adm3SyCp18nNTti6nevv1fQ9Nl4Aoo5Iv1vzrQhX_f3vpXpmcANh1KrKDKwGJ48Us4E&_nc_zt=23&_nc_ht=scontent.fdad3-4.fna&_nc_gid=F8HqXM6PBuABXqdp2vQSlw&oh=00_Afc2fzvBvYh9tejlYMCp5FdVEdh9CG8Nam09LCAb3LbOgQ&oe=68F89F6B"
+                  alt="Combo đồ cúng"
+                  className="rounded-2xl shadow-2xl h-[600px] transform hover:scale-105 transition-transform duration-500"
+                />
+
+                {/* Thẻ nổi */}
+                <div className="absolute top-6 left-6 bg-white/90 backdrop-blur-sm rounded-xl px-4 py-3 shadow-lg">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-amber-600" />
+                    <span className="text-sm font-semibold text-gray-800">
+                      Sẵn sàng mọi dịp lễ
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div>
-              <Badge className="bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 mb-4">
-                Văn Hóa Truyền Thống
-              </Badge>
-              <h2 className="text-3xl font-bold text-[#C99F4D] mb-6">
-                Ý Nghĩa Combo Trong Lễ Tốt Nghiệp
-              </h2>
-              <div className="space-y-4 text-gray-600">
-                <p>
-                  Combo trọn gói trong văn hóa Việt Nam thể hiện sự chu đáo,
-                  trang trọng và tôn kính trong những dịp lễ quan trọng.
-                </p>
-                <p>
-                  Sự kết hợp hài hòa của hoa tươi, hương nến, bánh kẹo và xôi
-                  chè tạo nên một không gian thiêng liêng và ý nghĩa.
-                </p>
-                <p>
-                  Combo đầy đủ mang lại cảm giác hoàn thiện, trọn vẹn cho buổi
-                  lễ tốt nghiệp quan trọng.
-                </p>
+            {/* Nội dung */}
+            <div className="space-y-8 order-1 lg:order-2">
+              <div>
+                <Badge className="bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 border-amber-200 mb-4 px-4 py-2 font-semibold">
+                  Combo Đồ Cúng Trọn Gói
+                </Badge>
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#C99F4D] mb-6 whitespace-nowrap">
+                  Tiện Lợi – Đầy Đủ – Trang Trọng
+                </h2>
               </div>
-              <div className="mt-6 flex gap-4">
-                <Button className="bg-[#C99F4D] hover:bg-[#B8904A] text-white">
+
+              <div className="space-y-3">
+                <div className="bg-white rounded-2xl p-4 shadow-lg border-l-4 border-[#C99F4D]">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                    Đầy Đủ Lễ Vật
+                  </h3>
+                  <p className="text-gray-600">
+                    Combo bao gồm đầy đủ hương, hoa, xôi, chè, trái cây và bánh
+                    kẹo – tiện lợi mà vẫn chỉn chu.
+                  </p>
+                </div>
+
+                <div className="bg-white rounded-2xl p-4 shadow-lg border-l-4 border-[#8B7355]">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                    Tiết Kiệm Thời Gian
+                  </h3>
+                  <p className="text-gray-600">
+                    Chỉ cần chọn combo phù hợp, mọi lễ vật được chuẩn bị chu đáo
+                    – không cần lo mua sắm lặt vặt.
+                  </p>
+                </div>
+
+                <div className="bg-white rounded-2xl p-4 shadow-lg border-l-4 border-[#A67C5A]">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                    Ý Nghĩa & Trang Trọng
+                  </h3>
+                  <p className="text-gray-600">
+                    Mỗi combo được sắp xếp hài hòa, tôn nghiêm – thể hiện lòng
+                    thành kính với tổ tiên và thần linh.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <Button className="bg-gradient-to-r from-[#C99F4D] to-[#B8904A] hover:from-[#B8904A] hover:to-[#A67C42] text-white font-semibold px-6 py-3 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
                   <Package className="h-4 w-4 mr-2" />
-                  Tìm hiểu thêm
+                  Khám phá combo
                 </Button>
                 <Button
                   variant="outline"
-                  className="border-[#C99F4D] text-[#C99F4D] hover:bg-[#C99F4D] hover:text-white"
+                  className="border-2 border-[#C99F4D] text-[#C99F4D] hover:bg-[#C99F4D] hover:text-white font-semibold px-6 py-3 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
                 >
-                  Tùy chỉnh combo
+                  <Leaf className="h-4 w-4 mr-2" />
+                  Xem bảng giá
                 </Button>
               </div>
             </div>
@@ -310,57 +489,6 @@ const ComboCategory = () => {
       </section>
 
       {/* Culture/Care Section */}
-      <section className="py-16 section-bg-faded">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h3 className="text-2xl md:text-3xl font-bold text-[#C99F4D] mb-4 break-words">
-              Ưu Điểm Combo Tốt Nghiệp
-            </h3>
-            <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-              Combo không chỉ tiết kiệm mà còn đảm bảo sự hoàn hảo trong ngày
-              đặc biệt
-            </p>
-          </div>
-
-          <div className="mt-12 bg-white rounded-xl shadow-lg p-8 border border-amber-200">
-            <div className="text-center mb-8">
-              <Heart className="h-12 w-12 text-amber-600 mx-auto mb-4" />
-              <h4 className="text-2xl font-bold text-amber-900 mb-4">
-                Tại Sao Chọn Combo
-              </h4>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-lg p-6 text-center border border-amber-200">
-                <Package className="h-8 w-8 text-amber-600 mx-auto mb-3" />
-                <h5 className="font-semibold text-amber-900 mb-2">
-                  Tiết Kiệm Chi Phí
-                </h5>
-                <p className="text-amber-800 text-sm">
-                  Tiết kiệm 20-30% so với mua lẻ từng sản phẩm
-                </p>
-              </div>
-              <div className="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-lg p-6 text-center border border-amber-200">
-                <Gift className="h-8 w-8 text-amber-600 mx-auto mb-3" />
-                <h5 className="font-semibold text-amber-900 mb-2">
-                  Tiện Lợi Tối Đa
-                </h5>
-                <p className="text-amber-800 text-sm">
-                  Một lần mua đủ tất cả, không cần tìm kiếm nhiều nơi
-                </p>
-              </div>
-              <div className="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-lg p-6 text-center border border-amber-200">
-                <Star className="h-8 w-8 text-amber-600 mx-auto mb-3" />
-                <h5 className="font-semibold text-amber-900 mb-2">
-                  Chất Lượng Đồng Đều
-                </h5>
-                <p className="text-amber-800 text-sm">
-                  Tất cả sản phẩm đều được chọn lọc kỹ lưỡng
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Products Section */}
       <section className="py-16 section-bg-faded">
@@ -390,33 +518,78 @@ const ComboCategory = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-r from-amber-700 to-yellow-700 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 left-10 w-40 h-40 bg-white rounded-full blur-2xl"></div>
-          <div className="absolute bottom-10 right-10 w-60 h-60 bg-white rounded-full blur-3xl"></div>
-        </div>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-2xl mx-auto text-center">
-            <h3 className="text-2xl md:text-3xl font-bold text-white mb-4 break-words drop-shadow-lg">
-              Cần Tư Vấn Chọn Combo?
+
+      <section className="py-20 bg-gradient-to-br from-amber-50/50 via-yellow-50/30 to-orange-50/50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <Badge className="bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 border-amber-200 mb-4 px-4 py-2 font-semibold">
+              Khách Hàng Nói Gì
+            </Badge>
+            <h3 className="text-4xl md:text-4xl font-bold text-[#C99F4D] mb-6">
+              Đánh Giá Về Combo Đồ Cúng Trọn Gói
             </h3>
-            <p className="text-amber-100 mb-8 text-lg leading-relaxed drop-shadow">
-              Đội ngũ chuyên gia của chúng tôi sẵn sàng hỗ trợ bạn chọn combo
-              phù hợp nhất cho ngày tốt nghiệp quan trọng. Liên hệ ngay để nhận
-              tư vấn miễn phí và ưu đãi đặc biệt!
+            <p className="text-gray-600 text-lg max-w-2xl mx-auto leading-relaxed">
+              Cảm nhận từ những khách hàng đã đặt combo đồ cúng — trọn vẹn, chu
+              đáo và thể hiện lòng thành kính trong mỗi dịp lễ.
             </p>
-            <div className="flex gap-4 justify-center flex-wrap">
-              <Button className="bg-white text-amber-800 hover:bg-amber-50 px-8 py-3 font-medium rounded-lg shadow-lg">
-                <Heart className="h-4 w-4 mr-2" />
-                Tư Vấn Miễn Phí
-              </Button>
-              <Button
-                variant="outline"
-                className="border-2 border-white text-white hover:bg-white/10 px-8 py-3 font-medium rounded-lg"
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {[
+              {
+                rating: 5,
+                content:
+                  "Combo cúng gia tiên chuẩn bị rất chu đáo, mọi thứ tươi mới và sắp xếp trang trọng. Gia đình mình rất hài lòng!",
+                name: "Nguyễn Thị Lan",
+                role: "Khách hàng tại TP.HCM",
+              },
+              {
+                rating: 5,
+                content:
+                  "Tôi đặt combo cúng Thần Tài cho cửa hàng, lễ vật đầy đủ và đẹp mắt. Nhân viên giao đúng giờ, phục vụ tận tâm.",
+                name: "Trần Quốc Bảo",
+                role: "Chủ tiệm vàng Bảo Kim",
+              },
+              {
+                rating: 4,
+                content:
+                  "Dịch vụ nhanh, giá hợp lý. Mâm cúng tốt nghiệp được chuẩn bị rất ý nghĩa và đẹp, phù hợp để chụp hình kỷ niệm.",
+                name: "Lê Minh Tú",
+                role: "Phụ huynh học sinh",
+              },
+              {
+                rating: 5,
+                content:
+                  "Mình rất ấn tượng với cách trang trí mâm cúng. Mọi thứ được gói gọn gàng, thể hiện được sự tôn nghiêm và tinh tế.",
+                name: "Phạm Hồng Ngọc",
+                role: "Khách hàng thường xuyên",
+              },
+            ].map((testimonial, index) => (
+              <Card
+                key={index}
+                className="hover:shadow-xl transition-all duration-300 border-amber-200 bg-white/80 backdrop-blur-sm"
               >
-                Xem Bảng Giá
-              </Button>
-            </div>
+                <CardContent className="p-8">
+                  <div className="flex items-center mb-4">
+                    {Array.from({ length: testimonial.rating }).map((_, i) => (
+                      <Star
+                        key={i}
+                        className="h-5 w-5 text-yellow-500 fill-current"
+                      />
+                    ))}
+                  </div>
+                  <p className="text-gray-700 italic mb-6 leading-relaxed">
+                    "{testimonial.content}"
+                  </p>
+                  <div>
+                    <p className="font-semibold text-gray-800">
+                      {testimonial.name}
+                    </p>
+                    <p className="text-sm text-gray-600">{testimonial.role}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>

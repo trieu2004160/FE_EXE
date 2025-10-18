@@ -64,17 +64,6 @@ export const mockProducts: Product[] = [
     description: "Hoa sen tươi đẹp, tượng trưng cho sự thuần khiết và phúc lộc trong các dịp quan trọng."
   },
   {
-    id: 5,
-    name: "Bộ Bánh Kẹo Truyền Thống",
-    price: 259000,
-    image:
-      "https://images.unsplash.com/photo-1576618148400-f54bed99fcfd?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    rating: 4,
-    reviews: 92,
-    category: "Bánh Kẹo",
-    description: "Bộ bánh kẹo truyền thống với hương vị đậm đà, phù hợp cho các dịp lễ tết quan trọng."
-  },
-  {
     id: 6,
     name: "Trà Hoa Cúc Thanh Tịnh",
     price: 129000,
@@ -97,17 +86,6 @@ export const mockProducts: Product[] = [
     category: "Hoa Tươi",
     isNew: true,
     description: "Bình hoa lê trắng tinh khôi, tượng trưng cho sự thanh khiết và may mắn."
-  },
-  {
-    id: 8,
-    name: "Đĩa Bánh Quy Phúc Lộc Thọ",
-    price: 189000,
-    image:
-      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSIambLC9PjKybwnYkAF-_PtooyayBzBhZtyA&s",
-    rating: 4,
-    reviews: 134,
-    category: "Bánh Kẹo",
-    description: "Đĩa bánh quy thơm ngon với ý nghĩa phúc lộc thọ, thích hợp cho các dịp cúng lễ."
   },
   // Thêm sản phẩm mới để có đủ dữ liệu
   {
@@ -146,19 +124,6 @@ export const mockProducts: Product[] = [
     category: "Gia Vị",
     description: "Nước mắm truyền thống với hương vị đậm đà, ủ từ cá cơm tươi ngon."
   },
-  {
-    id: 12,
-    name: "Bánh Chưng Ngày Tết",
-    price: 120000,
-    originalPrice: 150000,
-    image:
-      "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    rating: 5,
-    reviews: 312,
-    category: "Bánh Kẹo",
-    isBestSeller: true,
-    description: "Bánh chưng truyền thống với nhân đậu xanh và thịt heo, hương vị đậm đà."
-  }
 ];
 
 // Utility functions để lọc sản phẩm

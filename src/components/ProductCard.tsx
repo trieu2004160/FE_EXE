@@ -132,7 +132,7 @@ const ProductCard = (product: ProductCardProps) => {
       </CardContent>
 
       <CardFooter className="p-3 pt-0">
-        <Button className="w-full h-9 text-sm bg-[#C99F4D]">
+        <Button className="w-full h-9 text-sm bg-[#C99F4D] hover:bg-[#B8904A] text-white">
           <ShoppingCart className="h-4 w-4 mr-1.5" />
           Thêm vào giỏ
         </Button>
