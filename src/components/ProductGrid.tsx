@@ -58,9 +58,8 @@ const ProductGrid = () => {
             <p className="text-xs text-gray-400 mb-6 font-light">
               500+ sản phẩm chất lượng cao đang chờ bạn khám phá
             </p>
-
             <Link to="/products" className="group">
-              <button className="relative bg-gray-800 hover:bg-gray-900 text-white px-6 py-2.5 rounded-lg font-light text-sm shadow-sm hover:shadow-md transition-all duration-200 ease-out">
+              <button className="relative bg-[#C99F4D] hover:bg-[#B8904A] text-white px-6 py-2.5 rounded-lg font-light text-sm shadow-sm hover:shadow-md transition-all duration-300 ease-out">
                 <span className="relative flex items-center justify-center space-x-1.5">
                   <span>Xem Tất Cả</span>
                   <svg

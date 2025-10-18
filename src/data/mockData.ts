@@ -13,118 +13,196 @@ export interface Product {
 }
 
 export const mockProducts: Product[] = [
+  // 🌸 HƯƠNG NẾN
   {
     id: 1,
-    name: "Bộ Hoa Quả Tốt Nghiệp Cao Cấp",
-    price: 299000,
-    originalPrice: 399000,
+    name: "Nến Thơm Trầm Hương",
+    price: 59000,
     image:
-      "https://images.unsplash.com/photo-1610832958506-aa56368176cf?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+      "https://images.unsplash.com/photo-1612010167103-3fada3f9f0a4?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
     rating: 5,
-    reviews: 124,
-    category: "Hoa Quả",
-    isNew: true,
-    isBestSeller: true,
-    description: "Bộ hoa quả tươi ngon, đẹp mắt dành cho lễ tốt nghiệp. Bao gồm các loại hoa quả cao cấp được tuyển chọn kỹ lưỡng."
+    reviews: 74,
+    category: "Hương Nến",
+    description:
+      "Nến thơm trầm hương giúp thanh lọc không khí, tạo cảm giác thư giãn và trang nghiêm khi thắp hương cúng.",
   },
   {
     id: 2,
-    name: "Bó Hương Nụ Tâm An",
-    price: 149000,
+    name: "Hộp Hương Que Quế Chi",
+    price: 49000,
     image:
-      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTKicrU3CuRkCv-l6QfjQWr_TBZuvu6EHZwSbxUt0mNF8R2LK8OB4JodzUPWCxPqVEgWDs&usqp=CAU",
-    rating: 5,
-    reviews: 89,
+      "https://images.unsplash.com/photo-1615484477898-5e5b09dfb2c8?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+    rating: 4,
+    reviews: 51,
     category: "Hương Nến",
-    isBestSeller: true,
-    description: "Bó hương nụ tâm an với mùi hương thanh khiết, mang lại cảm giác bình an và thư thái."
+    description:
+      "Hương que làm từ bột quế tự nhiên, cháy đều, thơm dịu – phù hợp cho mọi không gian thờ cúng.",
   },
   {
     id: 3,
-    name: "Nến Thờ Long Phụng Sum Vầy",
-    price: 199000,
-    originalPrice: 249000,
+    name: "Nến Ly Vàng Truyền Thống",
+    price: 39000,
     image:
-      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTHWbAPFjFSLETS9EkHieSxG9dx3IJVBCH-Jg&s",
-    rating: 4,
-    reviews: 67,
+      "https://images.unsplash.com/photo-1594385461347-77d03f9a2c8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+    rating: 5,
+    reviews: 68,
     category: "Hương Nến",
-    description: "Nến thờ cao cấp với họa tiết long phụng, tượng trưng cho sự sum vầy và thịnh vượng."
+    description:
+      "Cặp nến ly màu vàng, biểu trưng cho sự sung túc, ấm no và thịnh vượng trong mỗi dịp lễ.",
   },
   {
     id: 4,
-    name: "Hoa Sen Tươi Phúc Lộc",
-    price: 179000,
+    name: "Hương Nụ Hoa Sen",
+    price: 69000,
     image:
-      "https://cdn.tgdd.vn/Files/2024/03/18/1563153/sen-da-loc-la-sen-gi-y-nghia-va-cong-dung-sen-da-loc-202403180513497313.jpg",
+      "https://images.unsplash.com/photo-1611904751804-6f2ef83b6b9e?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
     rating: 5,
-    reviews: 156,
-    category: "Hoa Tươi",
-    isNew: true,
-    description: "Hoa sen tươi đẹp, tượng trưng cho sự thuần khiết và phúc lộc trong các dịp quan trọng."
+    reviews: 39,
+    category: "Hương Nến",
+    description:
+      "Hương nụ hoa sen nhẹ nhàng, thanh khiết – mang lại không gian tĩnh lặng, an yên.",
+  },
+
+  // 🍎 HOA QUẢ
+  {
+    id: 5,
+    name: "Chuối Chín Vàng",
+    price: 29000,
+    image:
+      "https://images.unsplash.com/photo-1574226516831-e1dff420e12e?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+    rating: 5,
+    reviews: 90,
+    category: "Hoa Quả",
+    description:
+      "Nải chuối chín vàng tự nhiên – biểu trưng cho sự sum vầy, đủ đầy trong mâm cúng gia tiên.",
   },
   {
     id: 6,
-    name: "Trà Hoa Cúc Thanh Tịnh",
-    price: 129000,
-    originalPrice: 159000,
+    name: "Cam Tươi Ngọt",
+    price: 35000,
     image:
-      "https://images.unsplash.com/photo-1544787219-7f47ccb76574?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    rating: 5,
-    reviews: 203,
-    category: "Xôi – Chè",
-    description: "Trà hoa cúc thanh mát, giúp thanh lọc cơ thể và mang lại cảm giác thư thái."
+      "https://images.unsplash.com/photo-1619566636858-71b1c7c7d8d3?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+    rating: 4,
+    reviews: 42,
+    category: "Hoa Quả",
+    description:
+      "Cam chín mọng, ngọt thanh, tượng trưng cho may mắn và tài lộc trong các dịp lễ cúng.",
   },
   {
     id: 7,
-    name: "Bình Hoa Lê Trắng Thanh Khiết",
-    price: 349000,
+    name: "Táo Đỏ Tươi",
+    price: 39000,
     image:
-      "https://quatangphale.com.vn/assets/tin-tuc-su-kien/2023_08/binh-hoa-pha-le-58-01_1.jpg",
-    rating: 5,
-    reviews: 78,
-    category: "Hoa Tươi",
-    isNew: true,
-    description: "Bình hoa lê trắng tinh khôi, tượng trưng cho sự thanh khiết và may mắn."
+      "https://images.unsplash.com/photo-1570930031263-d00c7f3d40d7?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+    rating: 4,
+    reviews: 55,
+    category: "Hoa Quả",
+    description:
+      "Táo đỏ tươi giòn ngọt, tượng trưng cho sự bình an và may mắn cho gia đình.",
   },
-  // Thêm sản phẩm mới để có đủ dữ liệu
+  {
+    id: 8,
+    name: "Mãng Cầu Xanh",
+    price: 45000,
+    image:
+      "https://images.unsplash.com/photo-1623164921038-0b6d91cb8f6a?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+    rating: 5,
+    reviews: 48,
+    category: "Hoa Quả",
+    description:
+      "Mãng cầu tươi ngon – biểu trưng cho cầu mong điều lành, thường dùng trong mâm ngũ quả truyền thống.",
+  },
+
+  // 🍵 XÔI – CHÈ
   {
     id: 9,
-    name: "Bộ Chén Dĩa Cao Cấp",
-    price: 450000,
-    originalPrice: 550000,
+    name: "Xôi Gấc Đỏ",
+    price: 29000,
     image:
-      "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+      "https://images.unsplash.com/photo-1607330284363-3f41b9e3c5d9?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
     rating: 5,
-    reviews: 201,
-    category: "Đồ Dùng",
-    isBestSeller: true,
-    description: "Bộ chén dĩa cao cấp với thiết kế tinh xảo, phù hợp cho các buổi tiệc quan trọng."
+    reviews: 61,
+    category: "Xôi – Chè",
+    description:
+      "Xôi gấc đỏ thơm ngon – tượng trưng cho may mắn, hạnh phúc và sung túc.",
   },
   {
     id: 10,
-    name: "Giỏ Hoa Lan Hồ Điệp",
-    price: 520000,
+    name: "Chè Đậu Xanh Truyền Thống",
+    price: 25000,
     image:
-      "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+      "https://images.unsplash.com/photo-1615483213080-1aef8b6e3d6c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
     rating: 5,
-    reviews: 87,
-    category: "Hoa Tươi",
-    isNew: true,
-    description: "Giỏ hoa lan hồ điệp sang trọng, tượng trưng cho sự thành công và vinh quang."
+    reviews: 48,
+    category: "Xôi – Chè",
+    description:
+      "Chè đậu xanh truyền thống – vị ngọt thanh, dễ ăn, thường dùng trong các dịp lễ cúng.",
   },
   {
     id: 11,
-    name: "Nước Mắm Truyền Thống",
-    price: 85000,
+    name: "Chè Trôi Nước",
+    price: 27000,
     image:
-      "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+      "https://images.unsplash.com/photo-1615484479154-8c9d6a7d69a1?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
     rating: 4,
-    reviews: 145,
-    category: "Gia Vị",
-    description: "Nước mắm truyền thống với hương vị đậm đà, ủ từ cá cơm tươi ngon."
+    reviews: 52,
+    category: "Xôi – Chè",
+    description:
+      "Chè trôi nước dẻo thơm, viên tròn tượng trưng cho đoàn viên và sung túc.",
+  },
+
+  // 🎁 COMBO TIẾT KIỆM (Combo Đồ Cúng)
+  {
+    id: 12,
+    name: "Combo Đồ Cúng Đầy Tháng",
+    price: 499000,
+    image:
+      "https://images.unsplash.com/photo-1617196039793-6576bdbd03b0?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+    rating: 5,
+    reviews: 80,
+    category: "Combo Tiết Kiệm",
+    description:
+      "Combo đồ cúng đầy đủ cho lễ đầy tháng – bao gồm hoa quả, hương nến và xôi chè tiện lợi.",
+  },
+  {
+    id: 13,
+    name: "Combo Đồ Cúng Rằm",
+    price: 459000,
+    image:
+      "https://images.unsplash.com/photo-1606820979393-1ec67b4bbfd2?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+    rating: 5,
+    reviews: 92,
+    category: "Combo Tiết Kiệm",
+    description:
+      "Combo đồ cúng rằm gồm đầy đủ hoa quả, hương, nến và xôi chè – tiện lợi và trang trọng.",
+  },
+  {
+    id: 14,
+    name: "Combo Đồ Cúng Tốt Nghiệp",
+    price: 529000,
+    image:
+      "https://images.unsplash.com/photo-1597231433140-69c1e1b1b1b8?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+    rating: 5,
+    reviews: 70,
+    category: "Combo Tiết Kiệm",
+    description:
+      "Combo đồ cúng cho lễ tốt nghiệp – tượng trưng cho lòng tri ân và khởi đầu mới.",
+  },
+  {
+    id: 15,
+    name: "Combo Đồ Cúng Rằm Tháng 7",
+    price: 559000,
+    image:
+      "https://images.unsplash.com/photo-1623330181173-0c21974f3b75?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+    rating: 5,
+    reviews: 85,
+    category: "Combo Tiết Kiệm",
+    description:
+      "Combo đồ cúng Rằm Tháng 7 – chuẩn bị sẵn đầy đủ lễ vật, tiện lợi và ý nghĩa.",
   },
 ];
+
+
 
 // Utility functions để lọc sản phẩm
 export const getBestSellerProducts = () => {
