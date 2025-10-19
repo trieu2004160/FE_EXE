@@ -102,7 +102,10 @@ const ProductCard = (product: ProductCardProps) => {
         </Badge>
 
         <Link to={`/product/${id}`}>
-          <h3 className="font-medium text-base mb-2 text-gray-800 line-clamp-2 group-hover:text-primary transition">
+          <h3
+            className="font-medium text-base mb-2 text-gray-800 line-clamp-2 
+             group-hover:text-[#C99F4D] transition-colors duration-300"
+          >
             {name}
           </h3>
         </Link>

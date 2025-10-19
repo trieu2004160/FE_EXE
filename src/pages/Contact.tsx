@@ -143,7 +143,7 @@ const Contact = () => {
             <Card className="shadow-medium">
               <CardHeader>
                 <CardTitle className="flex items-center text-2xl">
-                  <MessageCircle className="h-6 w-6 mr-3 text-primary" />
+                  <MessageCircle className="h-6 w-6 mr-3 text-[#C99F4D]" />
                   Gửi Tin Nhắn
                 </CardTitle>
               </CardHeader>
@@ -234,7 +234,7 @@ const Contact = () => {
 
                   <Button
                     type="submit"
-                    className="w-full bg-gradient-primary text-primary-foreground hover:shadow-glow transition-bounce"
+                    className="w-full bg-[#C99F4D] text-primary-foreground hover:bg-[#B8904A] transition-bounce"
                     size="lg"
                   >
                     <Send className="h-4 w-4 mr-2" />
@@ -246,28 +246,40 @@ const Contact = () => {
 
             {/* Map & Additional Info */}
             <div className="space-y-6">
+              {/* Bản đồ Google Maps */}
               <Card className="shadow-medium">
                 <CardHeader>
                   <CardTitle>Tìm đường đến cửa hàng</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-4">
-                    <div className="text-center">
-                      <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                      <p className="text-muted-foreground">
-                        Bản đồ Google Maps
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        123 Đường Lê Lợi, Quận 1, TP.HCM
-                      </p>
-                    </div>
+                  <div className="aspect-video rounded-lg overflow-hidden mb-4">
+                    <iframe
+                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.286923518261!2d106.69109337480553!3d10.78974535901087!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f404b084253%3A0x4b23c49e5e792c6a!2zMTIzIMSQLiBMw6ogTOG7o2ksIFBoxrDhu51uZyDEkOG6oWkgNCwgUXXhuq1uIDEsIFRow6BuaCBwaOG7kSBI4buNYyBNaW5oLCBWaWV0bmFt!5e0!3m2!1svi!2s!4v1739855333123!5m2!1svi!2s"
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      allowFullScreen
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    ></iframe>
                   </div>
-                  <Button variant="outline" className="w-full">
+
+                  <Button
+                    variant="outline"
+                    className="w-full  bg-[#C99F4D] hover:bg-[#B8904A] text-white font-semibold transition-all duration-300"
+                    onClick={() =>
+                      window.open(
+                        "https://maps.app.goo.gl/QReMbPswyo6ve8aNA",
+                        "_blank"
+                      )
+                    }
+                  >
                     Xem chỉ đường trên Google Maps
                   </Button>
                 </CardContent>
               </Card>
 
+              {/* Câu hỏi thường gặp */}
               <Card className="shadow-medium">
                 <CardHeader>
                   <CardTitle>Câu hỏi thường gặp</CardTitle>

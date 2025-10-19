@@ -104,15 +104,25 @@ const Header = () => {
             <div className="hidden sm:flex relative">
               <Input
                 placeholder="Tìm kiếm sản phẩm..."
-                className="pr-10 w-56 lg:w-64 border-gray-200 bg-gray-50/50 focus:bg-white focus:border-amber-300 transition-all duration-200"
+                className="pr-10 w-56 lg:w-64 bg-gray-50/50 focus:bg-white transition-all duration-200 
+    outline-none focus:ring-0 focus:border-gray-300 hover:border-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0"
               />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 hover:bg-amber-100"
+
+              {/* Nút tìm kiếm mới (xám nhẹ, không viền xanh) */}
+              <button
+                type="button"
+                title="Tìm kiếm"
+                aria-label="Tìm kiếm"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center 
+    rounded-md bg-gray-100 hover:bg-gray-200 active:scale-95 
+    transition-all duration-200 shadow-sm hover:shadow-md
+    focus:outline-none focus:ring-0 border-0 outline-0 ring-0"
+                style={{ outline: "none", border: "none", boxShadow: "none" }}
+                onMouseDown={(e) => e.preventDefault()}
               >
+                {/* Icon màu xám nhẹ */}
                 <Search className="h-4 w-4 text-gray-500" />
-              </Button>
+              </button>
             </div>
 
             {/* Action Buttons */}
@@ -159,12 +169,12 @@ const Header = () => {
               >
                 {isLoggedIn ? (
                   userRole === "admin" ? (
-                    <Settings className="h-5 w-5 text-gray-600 group-hover:text-blue-600" />
+                    <Settings className="h-5 w-5 text-gray-600 " />
                   ) : (
-                    <User className="h-5 w-5 text-gray-600 group-hover:text-blue-600" />
+                    <User className="h-5 w-5 text-gray-600 " />
                   )
                 ) : (
-                  <User className="h-5 w-5 text-gray-600 group-hover:text-blue-600" />
+                  <User className="h-5 w-5 text-gray-600 " />
                 )}
               </Button>
 

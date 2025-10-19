@@ -92,7 +92,7 @@ const Wishlist = () => {
                   lại sau này
                 </p>
               </div>
-              <Button asChild>
+              <Button asChild className="bg-[#A67C42]">
                 <Link to="/products">
                   <ShoppingBag className="h-4 w-4 mr-2" />
                   Khám phá sản phẩm

@@ -14,10 +14,7 @@ import ProductCard from "@/components/ProductCard";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import AIAssistant from "@/components/AIAssistant";
-import {
-  mockProducts,
-  getAllCategories,
-} from "@/data/mockData";
+import { mockProducts, getAllCategories } from "@/data/mockData";
 
 const Products = () => {
   const categories = ["Tất cả", ...getAllCategories()];
@@ -91,7 +88,8 @@ const Products = () => {
                 placeholder="Tìm kiếm sản phẩm..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full lg:w-80"
+                className="pl-10 w-full lg:w-80 border-gray-300 focus:border-gray-300 focus:ring-0 focus:ring-offset-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 !ring-0 !ring-offset-0 !outline-none"
+                style={{ boxShadow: "none !important" }}
               />
             </div>
 
@@ -103,7 +101,12 @@ const Products = () => {
                   variant={
                     selectedCategory === category ? "default" : "secondary"
                   }
-                  className="cursor-pointer transition-smooth hover:shadow-soft"
+                  className={`cursor-pointer transition-all duration-200 rounded-md text-sm font-medium shadow-sm
+        ${
+          selectedCategory === category
+            ? "bg-gray-700 hover:bg-gray-800 text-white"
+            : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+        }`}
                   onClick={() => setSelectedCategory(category)}
                 >
                   {category}
@@ -126,20 +129,31 @@ const Products = () => {
                 </SelectContent>
               </Select>
 
-              <div className="flex border border-border rounded-lg">
+              <div className="flex border border-gray-300 rounded-lg overflow-hidden">
                 <Button
-                  variant={viewMode === "grid" ? "default" : "ghost"}
+                  variant="ghost"
                   size="icon"
                   onClick={() => setViewMode("grid")}
-                  className="rounded-r-none"
+                  className={`rounded-none transition-all duration-200 hover:bg-gray-100
+      ${
+        viewMode === "grid"
+          ? "bg-gray-200 text-gray-800 hover:bg-gray-400"
+          : "bg-white text-gray-600 hover:bg-gray-400"
+      }`}
                 >
                   <Grid className="h-4 w-4" />
                 </Button>
+
                 <Button
-                  variant={viewMode === "list" ? "default" : "ghost"}
+                  variant="ghost"
                   size="icon"
                   onClick={() => setViewMode("list")}
-                  className="rounded-l-none"
+                  className={`rounded-none transition-all duration-200 hover:bg-gray-100
+      ${
+        viewMode === "list"
+          ? "bg-gray-200 text-gray-800 hover:bg-gray-400"
+          : "bg-white text-gray-600 hover:bg-gray-400"
+      }`}
                 >
                   <List className="h-4 w-4" />
                 </Button>
@@ -152,12 +166,6 @@ const Products = () => {
       {/* Products Grid */}
       <section className="py-12">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-6">
-            <p className="text-muted-foreground">
-              Hiển thị {sortedProducts.length} sản phẩm
-            </p>
-          </div>
-
           {sortedProducts.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-xl text-muted-foreground mb-4">
