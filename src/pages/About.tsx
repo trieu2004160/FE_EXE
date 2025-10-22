@@ -204,13 +204,13 @@ const About = () => {
               <CardContent className="p-6 text-center">
                 <div className="relative mb-4">
                   <img
-                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"
+                    src="https://scontent.fsgn2-7.fna.fbcdn.net/v/t39.30808-6/489914747_2330340627347161_1399342974251969155_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=6ee11a&_nc_eui2=AeFVWJSbJ15IPg6tL-oQ8QcBORQxlwY4k845FDGXBjiTzkdD1cpJairSt8ggmvt7Nsqc-dQPR0nDdxlt0pPSy_-G&_nc_ohc=irMcPi0e_YkQ7kNvwHRwWWO&_nc_oc=Admr4-g36XlADUlCoiZV4NYOiztLUSrevACADn0pnZ4Wibu7OxOBWKburizY7DbOhfE&_nc_zt=23&_nc_ht=scontent.fsgn2-7.fna&_nc_gid=H4uJETqQszijtblX-8i-BA&oh=00_AfcjEdCu2IbfxiWs0CEmgRbovhP3jhOER-y01uiMmf_hQA&oe=68FB76CB"
                     alt="CEO"
                     className="w-24 h-24 rounded-full mx-auto object-cover border-4 border-[#C99F4D]/20 group-hover:border-[#C99F4D]/40 transition-colors"
                   />
                 </div>
                 <h3 className="font-semibold text-foreground text-lg mb-1 group-hover:text-[#C99F4D] transition-colors">
-                  Nguyễn Minh Hoàng
+                  Võ Chí Triều
                 </h3>
                 <p className="text-[#C99F4D] font-medium mb-2">Founder & CEO</p>
                 <p className="text-muted-foreground text-sm group-hover:text-foreground transition-colors">
@@ -223,13 +223,13 @@ const About = () => {
               <CardContent className="p-6 text-center">
                 <div className="relative mb-4">
                   <img
-                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"
+                    src="https://scontent.fsgn2-4.fna.fbcdn.net/v/t39.30808-1/519448241_1469705860823124_8006111935114899629_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=101&ccb=1-7&_nc_sid=e99d92&_nc_eui2=AeF14aAPp0d7nAqIcKP-CQb9Q7BZ3fviTIlDsFnd--JMiSnAS9vlJBEUKSjxpzg9TLwE9MnVfTfxOabz3-1CNIVi&_nc_ohc=oo-DlIjNPhkQ7kNvwGYoYQW&_nc_oc=AdnM4nlwtcq6GOoZ438--rZBnLxms0nrUzNfFidzPxCo2ViKdqOZILkXcAn_4hnBN18&_nc_zt=24&_nc_ht=scontent.fsgn2-4.fna&_nc_gid=DaielGJXsZJ1pTpEzUlCxA&oh=00_AfdjusF1rQun0Xp3s2KWVAZJdSooWQrc4Zr4hG4YB7WoQQ&oe=68FB81F4"
                     alt="Marketing Manager"
                     className="w-24 h-24 rounded-full mx-auto object-cover border-4 border-[#C99F4D]/20 group-hover:border-[#C99F4D]/40 transition-colors"
                   />
                 </div>
                 <h3 className="font-semibold text-foreground text-lg mb-1 group-hover:text-[#C99F4D] transition-colors">
-                  Trần Thị Mai
+                  Võ Thị Huỳnh Thư
                 </h3>
                 <p className="text-[#C99F4D] font-medium mb-2">
                   Marketing Manager

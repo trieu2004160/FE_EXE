@@ -19,7 +19,7 @@ export const mockProducts: Product[] = [
     name: "Nến Thơm Trầm Hương",
     price: 59000,
     image:
-      "https://images.unsplash.com/photo-1612010167103-3fada3f9f0a4?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+      "https://tanmydesign.com/uploaded/san-pham/Noi%20that/PHong%20tam/cochine/Candles/AGW_Candle_With%20box_0682.jpg",
     rating: 5,
     reviews: 74,
     category: "Hương Nến",
@@ -31,7 +31,7 @@ export const mockProducts: Product[] = [
     name: "Hộp Hương Que Quế Chi",
     price: 49000,
     image:
-      "https://images.unsplash.com/photo-1615484477898-5e5b09dfb2c8?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+      "https://nhangmoclam.com/wp-content/uploads/2024/01/nu-que-chi-100g-cao-cap-moc-lam.jpg",
     rating: 4,
     reviews: 51,
     category: "Hương Nến",
@@ -43,7 +43,7 @@ export const mockProducts: Product[] = [
     name: "Nến Ly Vàng Truyền Thống",
     price: 39000,
     image:
-      "https://images.unsplash.com/photo-1594385461347-77d03f9a2c8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+      "https://vatphamphatgiao.com/wp-content/uploads/2022/11/Nen-Coc-%E2%80%93-Den-Cay-Ly-Thuy-Tinh-Hoa-Sen-Doi-Mau-Vang-Chay-24h-1.jpg",
     rating: 5,
     reviews: 68,
     category: "Hương Nến",
@@ -55,7 +55,7 @@ export const mockProducts: Product[] = [
     name: "Hương Nụ Hoa Sen",
     price: 69000,
     image:
-      "https://images.unsplash.com/photo-1611904751804-6f2ef83b6b9e?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+      "https://hinhanh.nhungtho.vn/upload/MOTNENNHANGTHOM/241199251_1593166721031516_8423503939944489630_n.jpg",
     rating: 5,
     reviews: 39,
     category: "Hương Nến",
@@ -69,7 +69,7 @@ export const mockProducts: Product[] = [
     name: "Chuối Chín Vàng",
     price: 29000,
     image:
-      "https://images.unsplash.com/photo-1574226516831-e1dff420e12e?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+      "https://suckhoedoisong.qltns.mediacdn.vn/324455921873985536/2022/12/26/chuoi-chin-16720695582281654655438.jpg",
     rating: 5,
     reviews: 90,
     category: "Hoa Quả",
@@ -81,7 +81,7 @@ export const mockProducts: Product[] = [
     name: "Cam Tươi Ngọt",
     price: 35000,
     image:
-      "https://images.unsplash.com/photo-1619566636858-71b1c7c7d8d3?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+      "https://cf.shopee.vn/file/af560124280e0f7e97b7fae473f0bcf0",
     rating: 4,
     reviews: 42,
     category: "Hoa Quả",
@@ -93,7 +93,7 @@ export const mockProducts: Product[] = [
     name: "Táo Đỏ Tươi",
     price: 39000,
     image:
-      "https://images.unsplash.com/photo-1570930031263-d00c7f3d40d7?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+      "https://stockdep.net/files/images/8048665.jpg",
     rating: 4,
     reviews: 55,
     category: "Hoa Quả",
@@ -105,7 +105,7 @@ export const mockProducts: Product[] = [
     name: "Mãng Cầu Xanh",
     price: 45000,
     image:
-      "https://images.unsplash.com/photo-1623164921038-0b6d91cb8f6a?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+      "https://tamthatlaocai.vn/wp-content/uploads/2022/02/mang-cau-xiem.jpg",
     rating: 5,
     reviews: 48,
     category: "Hoa Quả",
@@ -119,7 +119,7 @@ export const mockProducts: Product[] = [
     name: "Xôi Gấc Đỏ",
     price: 29000,
     image:
-      "https://images.unsplash.com/photo-1607330284363-3f41b9e3c5d9?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+      "https://i-giadinh.vnecdn.net/2023/12/08/Thnhphm11-1702020519-9081-1702020523.jpg",
     rating: 5,
     reviews: 61,
     category: "Xôi – Chè",
@@ -131,7 +131,7 @@ export const mockProducts: Product[] = [
     name: "Chè Đậu Xanh Truyền Thống",
     price: 25000,
     image:
-      "https://images.unsplash.com/photo-1615483213080-1aef8b6e3d6c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+      "https://file.hstatic.net/200000721249/file/che_dau_xanh__1__530e50a7a3794a01b7221f3946ebbf1d.jpg",
     rating: 5,
     reviews: 48,
     category: "Xôi – Chè",
@@ -143,7 +143,7 @@ export const mockProducts: Product[] = [
     name: "Chè Trôi Nước",
     price: 27000,
     image:
-      "https://images.unsplash.com/photo-1615484479154-8c9d6a7d69a1?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+      "https://file.hstatic.net/200000721249/file/cach_lam_che_troi_nuoc_truyen_thong_cdce03913e29486ea04199f58dcdd017.jpg",
     rating: 4,
     reviews: 52,
     category: "Xôi – Chè",
@@ -157,7 +157,7 @@ export const mockProducts: Product[] = [
     name: "Combo Đồ Cúng Đầy Tháng",
     price: 499000,
     image:
-      "https://images.unsplash.com/photo-1617196039793-6576bdbd03b0?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+      "https://tiki.vn/blog/wp-content/uploads/2023/09/cach-tinh-ngay-cung-day-thang-cho-be-trai-va-gio-cung.jpg",
     rating: 5,
     reviews: 80,
     category: "Combo Tiết Kiệm",
@@ -169,7 +169,7 @@ export const mockProducts: Product[] = [
     name: "Combo Đồ Cúng Rằm",
     price: 459000,
     image:
-      "https://images.unsplash.com/photo-1606820979393-1ec67b4bbfd2?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+      "https://enzy.vn/wp-content/uploads/2025/08/1-7.png",
     rating: 5,
     reviews: 92,
     category: "Combo Tiết Kiệm",
@@ -181,7 +181,7 @@ export const mockProducts: Product[] = [
     name: "Combo Đồ Cúng Tốt Nghiệp",
     price: 529000,
     image:
-      "https://images.unsplash.com/photo-1597231433140-69c1e1b1b1b8?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+      "https://docungtamlinh.com.vn/wp-content/uploads/2023/08/cung-co-hon-thang-7-am-lich-2999k-vit-heo-quay-1.jpg",
     rating: 5,
     reviews: 70,
     category: "Combo Tiết Kiệm",
@@ -193,7 +193,7 @@ export const mockProducts: Product[] = [
     name: "Combo Đồ Cúng Rằm Tháng 7",
     price: 559000,
     image:
-      "https://images.unsplash.com/photo-1623330181173-0c21974f3b75?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+      "https://afamilycdn.com/150157425591193600/2020/8/25/1-15983261150471104397136.jpg",
     rating: 5,
     reviews: 85,
     category: "Combo Tiết Kiệm",

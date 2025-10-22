@@ -154,10 +154,10 @@ const FlowersCategory = () => {
                 </Badge>
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
                   <span className="bg-gradient-to-r from-[#C99F4D] to-[#D4AF37] bg-clip-text text-transparent">
-                    Hoa Tươi Dành Cho
+                    Hoa Tươi trang trí
                   </span>
                   <br />
-                  <span className="text-[#B8904A]">Lễ Tốt Nghiệp</span>
+                  <span className="text-[#B8904A]">Mâm Cúng</span>
                 </h1>
                 <p className="text-xl text-gray-700 leading-relaxed max-w-xl">
                   Mỗi bông hoa được chọn lọc kỹ lưỡng từ những nhà vườn uy tín,

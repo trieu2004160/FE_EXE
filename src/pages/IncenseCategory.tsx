@@ -103,7 +103,7 @@ const IncenseCategory = () => {
       name: "Anh Đức Minh",
       role: "Sinh viên",
       content:
-        "Chất lượng hương nến tuyệt vời, giá cả hợp lý. Sẽ giới thiệu cho bạn bè.",
+        "Chất lượng hương nến tuyệt vời, giá cả hợp lý. Sẽ giớ i thiệu cho bạn bè.",
       rating: 5,
     },
   ];
@@ -125,10 +125,10 @@ const IncenseCategory = () => {
                 </Badge>
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
                   <span className="bg-gradient-to-r from-[#C99F4D] to-[#D4AF37] bg-clip-text text-transparent">
-                    Hương Nến Dành Cho
+                    Hương – Nến Cho
                   </span>
                   <br />
-                  <span className="text-[#B8904A]">Lễ Tốt Nghiệp</span>
+                  <span className="text-[#B8904A]">Mâm Cúng </span>
                 </h1>
                 <p className="text-xl text-gray-700 leading-relaxed max-w-xl">
                   Mỗi que hương được chọn lọc kỹ lưỡng, mang ý nghĩa thiêng
@@ -333,7 +333,7 @@ const IncenseCategory = () => {
                   Văn Hóa Truyền Thống
                 </Badge>
                 <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#C99F4D] mb-6 whitespace-nowrap">
-                  Ý Nghĩa Hoa Quả Trong Lễ Tốt Nghiệp
+                  Ý Nghĩa Hương – Nến Trong Mâm Cúng
                 </h2>
               </div>
 
