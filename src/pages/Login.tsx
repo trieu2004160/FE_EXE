@@ -239,7 +239,7 @@ const Login = () => {
           </h1>
 
           {/* Offline Status */}
-          <OfflineStatus />
+          {/* <OfflineStatus /> */}
 
           {/* Social Login Buttons */}
           <div className="py-6 space-x-2">
@@ -332,7 +332,7 @@ const Login = () => {
             </div>
 
             {/* Demo Accounts */}
-            <div className="mt-6 p-4 bg-gray-800 rounded-lg text-left">
+            {/* <div className="mt-6 p-4 bg-gray-800 rounded-lg text-left">
               <p className="text-sm font-medium text-gray-300 mb-3">
                 Tài khoản demo:
               </p>
@@ -350,7 +350,7 @@ const Login = () => {
                   <span>user@nova.com / user123</span>
                 </div>
               </div>
-            </div>
+            </div> */}
 
             {/* Mobile Social Icons */}
             <div className="p-4 text-center right-0 left-0 flex justify-center space-x-4 mt-16 lg:hidden">

@@ -43,6 +43,14 @@ const categories = [
     color: "text-purple-600",
     bgColor: "bg-purple-50 dark:bg-purple-900/20",
   },
+  {
+    id: 7,
+    name: "Chụp Ảnh Lễ ",
+    icon: Gift,
+    count: 12,
+    color: "text-purple-600",
+    bgColor: "bg-purple-50 dark:bg-purple-900/20",
+  },
 ];
 
 const Categories = () => {
@@ -74,7 +82,7 @@ const Categories = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 p-9 ">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 p-9 ">
           {categories.map((category) => {
             const IconComponent = category.icon;
             return (

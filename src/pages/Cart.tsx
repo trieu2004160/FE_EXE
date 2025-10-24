@@ -33,7 +33,7 @@ const mockCartItems: CartItem[] = [
     name: "Bó Hương Nụ Tâm An",
     price: 149000,
     image:
-      "https://images.unsplash.com/photo-1594736797933-d0aa48ad0db6?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80",
+      "https://vach-ngan.com/uploads/images/Nhang%20N%E1%BB%A5%20Tr%E1%BA%A7m%20H%C6%B0%C6%A1ng%20An%20Y%C3%AAn.png",
     quantity: 2,
     category: "Hương Nến",
   },
@@ -41,8 +41,7 @@ const mockCartItems: CartItem[] = [
     id: 4,
     name: "Hoa Sen Tươi Phúc Lộc",
     price: 179000,
-    image:
-      "https://images.unsplash.com/photo-1528475478853-5bb5d2dd637f?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80",
+    image: "https://nongsandalat.vn/wp-content/uploads/2023/10/sen.jpg",
     quantity: 1,
     category: "Hoa Tươi",
   },
@@ -238,7 +237,7 @@ const Cart = () => {
                         placeholder="Nhập mã giảm giá"
                         value={promoCode}
                         onChange={(e) => setPromoCode(e.target.value)}
-                        className="border-gray-300 focus:border-[#A67C42] focus:ring-[#A67C42]"
+                        className="border-gray-300 focus:border-[#A67C42] focus:ring-[#A67C42] focus-visible:ring-0 focus-visible:ring-offset-0"
                       />
                       <Button
                         onClick={applyPromoCode}
