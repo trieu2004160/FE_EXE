@@ -42,7 +42,7 @@ const Catalog = () => {
       setError(null);
 
       try {
-        // Try to fetch from API first
+        // Only use API data - no fallback to mock data
         const [productsData, categoriesData] = await Promise.all([
           apiService.getProducts(),
           apiService.getCategories(),
@@ -53,7 +53,7 @@ const Catalog = () => {
       } catch (apiError) {
         console.warn("API not available, using fallback data:", apiError);
 
-        // Fallback to mock data
+        // Fallback to mock data when API is not available
         const mockProducts = getAllProducts();
         setProducts(
           mockProducts.map(

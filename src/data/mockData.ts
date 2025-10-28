@@ -305,4 +305,84 @@ export const mockProducts: Product[] = [
       "Combo đồ cúng Rằm Tháng 7 – chuẩn bị sẵn đầy đủ lễ vật, tiện lợi và ý nghĩa.",
     shopId: 1,
   },
+
+  // 🌸 HOA TƯƠI (Fresh Flowers)
+  {
+    id: 15,
+    name: "Hoa Hồng Đỏ Tươi",
+    price: 120000,
+    image:
+      "https://images.unsplash.com/photo-1568052719100-d6524e779671?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+    rating: 5,
+    reviews: 45,
+    category: "Hoa Tươi",
+    description:
+      "Hoa hồng đỏ tươi mới cắt, tượng trưng cho tình yêu và may mắn trong các dịp lễ cúng.",
+    shopId: 1,
+  },
+  {
+    id: 16,
+    name: "Hoa Cúc Trắng",
+    price: 80000,
+    image:
+      "https://images.unsplash.com/photo-1544787219-7f47ccb76574?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+    rating: 4,
+    reviews: 38,
+    category: "Hoa Tươi",
+    description:
+      "Hoa cúc trắng tinh khiết, mang ý nghĩa thanh cao và trang nghiêm cho lễ cúng.",
+    shopId: 1,
+  },
+  {
+    id: 17,
+    name: "Hoa Sen Hồng",
+    price: 150000,
+    image:
+      "https://images.unsplash.com/photo-1590005354164-ef856657166e?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+    rating: 5,
+    reviews: 52,
+    category: "Hoa Tươi",
+    description:
+      "Hoa sen hồng tươi đẹp, biểu tượng của sự thanh tịnh và giác ngộ trong Phật giáo.",
+    shopId: 1,
+  },
+  {
+    id: 18,
+    name: "Hoa Ly Trắng",
+    price: 100000,
+    image:
+      "https://images.unsplash.com/photo-1587223962930-cb7f31606692?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+    rating: 4,
+    reviews: 41,
+    category: "Hoa Tươi",
+    description:
+      "Hoa ly trắng thơm ngát, tượng trưng cho sự trong sạch và thanh khiết.",
+    shopId: 1,
+  },
+  {
+    id: 19,
+    name: "Hoa Lan Tím",
+    price: 200000,
+    image:
+      "https://images.unsplash.com/photo-1590005354164-ef856657166e?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+    rating: 5,
+    reviews: 35,
+    category: "Hoa Tươi",
+    description:
+      "Hoa lan tím quý phái, mang vẻ đẹp sang trọng và ý nghĩa cao quý.",
+    shopId: 1,
+  },
+  {
+    id: 20,
+    name: "Hoa Cẩm Chướng Hồng",
+    price: 90000,
+    image:
+      "https://images.unsplash.com/photo-1568052719100-d6524e779671?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+    rating: 4,
+    reviews: 28,
+    category: "Hoa Tươi",
+    description:
+      "Hoa cẩm chướng hồng tươi tắn, tượng trưng cho tình mẫu tử và lòng biết ơn.",
+    shopId: 1,
+  },
 ];

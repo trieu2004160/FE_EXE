@@ -31,14 +31,38 @@ const FlowersCategory = () => {
       setError(null);
 
       try {
-        // Try to fetch from API first
-        // Assuming category ID 1 is for flowers (you may need to adjust this)
-        const productsData = await apiService.getProductsByCategory(1);
-        setProducts(productsData);
+        // Only use API data - no fallback to mock data
+        const [allProducts, categories] = await Promise.all([
+          apiService.getProducts(),
+          apiService.getCategories(),
+        ]);
+
+        // Find flower category
+        const flowerCategory = categories.find(
+          (cat) =>
+            cat.name.toLowerCase().includes("hoa") ||
+            cat.name.toLowerCase().includes("flower")
+        );
+
+        if (flowerCategory) {
+          // Filter products by flower category
+          const flowerProducts = allProducts.filter(
+            (product) => product.productCategoryId === flowerCategory.id
+          );
+          setProducts(flowerProducts);
+        } else {
+          // If no flower category found, filter by name containing "hoa"
+          const flowerProducts = allProducts.filter(
+            (product) =>
+              product.name.toLowerCase().includes("hoa") ||
+              product.name.toLowerCase().includes("flower")
+          );
+          setProducts(flowerProducts);
+        }
       } catch (apiError) {
         console.warn("API not available, using fallback data:", apiError);
 
-        // Fallback to mock data
+        // Fallback to mock data when API is not available
         const mockProducts = getProductsByCategory("Hoa Tươi");
         setProducts(
           mockProducts.map(

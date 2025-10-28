@@ -32,8 +32,10 @@ import {
   ProductReview,
 } from "@/services/apiService";
 
-// Fallback mock data for offline mode
-const fallbackProduct = {
+import { mockProducts } from "@/data/mockData";
+
+// Fallback product data
+const fallbackProduct: Product = {
   id: 1,
   name: "Bộ Hoa Quả Tốt Nghiệp Cao Cấp",
   basePrice: 299000,
@@ -84,7 +86,7 @@ const ProductDetail = () => {
       setError(null);
 
       try {
-        // Try to fetch from API first
+        // Only use API data - no fallback to mock data
         const productId = parseInt(id);
         const response: ProductDetailResponse = await apiService.getProductById(
           productId
@@ -104,8 +106,8 @@ const ProductDetail = () => {
       } catch (apiError) {
         console.warn("API not available, using fallback data:", apiError);
 
-        // Fallback to mock data
-        setProduct(fallbackProduct as Product);
+        // Fallback to mock data when API is not available
+        setProduct(fallbackProduct);
         setRelatedProducts([]);
         setReviews([]);
       } finally {
