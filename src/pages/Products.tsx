@@ -97,19 +97,27 @@ const Products = () => {
             <div className="flex flex-wrap gap-2">
               {categories.map((category) => (
                 <Badge
-                  key={category}
+                  key={typeof category === "string" ? category : category.name}
                   variant={
-                    selectedCategory === category ? "default" : "secondary"
+                    selectedCategory ===
+                    (typeof category === "string" ? category : category.name)
+                      ? "default"
+                      : "secondary"
                   }
                   className={`cursor-pointer transition-all duration-200 rounded-md text-sm font-medium shadow-sm
         ${
-          selectedCategory === category
+          selectedCategory ===
+          (typeof category === "string" ? category : category.name)
             ? "bg-gray-700 hover:bg-gray-800 text-white"
             : "bg-gray-100 text-gray-800 hover:bg-gray-200"
         }`}
-                  onClick={() => setSelectedCategory(category)}
+                  onClick={() =>
+                    setSelectedCategory(
+                      typeof category === "string" ? category : category.name
+                    )
+                  }
                 >
-                  {category}
+                  {typeof category === "string" ? category : category.name}
                 </Badge>
               ))}
             </div>

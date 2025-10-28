@@ -70,17 +70,20 @@ const Login = () => {
         if (response.token) {
           // Store JWT token
           authUtils.setToken(response.token);
+
+          // Set default user role - we'll get actual role from profile API later
           localStorage.setItem("userRole", "user");
           localStorage.setItem(
             "userData",
             JSON.stringify({
               email: email,
-              name: "User", // We'll get this from JWT or profile API later
+              name: "User", // We'll get this from profile API later
               role: "user",
             })
           );
 
-          navigate("/user/profile");
+          // Navigate to profile page
+          navigate("/profile");
           return;
         }
       } catch (apiError) {

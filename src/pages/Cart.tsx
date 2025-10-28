@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Minus, Plus, X, ShoppingBag, ArrowRight, Tag } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import AIAssistant from "@/components/AIAssistant";
+import { getShopById } from "@/data/mockData";
 
 interface CartItem {
   id: number;
@@ -16,6 +17,8 @@ interface CartItem {
   image: string;
   quantity: number;
   category: string;
+  shopId: number; // Added shopId to track which shop the product belongs to
+  selected?: boolean; // Added selection status for individual items
 }
 
 const mockCartItems: CartItem[] = [
@@ -27,6 +30,8 @@ const mockCartItems: CartItem[] = [
       "https://images.unsplash.com/photo-1610832958506-aa56368176cf?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80",
     quantity: 1,
     category: "Hoa Quả",
+    shopId: 1,
+    selected: false, // Default to not selected
   },
   {
     id: 2,
@@ -36,6 +41,8 @@ const mockCartItems: CartItem[] = [
       "https://vach-ngan.com/uploads/images/Nhang%20N%E1%BB%A5%20Tr%E1%BA%A7m%20H%C6%B0%C6%A1ng%20An%20Y%C3%AAn.png",
     quantity: 2,
     category: "Hương Nến",
+    shopId: 2,
+    selected: false, // Default to not selected
   },
   {
     id: 4,
@@ -44,12 +51,59 @@ const mockCartItems: CartItem[] = [
     image: "https://nongsandalat.vn/wp-content/uploads/2023/10/sen.jpg",
     quantity: 1,
     category: "Hoa Tươi",
+    shopId: 1,
+    selected: false, // Default to not selected
   },
 ];
 
 const Cart = () => {
   const [cartItems, setCartItems] = useState<CartItem[]>(mockCartItems);
   const [promoCode, setPromoCode] = useState("");
+
+  // Group cart items by shop
+  const groupedItems = cartItems.reduce((groups, item) => {
+    const shopId = item.shopId;
+    if (!groups[shopId]) {
+      groups[shopId] = [];
+    }
+    groups[shopId].push(item);
+    return groups;
+  }, {} as Record<number, CartItem[]>);
+
+  const toggleItemSelection = (itemId: number) => {
+    setCartItems((items) =>
+      items.map((item) =>
+        item.id === itemId ? { ...item, selected: !item.selected } : item
+      )
+    );
+  };
+
+  const toggleShopSelection = (shopId: number) => {
+    const shopItems = groupedItems[shopId] || [];
+    const allSelected = shopItems.every((item) => item.selected);
+
+    setCartItems((items) =>
+      items.map((item) =>
+        item.shopId === shopId ? { ...item, selected: !allSelected } : item
+      )
+    );
+  };
+
+  const deselectAllFromShop = (shopId: number) => {
+    setCartItems((items) =>
+      items.map((item) =>
+        item.shopId === shopId ? { ...item, selected: false } : item
+      )
+    );
+  };
+
+  const selectAllFromShop = (shopId: number) => {
+    setCartItems((items) =>
+      items.map((item) =>
+        item.shopId === shopId ? { ...item, selected: true } : item
+      )
+    );
+  };
 
   const updateQuantity = (id: number, newQuantity: number) => {
     if (newQuantity === 0) {
@@ -67,7 +121,9 @@ const Cart = () => {
     setCartItems((items) => items.filter((item) => item.id !== id));
   };
 
-  const subtotal = cartItems.reduce(
+  // Calculate totals only for selected items
+  const selectedItems = cartItems.filter((item) => item.selected);
+  const subtotal = selectedItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
@@ -115,106 +171,137 @@ const Cart = () => {
       <Header />
 
       {/* Page Header với hình nền */}
-      <section className="relative py-20 overflow-hidden">
-        {/* Background Image */}
-        <div className="absolute inset-0">
-          <div
-            className="absolute inset-0 bg-cover bg-center opacity-20"
-            style={{
-              backgroundImage: `url(https://images.unsplash.com/photo-1557683316-973673baf926?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80)`,
-            }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#A67C42]/90 via-[#C99F4D]/90 to-[#A67C42]/90" />
-        </div>
-
-        <div className="container mx-auto px-4 text-center relative z-10">
-          <div className="inline-flex items-center gap-2 px-4 bg-white/20 backdrop-blur-md border border-white/30 rounded-full mb-6">
-            <ShoppingBag className="w-5 h-5 text-white" />
-            <span className="text-sm font-medium text-white">
-              Giỏ hàng của bạn
-            </span>
-          </div>
-
-          <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 drop-shadow-2xl">
-            Giỏ Hàng
-          </h1>
-          <p className="text-xl text-white/95 max-w-2xl mx-auto">
-            Xem lại đơn hàng và hoàn tất thanh toán
-          </p>
-        </div>
-      </section>
 
       <section className="py-12">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Cart Items */}
             <div className="lg:col-span-2">
-              <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm">
-                <CardHeader className="border-b border-gray-100">
-                  <CardTitle className="flex items-center text-gray-800">
-                    <ShoppingBag className="h-5 w-5 mr-2 text-[#A67C42]" />
-                    Sản phẩm trong giỏ ({cartItems.length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4 pt-6">
-                  {cartItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center gap-4 p-4 border border-gray-200 rounded-xl bg-white hover:shadow-lg transition-all duration-300"
-                    >
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-24 h-24 object-cover rounded-xl shadow-md"
-                      />
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-800 mb-2">
-                          {item.name}
-                        </h3>
-                        <Badge className="bg-[#A67C42]/10 text-[#A67C42] hover:bg-[#A67C42]/20 text-xs mb-2 border-none">
-                          {item.category}
-                        </Badge>
-                        <p className="text-xl font-bold text-[#A67C42]">
-                          {item.price.toLocaleString("vi-VN")}đ
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-2">
+              {Object.entries(groupedItems).map(([shopId, items]) => {
+                const shopIdNum = parseInt(shopId, 10);
+                const shop = getShopById(shopIdNum);
+                const selectedCount = items.filter(
+                  (item) => item.selected
+                ).length;
+                const allSelected =
+                  items.length > 0 && selectedCount === items.length;
+                const anySelected = selectedCount > 0;
+
+                return (
+                  <Card
+                    key={shopId}
+                    className="border-none shadow-xl bg-white/80 backdrop-blur-sm mb-6"
+                  >
+                    <CardHeader className="border-b border-gray-100">
+                      <CardTitle className="flex items-center justify-between text-gray-800">
+                        <div className="flex items-center">
+                          <label className="flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              ref={(el) => {
+                                if (el) {
+                                  el.indeterminate =
+                                    anySelected && !allSelected;
+                                }
+                              }}
+                              checked={allSelected}
+                              onChange={() => toggleShopSelection(shopIdNum)}
+                              className="mr-2 h-4 w-4 text-[#A67C42] rounded border-gray-300 focus:ring-2 focus:ring-[#A67C42]"
+                              aria-label={`Chọn sản phẩm từ ${shop?.name}`}
+                            />
+                            <ShoppingBag className="h-5 w-5 mr-2 text-[#A67C42]" />
+                            <span>
+                              {shop?.name} ({selectedCount}/{items.length} sản
+                              phẩm được chọn)
+                            </span>
+                          </label>
+                        </div>
                         <Button
                           variant="outline"
-                          size="icon"
-                          onClick={() =>
-                            updateQuantity(item.id, item.quantity - 1)
+                          size="sm"
+                          onClick={
+                            allSelected
+                              ? () => deselectAllFromShop(shopIdNum)
+                              : () => selectAllFromShop(shopIdNum)
                           }
-                          className="h-9 w-9 border-[#A67C42]/30 hover:bg-[#A67C42] hover:text-white transition-colors"
+                          className="text-xs"
                         >
-                          <Minus className="h-4 w-4" />
+                          {allSelected ? "Bỏ chọn tất cả" : "Chọn tất cả"}
                         </Button>
-                        <span className="w-12 text-center font-bold text-gray-800">
-                          {item.quantity}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() =>
-                            updateQuantity(item.id, item.quantity + 1)
-                          }
-                          className="h-9 w-9 border-[#A67C42]/30 hover:bg-[#A67C42] hover:text-white transition-colors"
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4 pt-6">
+                      {items.map((item) => (
+                        <div
+                          key={item.id}
+                          className={`flex items-center gap-4 p-4 border rounded-xl bg-white hover:shadow-lg transition-all duration-300 ${
+                            item.selected
+                              ? "border-[#A67C42] bg-[#A67C42]/5"
+                              : "border-gray-200"
+                          }`}
                         >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeItem(item.id)}
-                        className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                      >
-                        <X className="h-5 w-5" />
-                      </Button>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+                          <input
+                            type="checkbox"
+                            checked={item.selected || false}
+                            onChange={() => toggleItemSelection(item.id)}
+                            className="h-4 w-4 text-[#A67C42] rounded border-gray-300 focus:ring-2 focus:ring-[#A67C42]"
+                            aria-label={`Chọn ${item.name}`}
+                          />
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-24 h-24 object-cover rounded-xl shadow-md"
+                          />
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-800 mb-2">
+                              {item.name}
+                            </h3>
+                            <Badge className="bg-[#A67C42]/10 text-[#A67C42] hover:bg-[#A67C42]/20 text-xs mb-2 border-none">
+                              {item.category}
+                            </Badge>
+                            <p className="text-xl font-bold text-[#A67C42]">
+                              {item.price.toLocaleString("vi-VN")}đ
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-2">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() =>
+                                updateQuantity(item.id, item.quantity - 1)
+                              }
+                              className="h-9 w-9 border-[#A67C42]/30 hover:bg-[#A67C42] hover:text-white transition-colors"
+                            >
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                            <span className="w-12 text-center font-bold text-gray-800">
+                              {item.quantity}
+                            </span>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() =>
+                                updateQuantity(item.id, item.quantity + 1)
+                              }
+                              className="h-9 w-9 border-[#A67C42]/30 hover:bg-[#A67C42] hover:text-white transition-colors"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeItem(item.id)}
+                            className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                          >
+                            <X className="h-5 w-5" />
+                          </Button>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
 
             {/* Order Summary */}
@@ -258,7 +345,7 @@ const Cart = () => {
                   {/* Price Breakdown */}
                   <div className="space-y-3">
                     <div className="flex justify-between text-gray-600">
-                      <span>Tạm tính</span>
+                      <span>Tạm tính ({selectedItems.length} sản phẩm)</span>
                       <span className="font-semibold text-gray-800">
                         {subtotal.toLocaleString("vi-VN")}đ
                       </span>
@@ -299,8 +386,13 @@ const Cart = () => {
                     </span>
                   </div>
 
-                  <Button className="w-full bg-gradient-to-r from-[#A67C42] to-[#C99F4D] hover:from-[#8B6835] hover:to-[#A67C42] text-white py-6 text-lg rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
-                    Tiến hành thanh toán
+                  <Button
+                    className="w-full bg-gradient-to-r from-[#A67C42] to-[#C99F4D] hover:from-[#8B6835] hover:to-[#A67C42] text-white py-6 text-lg rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+                    disabled={selectedItems.length === 0}
+                  >
+                    {selectedItems.length > 0
+                      ? `Tiến hành thanh toán (${selectedItems.length} sản phẩm)`
+                      : "Vui lòng chọn sản phẩm để thanh toán"}
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
 

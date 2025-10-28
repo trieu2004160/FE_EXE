@@ -192,7 +192,6 @@ const ShopPage = () => {
             </TabsTrigger>
             <TabsTrigger value="about">Thông tin cửa hàng</TabsTrigger>
           </TabsList>
-
           <TabsContent value="products" className="mt-6">
             {products.length > 0 ? (
               <div className="space-y-6">
@@ -240,7 +239,6 @@ const ShopPage = () => {
               </Card>
             )}
           </TabsContent>
-
           <TabsContent value="about" className="mt-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Thông tin liên hệ */}
@@ -303,6 +301,9 @@ const ShopPage = () => {
               </Card>
             </div>
           </TabsContent>
+          '"@/data/mockData"' has no exported member named
+          'getProductsByShopId'. Did you mean 'getProductById'?ts(2724)
+          mockData.ts(284, 14): 'getProductById' is declared here.
         </Tabs>
       </div>
 

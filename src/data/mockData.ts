@@ -1,3 +1,92 @@
+export const getProductsByShopId = (shopId: number) => {
+  return mockProducts.filter(product => product.shopId === shopId);
+};
+
+export const getFeaturedProducts = (limit: number = 8) => {
+  return mockProducts
+    .filter(product => product.isBestSeller || product.isNew)
+    .slice(0, limit);
+};
+
+export const getAllCategories = () => {
+  const categories = [...new Set(mockProducts.map(product => product.category))];
+  return categories.map(category => ({
+    name: category,
+    count: mockProducts.filter(product => product.category === category).length
+  }));
+};
+
+export const getAllProducts = () => {
+  return mockProducts;
+};
+
+export const getProductsByCategory = (category: string) => {
+  return mockProducts.filter(product => product.category === category);
+};
+// Mock shop data
+export interface Shop {
+  id: number;
+  name: string;
+  avatar: string;
+  description: string;
+  address: string;
+  phone: string;
+  email: string;
+  isVerified?: boolean;
+  rating: number;
+  totalSales: number;
+  totalProducts: number;
+  joinedDate: string;
+}
+
+export const mockShops: Shop[] = [
+  {
+    id: 1,
+    name: "Shop Đồ Cúng Tâm Linh",
+    avatar: "https://randomuser.me/api/portraits/men/32.jpg",
+    description: "Chuyên cung cấp đồ cúng, hoa quả, hương nến chất lượng cao.",
+    address: "123 Lê Lợi, Quận 1, TP.HCM",
+    phone: "0909 123 456",
+    email: "shop1@email.com",
+    isVerified: true,
+    rating: 4.9,
+    totalSales: 1200,
+    totalProducts: 25,
+    joinedDate: "2023-01-15",
+  },
+  {
+    id: 2,
+    name: "Cửa Hàng Hương Nụ An Nhiên",
+    avatar: "https://randomuser.me/api/portraits/women/44.jpg",
+    description: "Hương nụ, nến thơm, vật phẩm phong thủy.",
+    address: "456 Nguyễn Trãi, Quận 5, TP.HCM",
+    phone: "0912 456 789",
+    email: "shop2@email.com",
+    isVerified: false,
+    rating: 4.7,
+    totalSales: 800,
+    totalProducts: 18,
+    joinedDate: "2022-08-10",
+  },
+  {
+    id: 3,
+    name: "Shop Hoa Tươi Phúc Lộc",
+    avatar: "https://randomuser.me/api/portraits/men/65.jpg",
+    description: "Hoa tươi, hoa quả lễ, dịch vụ giao tận nơi.",
+    address: "789 Trần Hưng Đạo, Quận 3, TP.HCM",
+    phone: "0933 888 999",
+    email: "shop3@email.com",
+    isVerified: true,
+    rating: 4.8,
+    totalSales: 950,
+    totalProducts: 30,
+    joinedDate: "2023-05-20",
+  },
+];
+
+export const getShopById = (id: number): Shop | undefined => {
+  return mockShops.find((shop) => shop.id === id);
+};
 export interface Product {
   id: number;
   name: string;
@@ -10,6 +99,7 @@ export interface Product {
   isNew?: boolean;
   isBestSeller?: boolean;
   description?: string;
+  shopId: number;
 }
 
 export const mockProducts: Product[] = [
@@ -25,6 +115,7 @@ export const mockProducts: Product[] = [
     category: "Hương Nến",
     description:
       "Nến thơm trầm hương giúp thanh lọc không khí, tạo cảm giác thư giãn và trang nghiêm khi thắp hương cúng.",
+    shopId: 1,
   },
   {
     id: 2,
@@ -37,6 +128,7 @@ export const mockProducts: Product[] = [
     category: "Hương Nến",
     description:
       "Hương que làm từ bột quế tự nhiên, cháy đều, thơm dịu – phù hợp cho mọi không gian thờ cúng.",
+    shopId: 1,
   },
   {
     id: 3,
@@ -49,6 +141,7 @@ export const mockProducts: Product[] = [
     category: "Hương Nến",
     description:
       "Cặp nến ly màu vàng, biểu trưng cho sự sung túc, ấm no và thịnh vượng trong mỗi dịp lễ.",
+    shopId: 1, // Added missing shopId
   },
   {
     id: 4,
@@ -61,6 +154,7 @@ export const mockProducts: Product[] = [
     category: "Hương Nến",
     description:
       "Hương nụ hoa sen nhẹ nhàng, thanh khiết – mang lại không gian tĩnh lặng, an yên.",
+    shopId: 1, // Added missing shopId
   },
 
   // 🍎 HOA QUẢ
@@ -75,6 +169,7 @@ export const mockProducts: Product[] = [
     category: "Hoa Quả",
     description:
       "Nải chuối chín vàng tự nhiên – biểu trưng cho sự sum vầy, đủ đầy trong mâm cúng gia tiên.",
+    shopId: 1, // Added missing shopId
   },
   {
     id: 6,
@@ -87,6 +182,7 @@ export const mockProducts: Product[] = [
     category: "Hoa Quả",
     description:
       "Cam chín mọng, ngọt thanh, tượng trưng cho may mắn và tài lộc trong các dịp lễ cúng.",
+    shopId: 1, // Added missing shopId
   },
   {
     id: 7,
@@ -99,6 +195,7 @@ export const mockProducts: Product[] = [
     category: "Hoa Quả",
     description:
       "Táo đỏ tươi giòn ngọt, tượng trưng cho sự bình an và may mắn cho gia đình.",
+    shopId: 2,
   },
   {
     id: 8,
@@ -111,6 +208,7 @@ export const mockProducts: Product[] = [
     category: "Hoa Quả",
     description:
       "Mãng cầu tươi ngon – biểu trưng cho cầu mong điều lành, thường dùng trong mâm ngũ quả truyền thống.",
+    shopId: 2,
   },
 
   // 🍵 XÔI – CHÈ
@@ -125,6 +223,7 @@ export const mockProducts: Product[] = [
     category: "Xôi – Chè",
     description:
       "Xôi gấc đỏ thơm ngon – tượng trưng cho may mắn, hạnh phúc và sung túc.",
+    shopId: 3,
   },
   {
     id: 10,
@@ -137,6 +236,7 @@ export const mockProducts: Product[] = [
     category: "Xôi – Chè",
     description:
       "Chè đậu xanh truyền thống – vị ngọt thanh, dễ ăn, thường dùng trong các dịp lễ cúng.",
+    shopId: 3,
   },
   {
     id: 11,
@@ -149,6 +249,7 @@ export const mockProducts: Product[] = [
     category: "Xôi – Chè",
     description:
       "Chè trôi nước dẻo thơm, viên tròn tượng trưng cho đoàn viên và sung túc.",
+    shopId: 3,
   },
 
   // 🎁 COMBO TIẾT KIỆM (Combo Đồ Cúng)
@@ -163,6 +264,7 @@ export const mockProducts: Product[] = [
     category: "Combo Tiết Kiệm",
     description:
       "Combo đồ cúng đầy đủ cho lễ đầy tháng – bao gồm hoa quả, hương nến và xôi chè tiện lợi.",
+    shopId: 1,
   },
   {
     id: 13,
@@ -175,6 +277,7 @@ export const mockProducts: Product[] = [
     category: "Combo Tiết Kiệm",
     description:
       "Combo đồ cúng rằm gồm đầy đủ hoa quả, hương, nến và xôi chè – tiện lợi và trang trọng.",
+    shopId: 1,
   },
   {
     id: 14,
@@ -187,6 +290,7 @@ export const mockProducts: Product[] = [
     category: "Combo Tiết Kiệm",
     description:
       "Combo đồ cúng cho lễ tốt nghiệp – tượng trưng cho lòng tri ân và khởi đầu mới.",
+    shopId: 1,
   },
   {
     id: 15,
@@ -199,37 +303,6 @@ export const mockProducts: Product[] = [
     category: "Combo Tiết Kiệm",
     description:
       "Combo đồ cúng Rằm Tháng 7 – chuẩn bị sẵn đầy đủ lễ vật, tiện lợi và ý nghĩa.",
+    shopId: 1,
   },
 ];
-
-
-
-// Utility functions để lọc sản phẩm
-export const getBestSellerProducts = () => {
-  return mockProducts.filter(product => product.isBestSeller);
-};
-
-export const getNewProducts = () => {
-  return mockProducts.filter(product => product.isNew);
-};
-
-export const getProductsByCategory = (category: string) => {
-  return mockProducts.filter(product => product.category === category);
-};
-
-export const getProductById = (id: number) => {
-  return mockProducts.find(product => product.id === id);
-};
-
-export const getFeaturedProducts = (limit: number = 8) => {
-  return mockProducts.slice(0, limit);
-};
-
-export const getAllCategories = () => {
-  const categories = mockProducts.map(product => product.category);
-  return [...new Set(categories)];
-};
-
-export const getAllProducts = () => {
-  return mockProducts;
-};
