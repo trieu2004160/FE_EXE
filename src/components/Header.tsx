@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import {
   ShoppingCart,
   Heart,
-  Search,
+  Search as SearchIcon,
   Menu,
   User,
   Settings,
@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useWishlist } from "@/contexts/WishlistContext";
+import Search from "@/components/Search";
 
 import logoIcon from "@/assets/z7048679417409_951f2312b6a4acf2cd06da22ec333170-removebg-preview.png";
 
@@ -20,6 +21,7 @@ const Header = () => {
   const { wishlist } = useWishlist();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [showSearch, setShowSearch] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("userToken");
@@ -106,6 +108,8 @@ const Header = () => {
                 placeholder="Tìm kiếm sản phẩm..."
                 className="pr-10 w-56 lg:w-64 bg-gray-50/50 focus:bg-white transition-all duration-200 
     outline-none focus:ring-0 focus:border-gray-300 hover:border-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0"
+                onFocus={() => setShowSearch(true)}
+                readOnly
               />
 
               {/* Nút tìm kiếm mới (xám nhẹ, không viền xanh) */}
@@ -118,10 +122,10 @@ const Header = () => {
     transition-all duration-200 shadow-sm hover:shadow-md
     focus:outline-none focus:ring-0 border-0 outline-0 ring-0"
                 style={{ outline: "none", border: "none", boxShadow: "none" }}
-                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setShowSearch(true)}
               >
                 {/* Icon màu xám nhẹ */}
-                <Search className="h-4 w-4 text-gray-500" />
+                <SearchIcon className="h-4 w-4 text-gray-500" />
               </button>
             </div>
 
@@ -197,12 +201,22 @@ const Header = () => {
               variant="ghost"
               size="icon"
               className="sm:hidden h-10 w-10 hover:bg-gray-100"
+              onClick={() => setShowSearch(true)}
             >
-              <Search className="h-5 w-5 text-gray-600" />
+              <SearchIcon className="h-5 w-5 text-gray-600" />
             </Button>
           </div>
         </div>
       </div>
+
+      {/* Search Overlay */}
+      {showSearch && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center pt-20">
+          <div className="w-full max-w-2xl mx-4">
+            <Search onClose={() => setShowSearch(false)} />
+          </div>
+        </div>
+      )}
     </header>
   );
 };

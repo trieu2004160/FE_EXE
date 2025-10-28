@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,7 @@ import {
   RotateCcw,
   Clock,
   ArrowLeft,
+  Loader2,
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -24,97 +25,127 @@ import ProductCard from "@/components/ProductCard";
 import ShopInfo from "@/components/ShopInfo";
 import { useToast } from "@/hooks/use-toast";
 import { useWishlist } from "@/contexts/WishlistContext";
-import { getShopById } from "@/data/mockData";
+import {
+  apiService,
+  Product,
+  ProductDetailResponse,
+  ProductReview,
+} from "@/services/apiService";
 
-// Mock product data
-const mockProduct = {
+// Fallback mock data for offline mode
+const fallbackProduct = {
   id: 1,
   name: "Bộ Hoa Quả Tốt Nghiệp Cao Cấp",
-  price: 299000,
-  originalPrice: 399000,
-  images: [
+  basePrice: 299000,
+  maxPrice: 399000,
+  imageUrl:
     "https://images.unsplash.com/photo-1610832958506-aa56368176cf?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-    "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-    "https://images.unsplash.com/photo-1572635196243-4dd75fbdbd7b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-  ],
-  rating: 4.8,
-  reviews: 124,
-  category: "Hoa Quả",
-  shopId: 1,
-  inStock: true,
-  stockCount: 15,
-  isNew: true,
-  isBestSeller: true,
+  isPopular: true,
+  stockQuantity: 15,
+  productCategoryId: 1,
   description:
-    "Bộ hoa quả cao cấp được tuyển chọn kỹ lưỡng, bao gồm 5 loại hoa quả tươi ngon nhất, mang ý nghĩa cát tường cho lễ tốt nghiệp. Mỗi món đều được chuẩn bị với tâm huyết để tạo nên một mâm cúng hoàn hảo.",
-  features: [
-    "5 loại hoa quả tươi ngon được tuyển chọn",
-    "Ý nghĩa cát tường cho lễ tốt nghiệp",
-    "Đóng gói cẩn thận, đảm bảo chất lượng",
-    "Có thể tùy chỉnh theo yêu cầu",
-  ],
-  specifications: [
-    { label: "Xuất xứ", value: "Việt Nam" },
-    { label: "Bảo quản", value: "Nơi khô ráo, thoáng mát" },
-    { label: "Hạn sử dụng", value: "3-5 ngày" },
-    { label: "Trọng lượng", value: "2-3 kg" },
-  ],
+    "Bộ hoa quả cao cấp được tuyển chọn kỹ lưỡng, bao gồm 5 loại hoa quả tươi ngon nhất, mang ý nghĩa cát tường cho lễ tốt nghiệp.",
+  features:
+    "5 loại hoa quả tươi ngon được tuyển chọn\nÝ nghĩa cát tường cho lễ tốt nghiệp\nĐóng gói cẩn thận, đảm bảo chất lượng\nCó thể tùy chỉnh theo yêu cầu",
+  specifications:
+    "Xuất xứ: Việt Nam\nBảo quản: Nơi khô ráo, thoáng mát\nHạn sử dụng: 3-5 ngày\nTrọng lượng: 2-3 kg",
+  shop: {
+    id: 1,
+    shopName: "Shop Đồ Cúng Tâm Linh",
+  },
+  reviews: [],
 };
-
-const relatedProducts = [
-  {
-    id: 2,
-    name: "Bó Hương Nụ Tâm An",
-    price: 149000,
-    image:
-      "https://vach-ngan.com/uploads/images/Nhang%20N%E1%BB%A5%20Tr%E1%BA%A7m%20H%C6%B0%C6%A1ng%20An%20Y%C3%AAn.png",
-    rating: 5,
-    reviews: 89,
-    category: "Hương Nến",
-    shopId: 2,
-    isBestSeller: true,
-  },
-  {
-    id: 4,
-    name: "Hoa Sen Tươi Phúc Lộc",
-    price: 179000,
-    image: "https://nongsandalat.vn/wp-content/uploads/2023/10/sen.jpg",
-    rating: 5,
-    reviews: 156,
-    category: "Hoa Tươi",
-    shopId: 3,
-    isNew: true,
-  },
-  {
-    id: 6,
-    name: "Trà Hoa Cúc Thanh Tịnh",
-    price: 129000,
-    originalPrice: 159000,
-    image:
-      "https://images.unsplash.com/photo-1544787219-7f47ccb76574?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    rating: 5,
-    reviews: 203,
-    category: "Đồ Uống",
-    shopId: 1,
-  },
-];
 
 const ProductDetail = () => {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
-  const [selectedImage, setSelectedImage] = useState(0);
+
+  // State management
+  const [product, setProduct] = useState<Product | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [reviews, setReviews] = useState<ProductReview[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
 
-  const product = mockProduct; // In real app, fetch by id
-  const shop = getShopById(product.shopId);
-  const discount = product.originalPrice
-    ? Math.round(
-        ((product.originalPrice - product.price) / product.originalPrice) * 100
-      )
-    : 0;
+  // Review form state
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+
+  // Fetch product data
+  useEffect(() => {
+    const fetchProductData = async () => {
+      if (!id) return;
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        // Try to fetch from API first
+        const productId = parseInt(id);
+        const response: ProductDetailResponse = await apiService.getProductById(
+          productId
+        );
+
+        setProduct(response.product);
+        setRelatedProducts(response.relatedProducts);
+
+        // Fetch reviews separately
+        try {
+          const productReviews = await apiService.getProductReviews(productId);
+          setReviews(productReviews);
+        } catch (reviewError) {
+          console.warn("Failed to fetch reviews:", reviewError);
+          setReviews([]);
+        }
+      } catch (apiError) {
+        console.warn("API not available, using fallback data:", apiError);
+
+        // Fallback to mock data
+        setProduct(fallbackProduct as Product);
+        setRelatedProducts([]);
+        setReviews([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProductData();
+  }, [id]);
+
+  // Calculate discount
+  const discount =
+    product?.maxPrice && product.maxPrice > product.basePrice
+      ? Math.round(
+          ((product.maxPrice - product.basePrice) / product.maxPrice) * 100
+        )
+      : 0;
+
+  // Get shop info
+  const shop = product?.shop
+    ? {
+        id: product.shop.id,
+        name: product.shop.shopName,
+        avatar: "https://randomuser.me/api/portraits/men/32.jpg",
+        description:
+          "Chuyên cung cấp đồ cúng, hoa quả, hương nến chất lượng cao.",
+        address: "123 Lê Lợi, Quận 1, TP.HCM",
+        phone: "0909 123 456",
+        email: "shop1@email.com",
+        isVerified: true,
+        rating: 4.9,
+        totalSales: 1200,
+        totalProducts: 25,
+        joinedDate: "2023-01-15",
+      }
+    : null;
 
   const handleAddToCart = () => {
+    if (!product) return;
+
     toast({
       title: "Đã thêm vào giỏ hàng!",
       description: `${product.name} x${quantity}`,
@@ -122,18 +153,20 @@ const ProductDetail = () => {
   };
 
   const handleAddToWishlist = () => {
+    if (!product) return;
+
     const productForWishlist = {
       id: product.id,
       name: product.name,
-      price: product.price,
-      image: product.images[0],
-      rating: product.rating,
-      reviews: product.reviews,
-      category: product.category,
-      originalPrice: product.originalPrice,
-      isNew: product.isNew,
-      isBestSeller: product.isBestSeller,
-      shopId: product.shopId,
+      price: product.basePrice,
+      image: product.imageUrl || "",
+      rating: 4.5, // Default rating since API doesn't provide it
+      reviews: reviews.length,
+      category: "Product", // Default category
+      originalPrice: product.maxPrice,
+      isNew: false, // Default values
+      isBestSeller: product.isPopular,
+      shopId: product.shop?.id || 1,
     };
 
     const inWishlist = isInWishlist(product.id);
@@ -151,6 +184,76 @@ const ProductDetail = () => {
       });
     }
   };
+
+  const handleSubmitReview = async () => {
+    if (!product || reviewRating === 0) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng chọn đánh giá từ 1-5 sao",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmittingReview(true);
+
+    try {
+      await apiService.createProductReview(product.id, {
+        rating: reviewRating,
+        comment: reviewComment.trim() || undefined,
+      });
+
+      toast({
+        title: "Cảm ơn bạn!",
+        description: "Đánh giá của bạn đã được gửi thành công",
+      });
+
+      // Reset form
+      setReviewRating(0);
+      setReviewComment("");
+
+      // Refresh reviews
+      try {
+        const productReviews = await apiService.getProductReviews(product.id);
+        setReviews(productReviews);
+      } catch (error) {
+        console.warn("Failed to refresh reviews:", error);
+      }
+    } catch (error) {
+      console.error("Error submitting review:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể gửi đánh giá. Vui lòng thử lại sau.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Đang tải sản phẩm...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !product) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">Không thể tải sản phẩm</p>
+          <Button onClick={() => navigate(-1)}>Quay lại</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -178,31 +281,27 @@ const ProductDetail = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
               {/* Product Images */}
               <div className="space-y-3">
-                <div className="w-f overflow-hidden rounded-lg border border-border">
+                <div className="w-full overflow-hidden rounded-lg border border-border">
                   <img
-                    src={product.images[selectedImage]}
+                    src={
+                      product.imageUrl || "https://via.placeholder.com/400x450"
+                    }
                     alt={product.name}
                     className="w-full h-[450px] object-cover"
                   />
                 </div>
-                <div className="grid grid-cols-5 gap-2">
-                  {product.images.map((image, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setSelectedImage(index)}
-                      className={`overflow-hidden rounded-lg border-2 transition-all ${
-                        selectedImage === index
-                          ? "border-red-500"
-                          : "border-gray-200 hover:border-red-300"
-                      }`}
-                    >
-                      <img
-                        src={image}
-                        alt={`${product.name} ${index + 1}`}
-                        className="w-full h-24 object-cover"
-                      />
-                    </button>
-                  ))}
+                {/* Single image display - API only provides one image */}
+                <div className="grid grid-cols-1 gap-2">
+                  <div className="overflow-hidden rounded-lg border-2 border-red-500">
+                    <img
+                      src={
+                        product.imageUrl ||
+                        "https://via.placeholder.com/400x450"
+                      }
+                      alt={product.name}
+                      className="w-full h-24 object-cover"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -210,12 +309,7 @@ const ProductDetail = () => {
               <div className="space-y-6">
                 {/* Badges */}
                 <div className="flex flex-wrap gap-2">
-                  {product.isNew && (
-                    <Badge className="bg-accent text-accent-foreground">
-                      Mới
-                    </Badge>
-                  )}
-                  {product.isBestSeller && (
+                  {product.isPopular && (
                     <Badge className="bg-secondary text-secondary-foreground">
                       Bán chạy
                     </Badge>
@@ -225,7 +319,7 @@ const ProductDetail = () => {
                       -{discount}%
                     </Badge>
                   )}
-                  <Badge variant="secondary">{product.category}</Badge>
+                  <Badge variant="secondary">Sản phẩm</Badge>
                 </div>
 
                 {/* Title & Rating */}
@@ -239,25 +333,27 @@ const ProductDetail = () => {
                         <Star
                           key={i}
                           className={`h-5 w-5 ${
-                            i < Math.floor(product.rating)
+                            i < 4 // Default 4-star rating
                               ? "text-secondary fill-current"
                               : "text-muted-foreground"
                           }`}
                         />
                       ))}
                       <span className="ml-2 text-sm text-muted-foreground">
-                        {product.rating} ({product.reviews} đánh giá)
+                        4.5 ({reviews.length} đánh giá)
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div
                         className={`w-3 h-3 rounded-full ${
-                          product.inStock ? "bg-green-500" : "bg-red-500"
+                          product.stockQuantity > 0
+                            ? "bg-green-500"
+                            : "bg-red-500"
                         }`}
                       />
                       <span className="text-sm text-muted-foreground">
-                        {product.inStock
-                          ? `Còn ${product.stockCount} sản phẩm`
+                        {product.stockQuantity > 0
+                          ? `Còn ${product.stockQuantity} sản phẩm`
                           : "Hết hàng"}
                       </span>
                     </div>
@@ -267,11 +363,11 @@ const ProductDetail = () => {
                 {/* Price */}
                 <div className="flex items-center gap-4">
                   <span className="text-3xl font-bold text-primary">
-                    {product.price.toLocaleString("vi-VN")}đ
+                    {product.basePrice.toLocaleString("vi-VN")}đ
                   </span>
-                  {product.originalPrice && (
+                  {product.maxPrice && product.maxPrice > product.basePrice && (
                     <span className="text-xl text-muted-foreground line-through">
-                      {product.originalPrice.toLocaleString("vi-VN")}đ
+                      {product.maxPrice.toLocaleString("vi-VN")}đ
                     </span>
                   )}
                 </div>
@@ -304,7 +400,7 @@ const ProductDetail = () => {
                         size="icon"
                         onClick={() =>
                           setQuantity(
-                            Math.min(product.stockCount, quantity + 1)
+                            Math.min(product.stockQuantity, quantity + 1)
                           )
                         }
                         className="h-10 w-10"
@@ -319,7 +415,7 @@ const ProductDetail = () => {
                       onClick={handleAddToCart}
                       className="flex-1 bg-gradient-primary text-primary-foreground hover:shadow-glow transition-bounce"
                       size="lg"
-                      disabled={!product.inStock}
+                      disabled={product.stockQuantity <= 0}
                     >
                       <ShoppingCart className="h-5 w-5 mr-2" />
                       Thêm vào giỏ
@@ -392,14 +488,18 @@ const ProductDetail = () => {
                         Đặc điểm nổi bật
                       </h3>
                       <ul className="space-y-2">
-                        {product.features.map((feature, index) => (
+                        {product.features?.split("\n").map((feature, index) => (
                           <li key={index} className="flex items-start gap-2">
                             <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
                             <span className="text-muted-foreground">
                               {feature}
                             </span>
                           </li>
-                        ))}
+                        )) || (
+                          <li className="text-muted-foreground">
+                            Không có thông tin đặc điểm
+                          </li>
+                        )}
                       </ul>
                     </CardContent>
                   </Card>
@@ -413,19 +513,28 @@ const ProductDetail = () => {
                       Thông số kỹ thuật
                     </h3>
                     <div className="space-y-3">
-                      {product.specifications.map((spec, index) => (
-                        <div
-                          key={index}
-                          className="flex justify-between py-2 border-b border-border/50 last:border-0"
-                        >
-                          <span className="font-medium text-foreground">
-                            {spec.label}:
-                          </span>
-                          <span className="text-muted-foreground">
-                            {spec.value}
-                          </span>
+                      {product.specifications
+                        ?.split("\n")
+                        .map((spec, index) => {
+                          const [label, value] = spec.split(":");
+                          return (
+                            <div
+                              key={index}
+                              className="flex justify-between py-2 border-b border-border/50 last:border-0"
+                            >
+                              <span className="font-medium text-foreground">
+                                {label}:
+                              </span>
+                              <span className="text-muted-foreground">
+                                {value || "N/A"}
+                              </span>
+                            </div>
+                          );
+                        }) || (
+                        <div className="text-muted-foreground">
+                          Không có thông số kỹ thuật
                         </div>
-                      ))}
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -440,7 +549,7 @@ const ProductDetail = () => {
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-xl font-semibold text-foreground">
-                          Đánh giá từ khách hàng ({product.reviews})
+                          Đánh giá từ khách hàng ({reviews.length})
                         </h3>
                         <div className="flex items-center gap-2">
                           <span className="text-sm text-muted-foreground">
@@ -459,81 +568,61 @@ const ProductDetail = () => {
                       </div>
 
                       <div className="space-y-4">
-                        {/* Review Item */}
-                        <div className="flex items-start gap-4 p-4 border border-border rounded-lg bg-white">
-                          <div className="w-12 h-12 bg-gradient-primary rounded-full flex items-center justify-center text-primary-foreground font-semibold">
-                            N
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="font-semibold text-foreground">
-                                Nguyễn Thu Hương
-                              </span>
-                              <div className="flex">
-                                {[...Array(5)].map((_, i) => (
-                                  <Star
-                                    key={i}
-                                    className="h-4 w-4 text-yellow-400 fill-current"
-                                  />
-                                ))}
+                        {reviews.length > 0 ? (
+                          reviews.map((review) => (
+                            <div
+                              key={review.id}
+                              className="flex items-start gap-4 p-4 border border-border rounded-lg bg-white"
+                            >
+                              <div className="w-12 h-12 bg-gradient-primary rounded-full flex items-center justify-center text-primary-foreground font-semibold">
+                                {review.user?.fullName?.charAt(0) || "U"}
                               </div>
-                              <span className="text-sm text-muted-foreground ml-2">
-                                2 ngày trước
-                              </span>
-                            </div>
-                            <p className="text-muted-foreground text-sm leading-relaxed mb-2">
-                              Sản phẩm rất tươi ngon, đóng gói cẩn thận. Rất hài
-                              lòng với chất lượng dịch vụ. Shop giao hàng nhanh
-                              và nhiệt tình.
-                            </p>
-                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                              <button className="hover:text-primary transition-colors">
-                                👍 Hữu ích (12)
-                              </button>
-                              <button className="hover:text-primary transition-colors">
-                                💬 Trả lời
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Another Review */}
-                        <div className="flex items-start gap-4 p-4 border border-border rounded-lg bg-white">
-                          <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
-                            M
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="font-semibold text-foreground">
-                                Minh Đức
-                              </span>
-                              <div className="flex">
-                                {[...Array(4)].map((_, i) => (
-                                  <Star
-                                    key={i}
-                                    className="h-4 w-4 text-yellow-400 fill-current"
-                                  />
-                                ))}
-                                <Star className="h-4 w-4 text-gray-300" />
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="font-semibold text-foreground">
+                                    {review.user?.fullName || "Khách hàng"}
+                                  </span>
+                                  <div className="flex">
+                                    {[...Array(5)].map((_, i) => (
+                                      <Star
+                                        key={i}
+                                        className={`h-4 w-4 ${
+                                          i < review.rating
+                                            ? "text-yellow-400 fill-current"
+                                            : "text-gray-300"
+                                        }`}
+                                      />
+                                    ))}
+                                  </div>
+                                  <span className="text-sm text-muted-foreground ml-2">
+                                    {new Date(
+                                      review.createdAt
+                                    ).toLocaleDateString("vi-VN")}
+                                  </span>
+                                </div>
+                                <p className="text-muted-foreground text-sm leading-relaxed mb-2">
+                                  {review.comment ||
+                                    "Khách hàng đã đánh giá sản phẩm này."}
+                                </p>
+                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                  <button className="hover:text-primary transition-colors">
+                                    👍 Hữu ích (0)
+                                  </button>
+                                  <button className="hover:text-primary transition-colors">
+                                    💬 Trả lời
+                                  </button>
+                                </div>
                               </div>
-                              <span className="text-sm text-muted-foreground ml-2">
-                                1 tuần trước
-                              </span>
                             </div>
-                            <p className="text-muted-foreground text-sm leading-relaxed mb-2">
-                              Chất lượng tốt, giá cả hợp lý. Sẽ mua lại lần sau.
+                          ))
+                        ) : (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <p>Chưa có đánh giá nào cho sản phẩm này.</p>
+                            <p className="text-sm">
+                              Hãy là người đầu tiên đánh giá!
                             </p>
-                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                              <button className="hover:text-primary transition-colors">
-                                👍 Hữu ích (5)
-                              </button>
-                              <button className="hover:text-primary transition-colors">
-                                💬 Trả lời
-                              </button>
-                            </div>
                           </div>
-                          ````
-                        </div>
+                        )}
                       </div>
 
                       {/* Load More Reviews */}
@@ -558,8 +647,13 @@ const ProductDetail = () => {
                             {[...Array(5)].map((_, i) => (
                               <button
                                 key={i}
-                                className="h-8 w-8 text-gray-300 hover:text-yellow-400 transition-colors"
+                                className={`h-8 w-8 transition-colors ${
+                                  i < reviewRating
+                                    ? "text-yellow-400"
+                                    : "text-gray-300 hover:text-yellow-400"
+                                }`}
                                 title={`Đánh giá ${i + 1} sao`}
+                                onClick={() => setReviewRating(i + 1)}
                               >
                                 <Star className="h-full w-full" />
                               </button>
@@ -574,13 +668,29 @@ const ProductDetail = () => {
                             placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm này..."
                             className="w-full p-3 border border-border rounded-lg resize-none focus:ring-2 focus:ring-primary focus:border-transparent"
                             rows={4}
+                            value={reviewComment}
+                            onChange={(e) => setReviewComment(e.target.value)}
                           />
                         </div>
                         <div className="flex gap-3">
-                          <Button className="bg-primary hover:bg-primary/90">
-                            Gửi đánh giá
+                          <Button
+                            className="bg-primary hover:bg-primary/90"
+                            onClick={handleSubmitReview}
+                            disabled={isSubmittingReview || reviewRating === 0}
+                          >
+                            {isSubmittingReview
+                              ? "Đang gửi..."
+                              : "Gửi đánh giá"}
                           </Button>
-                          <Button variant="outline">Hủy</Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setReviewRating(0);
+                              setReviewComment("");
+                            }}
+                          >
+                            Hủy
+                          </Button>
                         </div>
                       </div>
                     </CardContent>
@@ -622,9 +732,28 @@ const ProductDetail = () => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {relatedProducts.map((product) => (
-                  <ProductCard key={product.id} {...product} />
-                ))}
+                {relatedProducts.length > 0 ? (
+                  relatedProducts.map((relatedProduct) => (
+                    <ProductCard
+                      key={relatedProduct.id}
+                      id={relatedProduct.id}
+                      name={relatedProduct.name}
+                      price={relatedProduct.basePrice}
+                      originalPrice={relatedProduct.maxPrice}
+                      image={relatedProduct.imageUrl || ""}
+                      rating={4.5}
+                      reviews={0}
+                      category="Sản phẩm"
+                      shopId={relatedProduct.shop?.id || 1}
+                      isBestSeller={relatedProduct.isPopular}
+                      isNew={false}
+                    />
+                  ))
+                ) : (
+                  <div className="col-span-full text-center py-8 text-muted-foreground">
+                    <p>Không có sản phẩm liên quan</p>
+                  </div>
+                )}
               </div>
 
               <div className="text-center pt-4">

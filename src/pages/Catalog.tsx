@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Search, Filter, Grid, List } from "lucide-react";
+import { Search, Filter, Grid, List, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,7 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getAllCategories, getAllProducts, Product } from "@/data/mockData";
+import { apiService, Product, Category } from "@/services/apiService";
+import {
+  getAllCategories,
+  getAllProducts,
+  Product as MockProduct,
+} from "@/data/mockData";
 import ProductCard from "@/components/ProductCard";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -20,20 +25,76 @@ import Footer from "@/components/Footer";
 const Catalog = () => {
   const { category } = useParams<{ category: string }>();
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("name");
   const [priceRange, setPriceRange] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [currentCategory, setCurrentCategory] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const categories = getAllCategories();
+  // Fetch data from API
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        // Try to fetch from API first
+        const [productsData, categoriesData] = await Promise.all([
+          apiService.getProducts(),
+          apiService.getCategories(),
+        ]);
+
+        setProducts(productsData);
+        setCategories(categoriesData);
+      } catch (apiError) {
+        console.warn("API not available, using fallback data:", apiError);
+
+        // Fallback to mock data
+        const mockProducts = getAllProducts();
+        setProducts(
+          mockProducts.map(
+            (p) =>
+              ({
+                id: p.id,
+                name: p.name,
+                basePrice: p.price,
+                maxPrice: p.originalPrice,
+                imageUrl: p.image,
+                isPopular: p.isBestSeller || false,
+                stockQuantity: 10,
+                productCategoryId: 1,
+                description: p.description,
+                features: undefined,
+                specifications: undefined,
+                shop: {
+                  id: p.shopId,
+                  shopName: `Shop ${p.shopId}`,
+                },
+              } as Product)
+          )
+        );
+
+        setCategories(
+          getAllCategories().map((c) => ({
+            id: Math.random(),
+            name: c.name,
+            description: "",
+            imageUrl: "",
+          }))
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   useEffect(() => {
-    // Load all products
-    const allProducts = getAllProducts();
-    setProducts(allProducts);
-
     // Set current category
     if (category) {
       const decodedCategory = decodeURIComponent(category);
@@ -46,10 +107,12 @@ const Catalog = () => {
 
     // Filter by category if specified
     if (currentCategory && currentCategory !== "Tất cả") {
-      filtered = filtered.filter(
-        (product) =>
-          product.category.toLowerCase() === currentCategory.toLowerCase()
-      );
+      const categoryObj = categories.find((c) => c.name === currentCategory);
+      if (categoryObj) {
+        filtered = filtered.filter(
+          (product) => product.productCategoryId === categoryObj.id
+        );
+      }
     }
 
     // Filter by search query
@@ -57,7 +120,7 @@ const Catalog = () => {
       filtered = filtered.filter(
         (product) =>
           product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          product.category.toLowerCase().includes(searchQuery.toLowerCase())
+          product.description?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
@@ -65,20 +128,20 @@ const Catalog = () => {
     if (priceRange !== "all") {
       switch (priceRange) {
         case "under-500k":
-          filtered = filtered.filter((p) => p.price < 500000);
+          filtered = filtered.filter((p) => p.basePrice < 500000);
           break;
         case "500k-1m":
           filtered = filtered.filter(
-            (p) => p.price >= 500000 && p.price < 1000000
+            (p) => p.basePrice >= 500000 && p.basePrice < 1000000
           );
           break;
         case "1m-2m":
           filtered = filtered.filter(
-            (p) => p.price >= 1000000 && p.price < 2000000
+            (p) => p.basePrice >= 1000000 && p.basePrice < 2000000
           );
           break;
         case "over-2m":
-          filtered = filtered.filter((p) => p.price >= 2000000);
+          filtered = filtered.filter((p) => p.basePrice >= 2000000);
           break;
       }
     }
@@ -86,13 +149,13 @@ const Catalog = () => {
     // Sort products
     switch (sortBy) {
       case "price-low":
-        filtered.sort((a, b) => a.price - b.price);
+        filtered.sort((a, b) => a.basePrice - b.basePrice);
         break;
       case "price-high":
-        filtered.sort((a, b) => b.price - a.price);
+        filtered.sort((a, b) => b.basePrice - a.basePrice);
         break;
       case "rating":
-        filtered.sort((a, b) => b.rating - a.rating);
+        // API doesn't provide rating, so no sorting
         break;
       case "name":
       default:
@@ -101,7 +164,31 @@ const Catalog = () => {
     }
 
     setFilteredProducts(filtered);
-  }, [products, currentCategory, searchQuery, sortBy, priceRange]);
+  }, [products, categories, currentCategory, searchQuery, sortBy, priceRange]);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Đang tải sản phẩm...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">Không thể tải sản phẩm</p>
+          <Button onClick={() => window.location.reload()}>Thử lại</Button>
+        </div>
+      </div>
+    );
+  }
 
   const handleCategoryChange = (newCategory: string) => {
     setCurrentCategory(newCategory);
@@ -186,8 +273,8 @@ const Catalog = () => {
                 <SelectContent>
                   <SelectItem value="">Tất cả danh mục</SelectItem>
                   {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
+                    <SelectItem key={cat.id} value={cat.name}>
+                      {cat.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -308,7 +395,23 @@ const Catalog = () => {
           ) : viewMode === "grid" ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredProducts.map((product) => (
-                <ProductCard key={product.id} {...product} />
+                <ProductCard
+                  key={product.id}
+                  id={product.id}
+                  name={product.name}
+                  price={product.basePrice}
+                  originalPrice={product.maxPrice}
+                  image={product.imageUrl || ""}
+                  rating={4.5}
+                  reviews={0}
+                  category={
+                    categories.find((c) => c.id === product.productCategoryId)
+                      ?.name || "Sản phẩm"
+                  }
+                  shopId={product.shop?.id || 1}
+                  isBestSeller={product.isPopular}
+                  isNew={false}
+                />
               ))}
             </div>
           ) : (
@@ -321,13 +424,18 @@ const Catalog = () => {
                   <CardContent className="p-4">
                     <div className="flex gap-4">
                       <img
-                        src={product.image}
+                        src={
+                          product.imageUrl ||
+                          "https://via.placeholder.com/96x96"
+                        }
                         alt={product.name}
                         className="w-24 h-24 object-cover rounded-md"
                       />
                       <div className="flex-1">
                         <Badge variant="secondary" className="text-xs mb-2">
-                          {product.category}
+                          {categories.find(
+                            (c) => c.id === product.productCategoryId
+                          )?.name || "Sản phẩm"}
                         </Badge>
                         <Link to={`/product/${product.id}`}>
                           <h3 className="font-semibold text-foreground hover:text-primary transition">
@@ -336,13 +444,14 @@ const Catalog = () => {
                         </Link>
                         <div className="flex items-center gap-2 mt-2">
                           <span className="text-lg font-semibold text-[#C99F4D]">
-                            {product.price.toLocaleString("vi-VN")}đ
+                            {product.basePrice.toLocaleString("vi-VN")}đ
                           </span>
-                          {product.originalPrice && (
-                            <span className="text-sm text-muted-foreground line-through">
-                              {product.originalPrice.toLocaleString("vi-VN")}đ
-                            </span>
-                          )}
+                          {product.maxPrice &&
+                            product.maxPrice > product.basePrice && (
+                              <span className="text-sm text-muted-foreground line-through">
+                                {product.maxPrice.toLocaleString("vi-VN")}đ
+                              </span>
+                            )}
                         </div>
                       </div>
                       <div className="flex flex-col gap-2">

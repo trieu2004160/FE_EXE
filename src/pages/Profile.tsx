@@ -3,12 +3,11 @@ import {
   User,
   Mail,
   Phone,
-  Package,
   Settings,
-  Heart,
   LogOut,
   Edit2,
   Camera,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,57 +17,73 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { apiService, UserProfile, authUtils } from "@/services/apiService";
 
 const Profile = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
-  const [userInfo, setUserInfo] = useState({
-    name: "",
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [userInfo, setUserInfo] = useState<UserProfile>({
+    fullName: "",
     email: "",
-    phone: "",
+    phoneNumber: "",
     address: "",
-    avatar: "",
-    bio: "",
+    introduction: "",
   });
 
-  // Load user data from localStorage on component mount
+  // Load user data from API
   useEffect(() => {
-    const userData = localStorage.getItem("userData");
-    const userToken = localStorage.getItem("userToken");
+    const loadUserProfile = async () => {
+      const userToken = localStorage.getItem("userToken");
 
-    if (!userToken) {
-      // Redirect to login if no token
-      navigate("/login");
-      return;
-    }
-
-    if (userData) {
-      try {
-        const parsedUserData = JSON.parse(userData);
-        setUserInfo({
-          name:
-            parsedUserData.fullName || parsedUserData.name || "Chưa cập nhật",
-          email: parsedUserData.email || "Chưa cập nhật",
-          phone:
-            parsedUserData.phone ||
-            parsedUserData.phoneNumber ||
-            "Chưa cập nhật",
-          address: parsedUserData.address || "Chưa cập nhật",
-          avatar: parsedUserData.avatar || "",
-          bio:
-            parsedUserData.bio ||
-            parsedUserData.introduction ||
-            "Chưa có thông tin giới thiệu",
-        });
-      } catch (error) {
-        console.error("Error parsing user data:", error);
-        // Use default empty values if parsing fails
+      if (!userToken || userToken === "authenticated") {
+        // Redirect to login if no token
+        navigate("/login");
+        return;
       }
-    }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        // Try to fetch from API first
+        const profileData = await apiService.getProfile();
+        setUserInfo(profileData);
+      } catch (apiError) {
+        console.warn("API not available, using fallback data:", apiError);
+
+        // Fallback to localStorage data
+        const userData = localStorage.getItem("userData");
+        if (userData) {
+          try {
+            const parsedUserData = JSON.parse(userData);
+            setUserInfo({
+              fullName: parsedUserData.fullName || parsedUserData.name || "",
+              email: parsedUserData.email || "",
+              phoneNumber:
+                parsedUserData.phoneNumber || parsedUserData.phone || "",
+              address: parsedUserData.address || "",
+              introduction:
+                parsedUserData.introduction || parsedUserData.bio || "",
+            });
+          } catch (error) {
+            console.error("Error parsing user data:", error);
+            setError("Không thể tải thông tin người dùng");
+          }
+        } else {
+          setError("Không tìm thấy thông tin người dùng");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserProfile();
   }, [navigate]);
 
   // Get user initials from name
@@ -83,30 +98,31 @@ const Profile = () => {
     ).toUpperCase();
   };
 
-  // Mock data for orders
-  const orders = [
-    {
-      id: "DH001",
-      date: "2024-03-15",
-      status: "Đã giao",
-      total: 850000,
-      items: 3,
-    },
-    {
-      id: "DH002",
-      date: "2024-03-10",
-      status: "Đang xử lý",
-      total: 1200000,
-      items: 5,
-    },
-    {
-      id: "DH003",
-      date: "2024-03-05",
-      status: "Đã hủy",
-      total: 450000,
-      items: 2,
-    },
-  ];
+  // Save profile changes
+  const saveProfile = async () => {
+    try {
+      await apiService.updateProfile({
+        fullName: userInfo.fullName,
+        phoneNumber: userInfo.phoneNumber,
+        address: userInfo.address,
+        introduction: userInfo.introduction,
+      });
+
+      toast({
+        title: "Cập nhật thành công!",
+        description: "Thông tin cá nhân đã được cập nhật.",
+      });
+
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast({
+        title: "Lỗi cập nhật",
+        description: "Không thể cập nhật thông tin cá nhân. Vui lòng thử lại.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleSaveProfile = () => {
     try {
@@ -121,15 +137,15 @@ const Profile = () => {
       // Update the user data with new information
       updatedUserData = {
         ...updatedUserData,
-        fullName: userInfo.name,
-        name: userInfo.name,
+        fullName: userInfo.fullName,
+        name: userInfo.fullName,
         email: userInfo.email,
-        phone: userInfo.phone,
-        phoneNumber: userInfo.phone,
+        phone: userInfo.phoneNumber,
+        phoneNumber: userInfo.phoneNumber,
         address: userInfo.address,
-        bio: userInfo.bio,
-        introduction: userInfo.bio,
-        avatar: userInfo.avatar,
+        bio: userInfo.introduction,
+        introduction: userInfo.introduction,
+        avatar: "",
       };
 
       // Save back to localStorage
@@ -151,28 +167,44 @@ const Profile = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("userToken");
-    localStorage.removeItem("userRole");
+    // Clear all auth data
+    authUtils.removeToken();
     localStorage.removeItem("userData");
+    localStorage.removeItem("userRole");
+
+    // Redirect to home page
     navigate("/");
+
+    // Show success message
     toast({
       title: "Đăng xuất thành công!",
       description: "Hẹn gặp lại bạn.",
     });
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Đã giao":
-        return "bg-green-500";
-      case "Đang xử lý":
-        return "bg-blue-500";
-      case "Đã hủy":
-        return "bg-red-500";
-      default:
-        return "bg-gray-500";
-    }
-  };
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Đang tải thông tin cá nhân...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>Thử lại</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -200,9 +232,9 @@ const Profile = () => {
                 <div className="flex flex-col md:flex-row items-center gap-6">
                   <div className="relative">
                     <Avatar className="w-24 h-24">
-                      <AvatarImage src={userInfo.avatar} />
+                      <AvatarImage src="" />
                       <AvatarFallback className="bg-[#C99F4D] text-white text-2xl">
-                        {getInitials(userInfo.name)}
+                        {getInitials(userInfo.fullName)}
                       </AvatarFallback>
                     </Avatar>
                     <Button
@@ -215,9 +247,11 @@ const Profile = () => {
 
                   <div className="flex-1 text-center md:text-left">
                     <h2 className="text-2xl font-bold text-foreground mb-2">
-                      {userInfo.name}
+                      {userInfo.fullName}
                     </h2>
-                    <p className="text-muted-foreground mb-4">{userInfo.bio}</p>
+                    <p className="text-muted-foreground mb-4">
+                      {userInfo.introduction}
+                    </p>
                     <div className="flex flex-wrap gap-2 justify-center md:justify-start">
                       <Badge variant="secondary" className="gap-1">
                         <Mail className="h-3 w-3" />
@@ -225,7 +259,7 @@ const Profile = () => {
                       </Badge>
                       <Badge variant="secondary" className="gap-1">
                         <Phone className="h-3 w-3" />
-                        {userInfo.phone}
+                        {userInfo.phoneNumber}
                       </Badge>
                     </div>
                   </div>
@@ -233,10 +267,12 @@ const Profile = () => {
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
-                      onClick={() => setIsEditing(!isEditing)}
+                      onClick={() =>
+                        isEditing ? saveProfile() : setIsEditing(true)
+                      }
                     >
                       <Edit2 className="h-4 w-4 mr-2" />
-                      {isEditing ? "Hủy" : "Chỉnh sửa"}
+                      {isEditing ? "Lưu" : "Chỉnh sửa"}
                     </Button>
                     <Button
                       variant="outline"
@@ -278,9 +314,12 @@ const Profile = () => {
                           Họ và tên
                         </label>
                         <Input
-                          value={userInfo.name}
+                          value={userInfo.fullName}
                           onChange={(e) =>
-                            setUserInfo({ ...userInfo, name: e.target.value })
+                            setUserInfo({
+                              ...userInfo,
+                              fullName: e.target.value,
+                            })
                           }
                           disabled={!isEditing}
                         />
@@ -302,9 +341,12 @@ const Profile = () => {
                           Số điện thoại
                         </label>
                         <Input
-                          value={userInfo.phone}
+                          value={userInfo.phoneNumber}
                           onChange={(e) =>
-                            setUserInfo({ ...userInfo, phone: e.target.value })
+                            setUserInfo({
+                              ...userInfo,
+                              phoneNumber: e.target.value,
+                            })
                           }
                           disabled={!isEditing}
                         />
@@ -331,9 +373,12 @@ const Profile = () => {
                         Giới thiệu
                       </label>
                       <Textarea
-                        value={userInfo.bio}
+                        value={userInfo.introduction}
                         onChange={(e) =>
-                          setUserInfo({ ...userInfo, bio: e.target.value })
+                          setUserInfo({
+                            ...userInfo,
+                            introduction: e.target.value,
+                          })
                         }
                         disabled={!isEditing}
                         rows={3}
@@ -405,14 +450,16 @@ const Profile = () => {
                         <Button
                           variant="outline"
                           className="w-full justify-start"
+                          onClick={() => navigate("/settings")}
                         >
                           Đổi mật khẩu
                         </Button>
                         <Button
                           variant="outline"
                           className="w-full justify-start"
+                          onClick={() => navigate("/settings")}
                         >
-                          Xác thực hai yếu tố
+                          Cài đặt bảo mật
                         </Button>
                       </div>
                     </div>
@@ -421,7 +468,11 @@ const Profile = () => {
                       <h4 className="font-medium text-red-600">
                         Vùng nguy hiểm
                       </h4>
-                      <Button variant="destructive" className="w-full">
+                      <Button
+                        variant="destructive"
+                        className="w-full"
+                        onClick={() => navigate("/settings")}
+                      >
                         Xóa tài khoản
                       </Button>
                     </div>

@@ -139,6 +139,26 @@ export interface CreateReviewRequest {
   comment?: string;
 }
 
+// Search Types
+export interface SearchParams {
+  query?: string;
+  category?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  sortBy?: 'name' | 'price' | 'rating' | 'createdAt';
+  page?: number;
+  pageSize?: number;
+}
+
+export interface SearchResponse {
+  products: Product[];
+  totalCount: number;
+  currentPage: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
 // Admin Types
 export interface GrantShopRoleRequest {
   userEmail: string;
@@ -399,6 +419,27 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  }
+
+  // ==================== SEARCH API ====================
+  // Base URL: /api/search
+
+  /**
+   * Search products
+   * GET /api/search?query={query}&category={category}&minPrice={minPrice}&maxPrice={maxPrice}
+   */
+  async searchProducts(params: SearchParams): Promise<SearchResponse> {
+    const searchParams = new URLSearchParams();
+    
+    if (params.query) searchParams.append('query', params.query);
+    if (params.category) searchParams.append('category', params.category);
+    if (params.minPrice !== undefined) searchParams.append('minPrice', params.minPrice.toString());
+    if (params.maxPrice !== undefined) searchParams.append('maxPrice', params.maxPrice.toString());
+    if (params.sortBy) searchParams.append('sortBy', params.sortBy);
+    if (params.page) searchParams.append('page', params.page.toString());
+    if (params.pageSize) searchParams.append('pageSize', params.pageSize.toString());
+
+    return this.request<SearchResponse>(`/search?${searchParams.toString()}`);
   }
 
   // ==================== ADMIN API ====================

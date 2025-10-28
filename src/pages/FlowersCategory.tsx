@@ -8,24 +8,91 @@ import {
   Shield,
   Clock,
   Award,
+  Loader2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import ProductCard from "@/components/ProductCard";
-import { getProductsByCategory, Product } from "@/data/mockData";
+import { apiService, Product } from "@/services/apiService";
+import { getProductsByCategory } from "@/data/mockData";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import flowersHeroImage from "@/assets/flowers-hero.jpg";
-import heroBannerImage from "@/assets/traditional-flowers.jpg";
 
 const FlowersCategory = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const flowerProducts = getProductsByCategory("Hoa Tươi");
-    setProducts(flowerProducts);
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        // Try to fetch from API first
+        // Assuming category ID 1 is for flowers (you may need to adjust this)
+        const productsData = await apiService.getProductsByCategory(1);
+        setProducts(productsData);
+      } catch (apiError) {
+        console.warn("API not available, using fallback data:", apiError);
+
+        // Fallback to mock data
+        const mockProducts = getProductsByCategory("Hoa Tươi");
+        setProducts(
+          mockProducts.map(
+            (p) =>
+              ({
+                id: p.id,
+                name: p.name,
+                basePrice: p.price,
+                maxPrice: p.originalPrice,
+                imageUrl: p.image,
+                isPopular: p.isBestSeller || false,
+                stockQuantity: 10,
+                productCategoryId: 1,
+                description: p.description,
+                features: undefined,
+                specifications: undefined,
+                shop: {
+                  id: p.shopId,
+                  shopName: `Shop ${p.shopId}`,
+                },
+              } as Product)
+          )
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Đang tải sản phẩm...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">Không thể tải sản phẩm</p>
+          <Button onClick={() => window.location.reload()}>Thử lại</Button>
+        </div>
+      </div>
+    );
+  }
 
   const features = [
     {
@@ -606,7 +673,19 @@ const FlowersCategory = () => {
                   key={product.id}
                   className="transform hover:scale-105 transition-transform duration-300"
                 >
-                  <ProductCard {...product} />
+                  <ProductCard
+                    id={product.id}
+                    name={product.name}
+                    price={product.basePrice}
+                    originalPrice={product.maxPrice}
+                    image={product.imageUrl || ""}
+                    rating={4.5}
+                    reviews={0}
+                    category="Hoa Tươi"
+                    shopId={product.shop?.id || 1}
+                    isBestSeller={product.isPopular}
+                    isNew={false}
+                  />
                 </div>
               ))}
             </div>

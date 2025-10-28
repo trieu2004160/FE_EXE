@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -9,43 +9,134 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, Grid, List } from "lucide-react";
+import { Search, Grid, List, Loader2 } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import AIAssistant from "@/components/AIAssistant";
+import { apiService, Product, Category } from "@/services/apiService";
 import { mockProducts, getAllCategories } from "@/data/mockData";
 
 const Products = () => {
-  const categories = ["Tất cả", ...getAllCategories()];
+  // State management
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Filter and sort state
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Tất cả");
   const [sortBy, setSortBy] = useState("featured");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  const filteredProducts = mockProducts.filter((product) => {
+  // Fetch data from API
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        // Try to fetch from API first
+        const [productsData, categoriesData] = await Promise.all([
+          apiService.getProducts(),
+          apiService.getCategories(),
+        ]);
+
+        setProducts(productsData);
+        setCategories(categoriesData);
+      } catch (apiError) {
+        console.warn("API not available, using fallback data:", apiError);
+
+        // Fallback to mock data
+        setProducts(
+          mockProducts.map(
+            (p) =>
+              ({
+                id: p.id,
+                name: p.name,
+                basePrice: p.price,
+                maxPrice: p.originalPrice,
+                imageUrl: p.image,
+                isPopular: p.isBestSeller || false,
+                stockQuantity: 10, // Default stock
+                productCategoryId: 1,
+                description: p.description,
+                features: undefined,
+                specifications: undefined,
+                shop: {
+                  id: p.shopId,
+                  shopName: `Shop ${p.shopId}`,
+                },
+              } as Product)
+          )
+        );
+
+        setCategories(
+          getAllCategories().map((c) => ({
+            id: Math.random(),
+            name: c.name,
+            description: "",
+            imageUrl: "",
+          }))
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Filter and sort products
+  const filteredProducts = products.filter((product) => {
     const matchesSearch = product.name
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
     const matchesCategory =
-      selectedCategory === "Tất cả" || product.category === selectedCategory;
+      selectedCategory === "Tất cả" ||
+      categories.find((c) => c.name === selectedCategory)?.id ===
+        product.productCategoryId;
     return matchesSearch && matchesCategory;
   });
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     switch (sortBy) {
       case "price-low":
-        return a.price - b.price;
+        return a.basePrice - b.basePrice;
       case "price-high":
-        return b.price - a.price;
+        return b.basePrice - a.basePrice;
       case "rating":
-        return b.rating - a.rating;
+        return 0; // API doesn't provide rating
       case "name":
         return a.name.localeCompare(b.name);
       default:
         return 0;
     }
   });
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Đang tải sản phẩm...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">Không thể tải sản phẩm</p>
+          <Button onClick={() => window.location.reload()}>Thử lại</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -197,7 +288,23 @@ const Products = () => {
               }
             >
               {sortedProducts.map((product) => (
-                <ProductCard key={product.id} {...product} />
+                <ProductCard
+                  key={product.id}
+                  id={product.id}
+                  name={product.name}
+                  price={product.basePrice}
+                  originalPrice={product.maxPrice}
+                  image={product.imageUrl || ""}
+                  rating={4.5}
+                  reviews={0}
+                  category={
+                    categories.find((c) => c.id === product.productCategoryId)
+                      ?.name || "Sản phẩm"
+                  }
+                  shopId={product.shop?.id || 1}
+                  isBestSeller={product.isPopular}
+                  isNew={false}
+                />
               ))}
             </div>
           )}
