@@ -1,18 +1,3 @@
-export interface Shop {
-  id: number;
-  name: string;
-  avatar: string;
-  rating: number;
-  totalProducts: number;
-  totalSales: number;
-  joinedDate: string;
-  description: string;
-  address: string;
-  phone: string;
-  email: string;
-  isVerified: boolean;
-}
-
 export interface Product {
   id: number;
   name: string;
@@ -25,53 +10,7 @@ export interface Product {
   isNew?: boolean;
   isBestSeller?: boolean;
   description?: string;
-  shopId: number;
 }
-
-export const mockShops: Shop[] = [
-  {
-    id: 1,
-    name: "Xôi Chè Cô Bốn",
-    avatar: "https://scontent.fdad3-6.fna.fbcdn.net/v/t39.30808-6/481970326_1053684360116760_3790526025556053821_n.jpg?_nc_cat=109&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=ONCXx_N7Fc4Q7kNvwGMKh-N&_nc_oc=AdnfwbXyRImNPUvXYz5hY5mX7JLU0MroCyUKfEHvT3061D-ZuJ7V9FQWSb3NSJGFRwr3SkdfT4fNHkbBovfNMyVz&_nc_zt=23&_nc_ht=scontent.fdad3-6.fna&_nc_gid=sXT1orDzHf59AQw45eo5zA&oh=00_AfcsHwABxwo8hEIy325ug9Z1DPYUP4-uPBpDB6sjPo6B5g&oe=690070AC",
-    rating: 4.8,
-    totalProducts: 45,
-    totalSales: 1250,
-    joinedDate: "2023-01-15",
-    description: "Chuyên cung cấp đồ cúng tâm linh, hoa quả tươi ngon và các sản phẩm phong thủy chất lượng cao.",
-    address: "123 Đường Lê Lợi, Quận 1, TP.HCM",
-    phone: "0901234567",
-    email: "contact@docungtamlinh.com",
-    isVerified: true,
-  },
-  {
-    id: 2,
-    name: "Shop Hương Nến Thiên Nhiên",
-    avatar: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80",
-    rating: 4.9,
-    totalProducts: 32,
-    totalSales: 890,
-    joinedDate: "2023-03-20",
-    description: "Chuyên sản xuất và phân phối hương nến thiên nhiên, trầm hương cao cấp cho không gian tâm linh.",
-    address: "456 Đường Nguyễn Huệ, Quận 3, TP.HCM",
-    phone: "0907654321",
-    email: "info@huongnenthiennhien.com",
-    isVerified: true,
-  },
-  {
-    id: 3,
-    name: "Hoa Quả Tươi Sạch",
-    avatar: "https://images.unsplash.com/photo-1610832958506-aa56368176cf?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80",
-    rating: 4.7,
-    totalProducts: 28,
-    totalSales: 650,
-    joinedDate: "2023-05-10",
-    description: "Cung cấp hoa quả tươi sạch, được tuyển chọn kỹ lưỡng cho các dịp lễ cúng và sinh hoạt gia đình.",
-    address: "789 Đường Cách Mạng Tháng 8, Quận 10, TP.HCM",
-    phone: "0909876543",
-    email: "sales@hoaquatuoisach.com",
-    isVerified: false,
-  },
-];
 
 export const mockProducts: Product[] = [
   // 🌸 HƯƠNG NẾN
@@ -84,7 +23,6 @@ export const mockProducts: Product[] = [
     rating: 5,
     reviews: 74,
     category: "Hương Nến",
-    shopId: 2,
     description:
       "Nến thơm trầm hương giúp thanh lọc không khí, tạo cảm giác thư giãn và trang nghiêm khi thắp hương cúng.",
   },
@@ -97,7 +35,6 @@ export const mockProducts: Product[] = [
     rating: 4,
     reviews: 51,
     category: "Hương Nến",
-    shopId: 2,
     description:
       "Hương que làm từ bột quế tự nhiên, cháy đều, thơm dịu – phù hợp cho mọi không gian thờ cúng.",
   },
@@ -110,7 +47,6 @@ export const mockProducts: Product[] = [
     rating: 5,
     reviews: 68,
     category: "Hương Nến",
-    shopId: 2,
     description:
       "Cặp nến ly màu vàng, biểu trưng cho sự sung túc, ấm no và thịnh vượng trong mỗi dịp lễ.",
   },
@@ -123,7 +59,6 @@ export const mockProducts: Product[] = [
     rating: 5,
     reviews: 39,
     category: "Hương Nến",
-    shopId: 2,
     description:
       "Hương nụ hoa sen nhẹ nhàng, thanh khiết – mang lại không gian tĩnh lặng, an yên.",
   },
@@ -138,7 +73,6 @@ export const mockProducts: Product[] = [
     rating: 5,
     reviews: 90,
     category: "Hoa Quả",
-    shopId: 3,
     description:
       "Nải chuối chín vàng tự nhiên – biểu trưng cho sự sum vầy, đủ đầy trong mâm cúng gia tiên.",
   },
@@ -151,7 +85,6 @@ export const mockProducts: Product[] = [
     rating: 4,
     reviews: 42,
     category: "Hoa Quả",
-    shopId: 3,
     description:
       "Cam chín mọng, ngọt thanh, tượng trưng cho may mắn và tài lộc trong các dịp lễ cúng.",
   },
@@ -164,7 +97,6 @@ export const mockProducts: Product[] = [
     rating: 4,
     reviews: 55,
     category: "Hoa Quả",
-    shopId: 3,
     description:
       "Táo đỏ tươi giòn ngọt, tượng trưng cho sự bình an và may mắn cho gia đình.",
   },
@@ -177,7 +109,6 @@ export const mockProducts: Product[] = [
     rating: 5,
     reviews: 48,
     category: "Hoa Quả",
-    shopId: 3,
     description:
       "Mãng cầu tươi ngon – biểu trưng cho cầu mong điều lành, thường dùng trong mâm ngũ quả truyền thống.",
   },
@@ -192,7 +123,6 @@ export const mockProducts: Product[] = [
     rating: 5,
     reviews: 61,
     category: "Xôi – Chè",
-    shopId: 1,
     description:
       "Xôi gấc đỏ thơm ngon – tượng trưng cho may mắn, hạnh phúc và sung túc.",
   },
@@ -205,7 +135,6 @@ export const mockProducts: Product[] = [
     rating: 5,
     reviews: 48,
     category: "Xôi – Chè",
-    shopId: 1,
     description:
       "Chè đậu xanh truyền thống – vị ngọt thanh, dễ ăn, thường dùng trong các dịp lễ cúng.",
   },
@@ -218,7 +147,6 @@ export const mockProducts: Product[] = [
     rating: 4,
     reviews: 52,
     category: "Xôi – Chè",
-    shopId: 1,
     description:
       "Chè trôi nước dẻo thơm, viên tròn tượng trưng cho đoàn viên và sung túc.",
   },
@@ -233,7 +161,6 @@ export const mockProducts: Product[] = [
     rating: 5,
     reviews: 80,
     category: "Combo Tiết Kiệm",
-    shopId: 1,
     description:
       "Combo đồ cúng đầy đủ cho lễ đầy tháng – bao gồm hoa quả, hương nến và xôi chè tiện lợi.",
   },
@@ -246,7 +173,6 @@ export const mockProducts: Product[] = [
     rating: 5,
     reviews: 92,
     category: "Combo Tiết Kiệm",
-    shopId: 1,
     description:
       "Combo đồ cúng rằm gồm đầy đủ hoa quả, hương, nến và xôi chè – tiện lợi và trang trọng.",
   },
@@ -259,7 +185,6 @@ export const mockProducts: Product[] = [
     rating: 5,
     reviews: 70,
     category: "Combo Tiết Kiệm",
-    shopId: 1,
     description:
       "Combo đồ cúng cho lễ tốt nghiệp – tượng trưng cho lòng tri ân và khởi đầu mới.",
   },
@@ -272,7 +197,6 @@ export const mockProducts: Product[] = [
     rating: 5,
     reviews: 85,
     category: "Combo Tiết Kiệm",
-    shopId: 1,
     description:
       "Combo đồ cúng Rằm Tháng 7 – chuẩn bị sẵn đầy đủ lễ vật, tiện lợi và ý nghĩa.",
   },
@@ -308,17 +232,4 @@ export const getAllCategories = () => {
 
 export const getAllProducts = () => {
   return mockProducts;
-};
-
-// Shop utility functions
-export const getShopById = (id: number) => {
-  return mockShops.find(shop => shop.id === id);
-};
-
-export const getProductsByShopId = (shopId: number) => {
-  return mockProducts.filter(product => product.shopId === shopId);
-};
-
-export const getAllShops = () => {
-  return mockShops;
 };
