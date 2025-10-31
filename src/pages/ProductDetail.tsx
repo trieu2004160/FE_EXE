@@ -88,12 +88,21 @@ const ProductDetail = () => {
       try {
         // Only use API data - no fallback to mock data
         const productId = parseInt(id);
-        const response: ProductDetailResponse = await apiService.getProductById(
-          productId
-        );
+        const response: any = await apiService.getProductById(productId);
 
-        setProduct(response.product);
-        setRelatedProducts(response.relatedProducts);
+        // Backend returns PascalCase (Product, RelatedProducts), map to camelCase
+        const product = response.product || response.Product;
+        const relatedProducts =
+          response.relatedProducts || response.RelatedProducts || [];
+
+        if (!product) {
+          throw new Error("Product not found in response");
+        }
+
+        setProduct(product);
+        setRelatedProducts(
+          Array.isArray(relatedProducts) ? relatedProducts : []
+        );
 
         // Fetch reviews separately
         try {
@@ -103,13 +112,19 @@ const ProductDetail = () => {
           console.warn("Failed to fetch reviews:", reviewError);
           setReviews([]);
         }
-      } catch (apiError) {
-        console.warn("API not available, using fallback data:", apiError);
+      } catch (apiError: any) {
+        console.error("Error fetching product:", apiError);
+        setError(
+          apiError?.message || "Không thể tải sản phẩm. Vui lòng thử lại sau."
+        );
 
-        // Fallback to mock data when API is not available
-        setProduct(fallbackProduct);
-        setRelatedProducts([]);
-        setReviews([]);
+        // Fallback to mock data when API is not available (only for development)
+        if (process.env.NODE_ENV === "development") {
+          console.warn("Using fallback data in development mode");
+          setProduct(fallbackProduct);
+          setRelatedProducts([]);
+          setReviews([]);
+        }
       } finally {
         setLoading(false);
       }
@@ -283,25 +298,48 @@ const ProductDetail = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
               {/* Product Images */}
               <div className="space-y-3">
-                <div className="w-full overflow-hidden rounded-lg border border-border">
+                {/* Ảnh chính */}
+                <div className="w-full overflow-hidden rounded-lg border border-border bg-white relative">
                   <img
-                    src={
-                      product.imageUrl || "https://via.placeholder.com/400x450"
-                    }
+                    src={product.imageUrl || "https://via.placeholder.com/800x800?text=No+Image"}
                     alt={product.name}
                     className="w-full h-[450px] object-cover"
+                    style={{
+                      imageRendering: '-webkit-optimize-contrast',
+                      imageRendering: 'crisp-edges',
+                      backfaceVisibility: 'hidden',
+                      transform: 'translateZ(0)',
+                      WebkitTransform: 'translateZ(0)',
+                    }}
+                    loading="eager"
+                    decoding="async"
+                    fetchPriority="high"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = "https://via.placeholder.com/800x800?text=No+Image";
+                    }}
                   />
                 </div>
-                {/* Single image display - API only provides one image */}
-                <div className="grid grid-cols-1 gap-2">
-                  <div className="overflow-hidden rounded-lg border-2 border-red-500">
+
+                {/* Ảnh nhỏ (hiện tại chỉ 1 ảnh, nhưng để sẵn grid cho mở rộng sau này) */}
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                  <div className="overflow-hidden rounded-lg border-2 border-red-500 bg-white cursor-pointer hover:border-primary transition-colors">
                     <img
-                      src={
-                        product.imageUrl ||
-                        "https://via.placeholder.com/400x450"
-                      }
+                      src={product.imageUrl || "https://via.placeholder.com/200x200?text=No+Image"}
                       alt={product.name}
-                      className="w-full h-24 object-cover"
+                      className="w-full h-32 object-cover"
+                      style={{
+                        imageRendering: '-webkit-optimize-contrast',
+                        imageRendering: 'crisp-edges',
+                        backfaceVisibility: 'hidden',
+                        transform: 'translateZ(0)',
+                      }}
+                      loading="lazy"
+                      decoding="async"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = "https://via.placeholder.com/200x200?text=No+Image";
+                      }}
                     />
                   </div>
                 </div>
@@ -490,14 +528,24 @@ const ProductDetail = () => {
                         Đặc điểm nổi bật
                       </h3>
                       <ul className="space-y-2">
-                        {product.features?.split("\n").map((feature, index) => (
-                          <li key={index} className="flex items-start gap-2">
-                            <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
-                            <span className="text-muted-foreground">
-                              {feature}
-                            </span>
-                          </li>
-                        )) || (
+                        {product.features ? (
+                          // Split by both newline and semicolon, then filter empty strings
+                          product.features
+                            .split(/[\n;]/)
+                            .map((feature) => feature.trim())
+                            .filter((feature) => feature.length > 0)
+                            .map((feature, index) => (
+                              <li
+                                key={index}
+                                className="flex items-start gap-2"
+                              >
+                                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
+                                <span className="text-muted-foreground">
+                                  {feature}
+                                </span>
+                              </li>
+                            ))
+                        ) : (
                           <li className="text-muted-foreground">
                             Không có thông tin đặc điểm
                           </li>
@@ -514,30 +562,101 @@ const ProductDetail = () => {
                     <h3 className="text-xl font-semibold text-foreground mb-4">
                       Thông số kỹ thuật
                     </h3>
-                    <div className="space-y-3">
-                      {product.specifications
-                        ?.split("\n")
-                        .map((spec, index) => {
-                          const [label, value] = spec.split(":");
-                          return (
-                            <div
-                              key={index}
-                              className="flex justify-between py-2 border-b border-border/50 last:border-0"
-                            >
-                              <span className="font-medium text-foreground">
-                                {label}:
-                              </span>
-                              <span className="text-muted-foreground">
-                                {value || "N/A"}
-                              </span>
-                            </div>
-                          );
-                        }) || (
-                        <div className="text-muted-foreground">
+                    {(() => {
+                      // Handle specifications - can be object, JSON string, or string
+                      let specs: Record<string, string> | null = null;
+
+                      if (!product.specifications) {
+                        return (
+                          <div className="text-center py-8 text-muted-foreground">
+                            Không có thông số kỹ thuật
+                          </div>
+                        );
+                      }
+
+                      // Case 1: Already an object (Dictionary from backend)
+                      if (
+                        typeof product.specifications === "object" &&
+                        !Array.isArray(product.specifications)
+                      ) {
+                        specs = product.specifications as Record<
+                          string,
+                          string
+                        >;
+                      }
+                      // Case 2: JSON string - try to parse
+                      else if (typeof product.specifications === "string") {
+                        try {
+                          // Try parsing as JSON first
+                          const parsed = JSON.parse(product.specifications);
+                          if (
+                            typeof parsed === "object" &&
+                            !Array.isArray(parsed)
+                          ) {
+                            specs = parsed;
+                          }
+                        } catch (e) {
+                          // If not JSON, treat as plain string format (backward compatibility)
+                          // Format: "Key: Value\nKey2: Value2"
+                          const lines = product.specifications.split("\n");
+                          const parsedSpecs: Record<string, string> = {};
+                          lines.forEach((line) => {
+                            const trimmed = line.trim();
+                            if (trimmed) {
+                              const colonIndex = trimmed.indexOf(":");
+                              if (colonIndex > -1) {
+                                const key = trimmed
+                                  .substring(0, colonIndex)
+                                  .trim();
+                                const value = trimmed
+                                  .substring(colonIndex + 1)
+                                  .trim();
+                                if (key) {
+                                  parsedSpecs[key] = value || "N/A";
+                                }
+                              }
+                            }
+                          });
+                          if (Object.keys(parsedSpecs).length > 0) {
+                            specs = parsedSpecs;
+                          }
+                        }
+                      }
+
+                      // Display specifications as table
+                      if (specs && Object.keys(specs).length > 0) {
+                        return (
+                          <div className="overflow-x-auto">
+                            <table className="w-full border-collapse">
+                              <tbody>
+                                {Object.entries(specs).map(
+                                  ([key, value], index) => (
+                                    <tr
+                                      key={index}
+                                      className="border-b border-border/50 last:border-0 hover:bg-gray-100/50 transition-colors"
+                                    >
+                                      <td className="py-3 px-4 font-medium text-foreground align-top w-1/3">
+                                        {key}
+                                      </td>
+                                      <td className="py-3 px-4 text-muted-foreground align-top">
+                                        {value || "N/A"}
+                                      </td>
+                                    </tr>
+                                  )
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        );
+                      }
+
+                      // No valid specifications found
+                      return (
+                        <div className="text-center py-8 text-muted-foreground">
                           Không có thông số kỹ thuật
                         </div>
-                      )}
-                    </div>
+                      );
+                    })()}
                   </CardContent>
                 </Card>
               </TabsContent>

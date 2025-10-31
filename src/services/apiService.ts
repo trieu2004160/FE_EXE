@@ -81,7 +81,7 @@ export interface Product {
   basePrice: number;
   maxPrice?: number;
   stockQuantity: number;
-  specifications?: string;
+  specifications?: string | Record<string, string>; // Can be JSON string or Dictionary object
   productCategoryId: number;
   shop?: {
     id: number;

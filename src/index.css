@@ -188,4 +188,23 @@ All colors MUST be HSL for traditional Vietnamese aesthetics
       rgba(254, 243, 199, 0.3)
     );
   }
+
+  /* Image quality optimization */
+  img {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+
+  /* Product images - ensure sharp rendering */
+  .product-image,
+  [class*="product"] img {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 }
