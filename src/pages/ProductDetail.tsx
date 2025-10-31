@@ -31,6 +31,7 @@ import {
   ProductDetailResponse,
   ProductReview,
 } from "@/services/apiService";
+import { getProductImageUrl, getAllProductImages } from "@/utils/imageUtils";
 
 import { mockProducts } from "@/data/mockData";
 
@@ -99,10 +100,22 @@ const ProductDetail = () => {
           throw new Error("Product not found in response");
         }
 
-        setProduct(product);
-        setRelatedProducts(
-          Array.isArray(relatedProducts) ? relatedProducts : []
-        );
+        // Normalize image URLs from backend
+        const normalizedProduct = {
+          ...product,
+          imageUrl: getProductImageUrl(product),
+        };
+
+        // Normalize related products images
+        const normalizedRelatedProducts = Array.isArray(relatedProducts)
+          ? relatedProducts.map((p: Product) => ({
+              ...p,
+              imageUrl: getProductImageUrl(p),
+            }))
+          : [];
+
+        setProduct(normalizedProduct);
+        setRelatedProducts(normalizedRelatedProducts);
 
         // Fetch reviews separately
         try {

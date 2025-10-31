@@ -23,6 +23,9 @@ const ProductCard = (product: ProductCardProps) => {
     isBestSeller,
   } = product;
 
+  // Support both 'image' (from mockData) and 'imageUrl' (from API)
+  const imageUrl = (product as any).imageUrl || image;
+
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { toast } = useToast();
 
@@ -56,9 +59,13 @@ const ProductCard = (product: ProductCardProps) => {
       <Link to={`/product/${id}`}>
         <div className="relative">
           <img
-            src={image}
+            src={imageUrl || "https://via.placeholder.com/400x300?text=No+Image"}
             alt={name}
             className="w-full h-52 object-cover transition-transform duration-100 group-hover:scale-105"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.src = "https://via.placeholder.com/400x300?text=No+Image";
+            }}
           />
 
           {/* Badges */}

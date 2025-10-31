@@ -15,6 +15,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { apiService, Product, Category } from "@/services/apiService";
 import { mockProducts, getAllCategories } from "@/data/mockData";
+import { getProductImageUrl } from "@/utils/imageUtils";
 
 const Products = () => {
   // State management
@@ -42,7 +43,16 @@ const Products = () => {
           apiService.getCategories(),
         ]);
 
-        setProducts(productsData);
+        // Normalize image URLs from backend
+        const normalizedProducts = productsData.map((product) => ({
+          ...product,
+          imageUrl: getProductImageUrl(product),
+        }));
+
+        console.log("Products data:", productsData);
+        console.log("Normalized products:", normalizedProducts);
+
+        setProducts(normalizedProducts);
         setCategories(categoriesData);
       } catch (apiError) {
         console.warn("API not available, using fallback data:", apiError);

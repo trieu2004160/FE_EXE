@@ -76,7 +76,9 @@ export interface Product {
   name: string;
   description?: string;
   features?: string;
-  imageUrl?: string;
+  imageUrl?: string; // Single image URL (normalized)
+  imageUrls?: string[]; // Array of image URLs (camelCase from frontend)
+  ImageUrls?: string[]; // Array from backend (PascalCase)
   isPopular: boolean;
   basePrice: number;
   maxPrice?: number;

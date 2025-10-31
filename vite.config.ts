@@ -15,6 +15,13 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
         secure: false, // Allow self-signed certificates
         rewrite: (path) => path.replace(/^\/api/, '/api')
+      },
+      // Proxy for static images from backend
+      '/images': {
+        target: 'https://localhost:5001',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path
       }
     }
   },

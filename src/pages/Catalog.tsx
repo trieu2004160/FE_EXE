@@ -48,7 +48,17 @@ const Catalog = () => {
           apiService.getCategories(),
         ]);
 
-        setProducts(productsData);
+        // Normalize image URLs from backend
+        const normalizedProducts = productsData.map((product) => {
+          const normalized = {
+            ...product,
+            imageUrl: getProductImageUrl(product),
+          };
+          console.log('Catalog - Product:', product.name, 'Original ImageUrls:', product.ImageUrls, 'Normalized imageUrl:', normalized.imageUrl);
+          return normalized;
+        });
+
+        setProducts(normalizedProducts);
         setCategories(categoriesData);
       } catch (apiError) {
         console.warn("API not available, using fallback data:", apiError);
