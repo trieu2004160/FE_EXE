@@ -71,19 +71,34 @@ const Login = () => {
           // Store JWT token
           authUtils.setToken(response.token);
 
-          // Set default user role - we'll get actual role from profile API later
-          localStorage.setItem("userRole", "user");
+          // Decode JWT to get user roles
+          const tokenPayload = JSON.parse(atob(response.token.split(".")[1]));
+          const roles = tokenPayload.role || [];
+          const primaryRole = Array.isArray(roles)
+            ? roles.includes("Admin")
+              ? "admin"
+              : "user"
+            : roles === "Admin"
+            ? "admin"
+            : "user";
+
+          // Store user data and role from JWT
+          localStorage.setItem("userRole", primaryRole);
           localStorage.setItem(
             "userData",
             JSON.stringify({
-              email: email,
+              email: tokenPayload.email || email,
               name: "User", // We'll get this from profile API later
-              role: "user",
+              role: primaryRole,
             })
           );
 
-          // Navigate to profile page
-          navigate("/profile");
+          // Navigate based on role
+          if (primaryRole === "admin") {
+            navigate("/admin");
+          } else {
+            navigate("/profile");
+          }
           return;
         }
       } catch (apiError) {

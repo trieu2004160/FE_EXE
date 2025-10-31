@@ -324,3 +324,4 @@ const Search = ({ onClose, className = "" }: SearchProps) => {
 };
 
 export default Search;
+

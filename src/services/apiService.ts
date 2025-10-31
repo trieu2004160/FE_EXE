@@ -520,6 +520,21 @@ class ApiService {
 // Export singleton instance
 export const apiService = new ApiService();
 
+// JWT Decode utility function
+const decodeJWT = (token: string) => {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error('Error decoding JWT:', error);
+    return null;
+  }
+};
+
 // Utility functions for auth token management
 export const authUtils = {
   setToken: (token: string) => {
@@ -559,11 +574,11 @@ export const authUtils = {
   },
 
   isAdmin: (): boolean => {
-    return authUtils.getUserRole() === 'Admin';
+    return authUtils.getUserRole() === 'admin';
   },
 
   isShop: (): boolean => {
-    return authUtils.getUserRole() === 'Shop';
+    return authUtils.getUserRole() === 'shop';
   }
 };
 
