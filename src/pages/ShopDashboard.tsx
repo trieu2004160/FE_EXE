@@ -50,8 +50,9 @@ const ShopDashboard = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [dashboardStats, setDashboardStats] =
-    useState<ShopDashboardDto | null>(null);
+  const [dashboardStats, setDashboardStats] = useState<ShopDashboardDto | null>(
+    null
+  );
   const [shopProfile, setShopProfile] = useState<ShopProfile | null>(null);
   const [orders, setOrders] = useState<ShopOrder[]>([]);
   const [loading, setLoading] = useState(false);
@@ -60,13 +61,13 @@ const ShopDashboard = () => {
 
   // Check authentication - very lenient, only redirect if absolutely no auth info
   useEffect(() => {
-    const token = localStorage.getItem('userToken');
-    const userRole = localStorage.getItem('userRole');
-    const userData = localStorage.getItem('userData');
+    const token = localStorage.getItem("userToken");
+    const userRole = localStorage.getItem("userRole");
+    const userData = localStorage.getItem("userData");
 
-    console.log('[ShopDashboard] Auth check (lenient):', {
+    console.log("[ShopDashboard] Auth check (lenient):", {
       hasToken: !!token,
-      tokenValue: token ? `${token.substring(0, 30)}...` : 'none',
+      tokenValue: token ? `${token.substring(0, 30)}...` : "none",
       userRole,
       hasUserData: !!userData,
     });
@@ -74,16 +75,16 @@ const ShopDashboard = () => {
     // ONLY redirect if absolutely no authentication info exists
     // Allow access if ANY of these exist: token, userRole, or userData
     const hasAnyAuth = token || userRole || userData;
-    
+
     if (!hasAnyAuth) {
-      console.warn('[ShopDashboard] No auth info at all, redirecting to login');
+      console.warn("[ShopDashboard] No auth info at all, redirecting to login");
       navigate("/login");
       return;
     }
 
     // If we have any auth info, allow access and let API calls handle validation
     // Don't set errors here - let API errors show instead
-    console.log('[ShopDashboard] Auth info exists, allowing access');
+    console.log("[ShopDashboard] Auth info exists, allowing access");
   }, [navigate]);
 
   // Load data from API
@@ -91,43 +92,44 @@ const ShopDashboard = () => {
     const loadShopData = async () => {
       // Always try to load data - let API handle authentication
       // If API returns 401, error handler will deal with it
-      
+
       setLoading(true);
       setError(null);
 
       try {
-        console.log('[ShopDashboard] Loading dashboard data...');
-        
+        console.log("[ShopDashboard] Loading dashboard data...");
+
         // Load dashboard data
         const dashboardData = await shopApi.getDashboardData();
-        
-        console.log('[ShopDashboard] Dashboard data received:', dashboardData);
-        
+
+        console.log("[ShopDashboard] Dashboard data received:", dashboardData);
+
         // Map dashboard data - handle both PascalCase and camelCase
         const stats = {
-          totalProducts: dashboardData.totalProducts 
-            ?? dashboardData.TotalProducts 
-            ?? 0,
-          productsInStock: dashboardData.productsInStock 
-            ?? dashboardData.ProductsInStock 
-            ?? 0,
-          outOfStockProducts: dashboardData.outOfStockProducts 
-            ?? dashboardData.OutOfStockProducts 
-            ?? 0,
-          pendingOrderItems: dashboardData.pendingOrderItems 
-            ?? dashboardData.PendingOrderItems 
-            ?? 0,
+          totalProducts:
+            dashboardData.totalProducts ?? dashboardData.TotalProducts ?? 0,
+          productsInStock:
+            dashboardData.productsInStock ?? dashboardData.ProductsInStock ?? 0,
+          outOfStockProducts:
+            dashboardData.outOfStockProducts ??
+            dashboardData.OutOfStockProducts ??
+            0,
+          pendingOrderItems:
+            dashboardData.pendingOrderItems ??
+            dashboardData.PendingOrderItems ??
+            0,
           // Additional fields with default values for UI compatibility
           totalOrders: 0,
-          pendingOrders: dashboardData.pendingOrderItems 
-            ?? dashboardData.PendingOrderItems 
-            ?? 0,
+          pendingOrders:
+            dashboardData.pendingOrderItems ??
+            dashboardData.PendingOrderItems ??
+            0,
           monthlyRevenue: 0,
           recentOrders: [],
           recentActivities: [],
         };
-        
-        console.log('[ShopDashboard] Mapped stats:', stats);
+
+        console.log("[ShopDashboard] Mapped stats:", stats);
         setDashboardStats(stats);
 
         // Load products
@@ -143,22 +145,34 @@ const ShopDashboard = () => {
         setOrders(ordersData as ShopOrder[]);
       } catch (err: any) {
         console.error("Error loading shop data:", err);
-        
+
         // Handle 401 Unauthorized - show error but don't redirect
-        if (err?.message?.includes('401') || err?.message?.includes('Unauthorized')) {
-          console.warn('[ShopDashboard] 401 Unauthorized - showing error (not redirecting)');
-          setError('Bạn không có quyền truy cập hoặc token đã hết hạn. Vui lòng đăng nhập lại.');
+        if (
+          err?.message?.includes("401") ||
+          err?.message?.includes("Unauthorized")
+        ) {
+          console.warn(
+            "[ShopDashboard] 401 Unauthorized - showing error (not redirecting)"
+          );
+          setError(
+            "Bạn không có quyền truy cập hoặc token đã hết hạn. Vui lòng đăng nhập lại."
+          );
           // Don't auto-redirect - let user stay and see the error message
           return;
         }
-        
+
         // Show user-friendly error message
-        const errorMessage = err?.message || "Không thể tải dữ liệu. Vui lòng thử lại sau.";
-        
+        const errorMessage =
+          err?.message || "Không thể tải dữ liệu. Vui lòng thử lại sau.";
+
         // If it's a network error, provide more helpful message
-        if (errorMessage.includes('Không thể kết nối đến server') || 
-            errorMessage.includes('Failed to fetch')) {
-          setError(`${errorMessage}\n\nVui lòng đảm bảo backend server đang chạy tại https://localhost:5001`);
+        if (
+          errorMessage.includes("Không thể kết nối đến server") ||
+          errorMessage.includes("Failed to fetch")
+        ) {
+          setError(
+            `${errorMessage}\n\nVui lòng đảm bảo backend server đang chạy tại https://localhost:5001`
+          );
         } else {
           setError(errorMessage);
         }
@@ -336,13 +350,17 @@ const ShopDashboard = () => {
     },
     {
       title: "Đang Bán",
-      value: dashboardStats?.productsInStock ?? products.filter((p) => p.stockQuantity > 0).length,
+      value:
+        dashboardStats?.productsInStock ??
+        products.filter((p) => p.stockQuantity > 0).length,
       icon: ShoppingCart,
       color: "bg-green-500",
     },
     {
       title: "Hết Hàng",
-      value: dashboardStats?.outOfStockProducts ?? products.filter((p) => p.stockQuantity <= 0).length,
+      value:
+        dashboardStats?.outOfStockProducts ??
+        products.filter((p) => p.stockQuantity <= 0).length,
       icon: Heart,
       color: "bg-red-500",
     },

@@ -44,13 +44,16 @@ const Login = () => {
             email: demoUserData.email,
             nameid: demoUserData.id,
             role: demoUserData.role,
-            exp: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60), // 7 days
+            exp: Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60, // 7 days
             iss: "nova-app",
-            aud: "nova-users"
+            aud: "nova-users",
           };
 
           // Add ShopId for shop users
-          if (demoUserData.role?.toLowerCase() === "shop" && demoUserData.shopId) {
+          if (
+            demoUserData.role?.toLowerCase() === "shop" &&
+            demoUserData.shopId
+          ) {
             payload.ShopId = demoUserData.shopId.toString();
           }
 
