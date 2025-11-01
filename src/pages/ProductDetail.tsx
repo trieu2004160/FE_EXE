@@ -314,22 +314,27 @@ const ProductDetail = () => {
                 {/* Ảnh chính */}
                 <div className="w-full overflow-hidden rounded-lg border border-border bg-white relative">
                   <img
-                    src={product.imageUrl || "https://via.placeholder.com/800x800?text=No+Image"}
+                    src={
+                      product.imageUrl ||
+                      "https://via.placeholder.com/800x800?text=No+Image"
+                    }
                     alt={product.name}
                     className="w-full h-[450px] object-cover"
-                    style={{
-                      imageRendering: '-webkit-optimize-contrast',
-                      imageRendering: 'crisp-edges',
-                      backfaceVisibility: 'hidden',
-                      transform: 'translateZ(0)',
-                      WebkitTransform: 'translateZ(0)',
-                    }}
+                    style={
+                      {
+                        imageRendering: "crisp-edges",
+                        backfaceVisibility: "hidden",
+                        transform: "translateZ(0)",
+                        WebkitTransform: "translateZ(0)",
+                      } as React.CSSProperties
+                    }
                     loading="eager"
                     decoding="async"
                     fetchPriority="high"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
-                      target.src = "https://via.placeholder.com/800x800?text=No+Image";
+                      target.src =
+                        "https://via.placeholder.com/800x800?text=No+Image";
                     }}
                   />
                 </div>
@@ -338,20 +343,25 @@ const ProductDetail = () => {
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
                   <div className="overflow-hidden rounded-lg border-2 border-red-500 bg-white cursor-pointer hover:border-primary transition-colors">
                     <img
-                      src={product.imageUrl || "https://via.placeholder.com/200x200?text=No+Image"}
+                      src={
+                        product.imageUrl ||
+                        "https://via.placeholder.com/200x200?text=No+Image"
+                      }
                       alt={product.name}
                       className="w-full h-32 object-cover"
-                      style={{
-                        imageRendering: '-webkit-optimize-contrast',
-                        imageRendering: 'crisp-edges',
-                        backfaceVisibility: 'hidden',
-                        transform: 'translateZ(0)',
-                      }}
+                      style={
+                        {
+                          imageRendering: "crisp-edges",
+                          backfaceVisibility: "hidden",
+                          transform: "translateZ(0)",
+                        } as React.CSSProperties
+                      }
                       loading="lazy"
                       decoding="async"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
-                        target.src = "https://via.placeholder.com/200x200?text=No+Image";
+                        target.src =
+                          "https://via.placeholder.com/200x200?text=No+Image";
                       }}
                     />
                   </div>

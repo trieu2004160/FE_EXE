@@ -24,6 +24,7 @@ import FruitsCategory from "./pages/FruitsCategory";
 import XoiCheCategory from "./pages/XoiCheCategory";
 import ComboCategory from "./pages/ComboCategory";
 import AdminDashboard from "./pages/AdminDashboard";
+import ShopDashboard from "./pages/ShopDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
 
@@ -65,6 +66,16 @@ const App = () => (
               element={
                 <ProtectedRoute requiredRole="admin">
                   <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Shop Routes */}
+            <Route
+              path="/shop-dashboard"
+              element={
+                <ProtectedRoute requiredRole="shop">
+                  <ShopDashboard />
                 </ProtectedRoute>
               }
             />

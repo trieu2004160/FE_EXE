@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  requiredRole?: "admin" | "user";
+  requiredRole?: "admin" | "user" | "shop";
 }
 
 const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
@@ -21,7 +21,9 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
     if (requiredRole && userRole !== requiredRole) {
       // Redirect based on user role
       if (userRole === "admin") {
-        navigate("/admin");
+        navigate("/");
+      } else if (userRole === "shop") {
+        navigate("/shop-dashboard");
       } else if (userRole === "user") {
         navigate("/profile");
       } else {

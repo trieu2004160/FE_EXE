@@ -8,6 +8,7 @@ import {
   User,
   Settings,
   LogOut,
+  Store,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +48,12 @@ const Header = () => {
       navigate("/admin");
     } else {
       navigate("/profile");
+    }
+  };
+
+  const handleShopAction = () => {
+    if (isLoggedIn && userRole === "shop") {
+      navigate("/shop-dashboard");
     }
   };
   return (
@@ -157,6 +164,32 @@ const Header = () => {
                 </span>
               </Button>
 
+              {/* Admin Dashboard Button - Only show when user has admin role */}
+              {isLoggedIn && userRole === "admin" && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 hover:bg-purple-50 hover:scale-105 transition-all duration-200 group"
+                  onClick={() => navigate("/admin")}
+                  title="Admin Dashboard"
+                >
+                  <Settings className="h-5 w-5 text-gray-600 group-hover:text-purple-600" />
+                </Button>
+              )}
+
+              {/* Shop Button - Only show when user has shop role */}
+              {isLoggedIn && userRole === "shop" && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 hover:bg-green-50 hover:scale-105 transition-all duration-200 group"
+                  onClick={handleShopAction}
+                  title="Quản lý cửa hàng"
+                >
+                  <Store className="h-5 w-5 text-gray-600 group-hover:text-green-600" />
+                </Button>
+              )}
+
               {/* User/Login Button */}
               <Button
                 variant="ghost"
@@ -166,14 +199,16 @@ const Header = () => {
                 title={
                   isLoggedIn
                     ? userRole === "admin"
-                      ? "Admin Panel"
+                      ? "Thông tin admin"
+                      : userRole === "shop"
+                      ? "Thông tin shop"
                       : "Trang cá nhân"
                     : "Đăng nhập"
                 }
               >
                 {isLoggedIn ? (
                   userRole === "admin" ? (
-                    <Settings className="h-5 w-5 text-gray-600 " />
+                    <User className="h-5 w-5 text-gray-600 " />
                   ) : (
                     <User className="h-5 w-5 text-gray-600 " />
                   )
