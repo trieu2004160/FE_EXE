@@ -1,5 +1,9 @@
 // API configuration
+// Use relative path to leverage Vite proxy in development
+// Vite proxy will forward /api/* to https://localhost:5001/api/*
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
+
+console.log('[apiService] API_BASE_URL configured:', API_BASE_URL)
 
 // Base Types
 export interface ApiResponse<T = unknown> {
@@ -7,6 +11,21 @@ export interface ApiResponse<T = unknown> {
   data?: T;
   success?: boolean;
   errors?: string[];
+}
+
+// Shop Dashboard Types (matching backend DTOs)
+// Backend returns PascalCase, so we support both formats
+export interface ShopDashboardDto {
+  // PascalCase (from backend)
+  TotalProducts?: number;
+  ProductsInStock?: number;
+  OutOfStockProducts?: number;
+  PendingOrderItems?: number;
+  // camelCase (converted)
+  totalProducts?: number;
+  productsInStock?: number;
+  outOfStockProducts?: number;
+  pendingOrderItems?: number;
 }
 
 // Account Types
@@ -186,35 +205,146 @@ class ApiService {
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     
-    const config: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      ...options,
-    };
-
-    // Add auth token if available
+    // Get token from localStorage
     const token = localStorage.getItem('userToken');
-    if (token && token !== 'authenticated') {
-      config.headers = {
-        ...config.headers,
-        'Authorization': `Bearer ${token}`,
-      };
+    
+    // Prepare headers
+    const headers: Record<string, string> = {};
+    
+    // Copy existing headers
+    if (options.headers) {
+      if (options.headers instanceof Headers) {
+        options.headers.forEach((value, key) => {
+          headers[key] = value;
+        });
+      } else if (Array.isArray(options.headers)) {
+        options.headers.forEach(([key, value]) => {
+          headers[key] = value;
+        });
+      } else {
+        Object.assign(headers, options.headers);
+      }
     }
 
+    // Set Content-Type only if not already set and not FormData
+    if (!(options.body instanceof FormData) && !headers['Content-Type']) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    // Add Authorization header with Bearer token
+    if (token && token !== 'authenticated' && token.trim() !== '') {
+      headers['Authorization'] = `Bearer ${token.trim()}`;
+    } else {
+      console.warn(`[apiService] No valid token found for request to ${endpoint}`, {
+        hasToken: !!token,
+        tokenValue: token?.substring(0, 30) || 'null/empty'
+      });
+    }
+
+    const config: RequestInit = {
+      ...options,
+      headers,
+    };
+
     try {
+      console.log('[apiService] Making request:', {
+        url,
+        method: config.method || 'GET',
+        hasAuth: !!headers['Authorization'],
+      });
+
       const response = await fetch(url, config);
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        // Try to get error message from response
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        let errorData: any = {};
+        
+        try {
+          const responseText = await response.text();
+          if (responseText) {
+            errorData = JSON.parse(responseText);
+            errorMessage = errorData.message || errorData.error || errorMessage;
+          }
+        } catch {
+          // If response is not JSON, use status text
+          errorMessage = response.statusText || errorMessage;
+        }
+
+        // Enhanced logging for 401 errors
+        if (response.status === 401) {
+          const tokenInfo = this.getTokenInfo(token);
+          console.error('[apiService] Unauthorized (401):', {
+            endpoint,
+            url,
+            errorMessage,
+            errorData,
+            token: token ? `${token.substring(0, 30)}...` : 'missing',
+            tokenInfo: tokenInfo ? {
+              email: tokenInfo.email,
+              role: tokenInfo.role,
+              shopId: tokenInfo.ShopId,
+              exp: new Date(tokenInfo.exp * 1000).toISOString(),
+            } : null,
+            responseHeaders: Object.fromEntries(response.headers.entries()),
+          });
+        }
+        
+        throw new Error(errorMessage);
       }
 
       return await response.json();
     } catch (error) {
-      console.error('API request failed:', error);
+      // Handle network errors (Failed to fetch)
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.error('[apiService] Network error (Failed to fetch):', {
+          endpoint,
+          url,
+          baseURL: this.baseURL,
+          possibleCauses: [
+            'Backend server is not running',
+            'CORS issue - check backend CORS configuration',
+            'Network connectivity issue',
+            'SSL certificate issue (if using HTTPS)',
+            'Wrong URL or port'
+          ],
+          suggestion: `Make sure backend is running at ${url.includes('localhost:5001') ? 'https://localhost:5001' : this.baseURL}`,
+        });
+        
+        throw new Error(`Không thể kết nối đến server. Vui lòng kiểm tra:\n1. Backend server đang chạy không?\n2. URL: ${url}\n3. CORS configuration`);
+      }
+      
+      console.error('[apiService] Request failed:', {
+        endpoint,
+        url,
+        error: error instanceof Error ? error.message : String(error),
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
+        token: token ? `${token.substring(0, 30)}...` : 'missing',
+      });
       throw error;
+    }
+  }
+
+  // Helper method to decode token info for debugging
+  private getTokenInfo(token: string | null): { email?: string; role?: string | string[]; ShopId?: string; exp?: number } | null {
+    if (!token || token === 'authenticated') return null;
+    
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      
+      const payload = parts[1];
+      const paddedPayload = payload + '='.repeat((4 - payload.length % 4) % 4);
+      const decoded = JSON.parse(atob(paddedPayload));
+      
+      return {
+        email: decoded.email || decoded[`http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress`],
+        role: decoded.role || decoded[`http://schemas.microsoft.com/ws/2008/06/identity/claims/role`],
+        ShopId: decoded.ShopId || decoded.shopId,
+        exp: decoded.exp,
+      };
+    } catch {
+      return null;
     }
   }
 
@@ -516,6 +646,260 @@ class ApiService {
       console.error('File upload failed:', error);
       throw error;
     }
+  }
+
+  // ==================== SHOP API ====================
+  // Base URL: /api/shop
+
+  /**
+   * Get shop dashboard data
+   * GET /api/shop/dashboard
+   * Quyền: Chỉ Shop
+   * Nhiệm vụ & Tác dụng: Lấy dữ liệu cho trang Dashboard (Tổng SP, SP hết hàng, Đơn hàng chờ xử lý)
+   * Backend trả về PascalCase (TotalProducts, ProductsInStock, etc.) - ASP.NET default
+   */
+  async getShopDashboard(): Promise<ShopDashboardDto> {
+    try {
+      const data = await this.request<any>('/shop/dashboard', {
+        method: 'GET',
+      });
+      
+      console.log('[apiService] Dashboard response (raw):', data);
+      
+      // Backend returns PascalCase by default (ASP.NET Core)
+      // Convert to camelCase for frontend use
+      const result = {
+        // PascalCase (keep original from backend)
+        TotalProducts: data.TotalProducts ?? data.totalProducts ?? 0,
+        ProductsInStock: data.ProductsInStock ?? data.productsInStock ?? 0,
+        OutOfStockProducts: data.OutOfStockProducts ?? data.outOfStockProducts ?? 0,
+        PendingOrderItems: data.PendingOrderItems ?? data.pendingOrderItems ?? 0,
+        // camelCase (converted for frontend)
+        totalProducts: data.TotalProducts ?? data.totalProducts ?? 0,
+        productsInStock: data.ProductsInStock ?? data.productsInStock ?? 0,
+        outOfStockProducts: data.OutOfStockProducts ?? data.outOfStockProducts ?? 0,
+        pendingOrderItems: data.PendingOrderItems ?? data.pendingOrderItems ?? 0,
+      };
+      
+      console.log('[apiService] Dashboard response (converted):', result);
+      return result;
+    } catch (error) {
+      console.error('[apiService] Error in getShopDashboard:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get shop profile
+   * GET /api/shop/profile
+   * Quyền: Chỉ Shop
+   * Nhiệm vụ & Tác dụng: Lấy thông tin chi tiết của cửa hàng (Tên, Mô tả, SĐT, Ảnh) để hiển thị trong trang "Cài đặt"
+   */
+  async getShopProfile() {
+    return this.request('/shop/profile', {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Update shop profile
+   * PUT /api/shop/profile
+   * Quyền: Chỉ Shop
+   * Nhiệm vụ & Tác dụng: Cập nhật thông tin cửa hàng (hỗ trợ cả URL và upload ảnh)
+   */
+  async updateShopProfile(profileData: {
+    name?: string;
+    description?: string;
+    address?: string;
+    phone?: string;
+    email?: string;
+    logo?: string;
+  }) {
+    return this.request('/shop/profile', {
+      method: 'PUT',
+      body: JSON.stringify(profileData),
+    });
+  }
+
+  /**
+   * Get shop products
+   * GET /api/shop/products
+   * Quyền: Chỉ Shop
+   * Nhiệm vụ & Tác dụng: Lấy danh sách chỉ những sản phẩm mà Shop này sở hữu
+   */
+  async getShopProducts(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    category?: string;
+  }) {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.append('page', params.page.toString());
+    if (params?.limit) searchParams.append('limit', params.limit.toString());
+    if (params?.search) searchParams.append('search', params.search);
+    if (params?.category) searchParams.append('category', params.category);
+    
+    const queryString = searchParams.toString();
+    const endpoint = queryString ? `/shop/products?${queryString}` : '/shop/products';
+    
+    return this.request(endpoint, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Create a new product
+   * POST /api/shop/products
+   * Quyền: Chỉ Shop
+   * Nhiệm vụ & Tác dụng: Tạo một sản phẩm mới (hỗ trợ cả URL và upload ảnh)
+   */
+  async createShopProduct(productData: {
+    name: string;
+    description: string;
+    price: number;
+    category: string;
+    images?: string[];
+    inStock: boolean;
+  }) {
+    return this.request('/shop/products', {
+      method: 'POST',
+      body: JSON.stringify(productData),
+    });
+  }
+
+  /**
+   * Update a product
+   * PUT /api/shop/products/{id}
+   * Quyền: Chỉ Shop
+   * Nhiệm vụ & Tác dụng: Cập nhật sản phẩm của Shop (BE kiểm tra quyền sở hữu)
+   */
+  async updateShopProduct(id: string, productData: {
+    name?: string;
+    description?: string;
+    price?: number;
+    category?: string;
+    images?: string[];
+    inStock?: boolean;
+  }) {
+    return this.request(`/api/shop/products/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(productData),
+    });
+  }
+
+  /**
+   * Delete a product
+   * DELETE /api/shop/products/{id}
+   * Quyền: Chỉ Shop
+   * Nhiệm vụ & Tác dụng: Xóa sản phẩm của Shop (BE kiểm tra quyền sở hữu)
+   */
+  async deleteShopProduct(id: string) {
+    return this.request(`/api/shop/products/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  /**
+   * Get shop orders
+   * GET /api/shop/orders
+   * Quyền: Chỉ Shop
+   * Nhiệm vụ & Tác dụng: Lấy danh sách các món hàng (OrderItems) thuộc về Shop, kèm thông tin khách hàng, trạng thái xử lý
+   */
+  async getShopOrders(params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+  }) {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.append('page', params.page.toString());
+    if (params?.limit) searchParams.append('limit', params.limit.toString());
+    if (params?.status) searchParams.append('status', params.status);
+    
+    const queryString = searchParams.toString();
+    const endpoint = queryString ? `/shop/orders?${queryString}` : '/shop/orders';
+    
+    return this.request(endpoint, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Update order status
+   * PUT /api/shop/orders/items/{orderItemId}/status
+   * Quyền: Chỉ Shop
+   * Nhiệm vụ & Tác dụng: Shop cập nhật trạng thái xử lý của một món hàng (Pending -> Preparing -> Shipped...)
+   */
+  async updateOrderStatus(orderItemId: string, status: string) {
+    return this.request(`/api/shop/orders/items/${orderItemId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  /**
+   * Get shop reviews
+   * GET /api/shop/reviews
+   * Quyền: Chỉ Shop
+   * Nhiệm vụ & Tác dụng: Lấy danh sách tất cả các đánh giá về sản phẩm của Shop
+   */
+  async getShopReviews(params?: {
+    page?: number;
+    limit?: number;
+    rating?: number;
+  }) {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.append('page', params.page.toString());
+    if (params?.limit) searchParams.append('limit', params.limit.toString());
+    if (params?.rating) searchParams.append('rating', params.rating.toString());
+    
+    const queryString = searchParams.toString();
+    const endpoint = queryString ? `/shop/reviews?${queryString}` : '/shop/reviews';
+    
+    return this.request(endpoint, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Get shop statistics
+   * GET /api/shop/statistics
+   * Quyền: Chỉ Shop
+   * Nhiệm vụ & Tác dụng: Lấy dữ liệu thống kê doanh thu cơ bản (doanh thu tháng này, số đơn...) cho Shop
+   */
+  async getShopStatistics() {
+    return this.request('/shop/statistics', {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Upload shop image
+   * POST /api/shop/upload-image
+   * Helper method for uploading shop-related images
+   */
+  async uploadShopImage(file: File) {
+    const formData = new FormData();
+    formData.append('image', file);
+    
+    const token = localStorage.getItem('userToken');
+    const headers: Record<string, string> = {};
+    
+    if (token && token !== 'authenticated') {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    const response = await fetch(`${this.baseURL}/api/shop/upload-image`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
   }
 }
 

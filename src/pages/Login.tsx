@@ -39,7 +39,26 @@ const Login = () => {
         const demoUserData = getDemoUserData(email, password);
         if (demoUserData) {
           // Create a mock JWT token (in real app, this would come from backend)
-          const mockToken = btoa(JSON.stringify(demoUserData));
+          const header = { alg: "HS256", typ: "JWT" };
+          const payload = {
+            email: demoUserData.email,
+            nameid: demoUserData.id,
+            role: demoUserData.role,
+            exp: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60), // 7 days
+            iss: "nova-app",
+            aud: "nova-users"
+          };
+
+          // Add ShopId for shop users
+          if (demoUserData.role?.toLowerCase() === "shop" && demoUserData.shopId) {
+            payload.ShopId = demoUserData.shopId.toString();
+          }
+
+          // Create JWT format: header.payload.signature
+          const encodedHeader = btoa(JSON.stringify(header));
+          const encodedPayload = btoa(JSON.stringify(payload));
+          const mockSignature = btoa("mock-signature");
+          const mockToken = `${encodedHeader}.${encodedPayload}.${mockSignature}`;
 
           localStorage.setItem("userToken", mockToken);
           localStorage.setItem("userRole", demoAccount.role);

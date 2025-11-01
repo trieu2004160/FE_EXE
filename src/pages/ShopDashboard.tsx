@@ -18,133 +18,240 @@ import {
   Store,
   Upload,
   Link as LinkIcon,
+  RefreshCw,
+  AlertCircle,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import Header from "@/components/Header";
+import {
+  shopApi,
+  ShopProduct,
+  ShopDashboardDto,
+  ShopProfile,
+  ShopOrder,
+  ProductFormData,
+} from "@/services/shopApi";
+import {
+  hasShopRole,
+  isTokenValid,
+  clearAuthData,
+  getTokenInfo,
+  getUserRole,
+  getShopId,
+} from "@/utils/tokenUtils";
 
-interface Product {
-  id: number;
-  name: string;
-  description?: string;
-  features?: string;
-  isPopular: boolean;
-  basePrice: number;
-  maxPrice?: number;
-  stockQuantity: number;
-  productCategoryId: number;
-  imageFile?: File;
-  imageUrl?: string;
-  specifications: {
-    xuatXu?: string;
-    baoQuan?: string;
-    hanSuDung?: string;
-  };
-}
-
-interface ProductFormData {
-  name: string;
-  description?: string;
-  features?: string;
-  isPopular: boolean;
-  basePrice: number;
-  maxPrice?: number;
-  stockQuantity: number;
-  productCategoryId: number;
-  imageFile?: File;
-  imageUrl?: string;
-  specifications: {
-    xuatXu?: string;
-    baoQuan?: string;
-    hanSuDung?: string;
-  };
-}
+// Use interfaces from API service
+type Product = ShopProduct;
 
 const ShopDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [products, setProducts] = useState<Product[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [dashboardStats, setDashboardStats] =
+    useState<ShopDashboardDto | null>(null);
+  const [shopProfile, setShopProfile] = useState<ShopProfile | null>(null);
+  const [orders, setOrders] = useState<ShopOrder[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // Check authentication
+  // Check authentication - very lenient, only redirect if absolutely no auth info
   useEffect(() => {
-    const token = localStorage.getItem("userToken");
-    const userRole = localStorage.getItem("userRole");
-    if (!token || userRole !== "shop") {
+    const token = localStorage.getItem('userToken');
+    const userRole = localStorage.getItem('userRole');
+    const userData = localStorage.getItem('userData');
+
+    console.log('[ShopDashboard] Auth check (lenient):', {
+      hasToken: !!token,
+      tokenValue: token ? `${token.substring(0, 30)}...` : 'none',
+      userRole,
+      hasUserData: !!userData,
+    });
+
+    // ONLY redirect if absolutely no authentication info exists
+    // Allow access if ANY of these exist: token, userRole, or userData
+    const hasAnyAuth = token || userRole || userData;
+    
+    if (!hasAnyAuth) {
+      console.warn('[ShopDashboard] No auth info at all, redirecting to login');
       navigate("/login");
+      return;
     }
+
+    // If we have any auth info, allow access and let API calls handle validation
+    // Don't set errors here - let API errors show instead
+    console.log('[ShopDashboard] Auth info exists, allowing access');
   }, [navigate]);
 
-  // Sample data
+  // Load data from API
   useEffect(() => {
-    const sampleProducts: Product[] = [
-      {
-        id: 1,
-        name: "Hoa Hồng Đỏ",
-        description: "Hoa hồng đỏ tươi, biểu tượng của tình yêu",
-        features: "Ý nghĩa cao quý;Màu sắc rực rỡ",
-        isPopular: true,
-        basePrice: 150000,
-        maxPrice: 300000,
-        stockQuantity: 50,
-        productCategoryId: 1,
-        imageUrl: "https://images.unsplash.com/photo-1563241527-3004b7be0ffd",
-        specifications: {
-          xuatXu: "Việt Nam",
-          baoQuan: "Nơi khô ráo, thoáng mát",
-          hanSuDung: "3-5 ngày",
-        },
-      },
-      {
-        id: 2,
-        name: "Xôi Nước Cốt Dừa",
-        description: "Xôi nước cốt dừa thơm béo, vị ngọt đậm đà",
-        features: "Thơm béo;Vị ngọt tự nhiên",
-        isPopular: false,
-        basePrice: 50000,
-        stockQuantity: 30,
-        productCategoryId: 3,
-        imageUrl:
-          "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b",
-        specifications: {
-          xuatXu: "Việt Nam",
-          baoQuan: "Bảo quản lạnh",
-          hanSuDung: "1-2 ngày",
-        },
-      },
-      {
-        id: 3,
-        name: "Combo Tốt Nghiệp Cơ Bản",
-        description: "Gói cơ bản với hoa tươi và hương nến",
-        features: "Đầy đủ vật phẩm;Ý nghĩa tốt lành",
-        isPopular: true,
-        basePrice: 300000,
-        stockQuantity: 20,
-        productCategoryId: 4,
-        imageUrl:
-          "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0",
-        specifications: {
-          xuatXu: "Việt Nam",
-          baoQuan: "Nơi khô ráo",
-          hanSuDung: "7 ngày",
-        },
-      },
-    ];
-    setProducts(sampleProducts);
+    const loadShopData = async () => {
+      // Always try to load data - let API handle authentication
+      // If API returns 401, error handler will deal with it
+      
+      setLoading(true);
+      setError(null);
+
+      try {
+        console.log('[ShopDashboard] Loading dashboard data...');
+        
+        // Load dashboard data
+        const dashboardData = await shopApi.getDashboardData();
+        
+        console.log('[ShopDashboard] Dashboard data received:', dashboardData);
+        
+        // Map dashboard data - handle both PascalCase and camelCase
+        const stats = {
+          totalProducts: dashboardData.totalProducts 
+            ?? dashboardData.TotalProducts 
+            ?? 0,
+          productsInStock: dashboardData.productsInStock 
+            ?? dashboardData.ProductsInStock 
+            ?? 0,
+          outOfStockProducts: dashboardData.outOfStockProducts 
+            ?? dashboardData.OutOfStockProducts 
+            ?? 0,
+          pendingOrderItems: dashboardData.pendingOrderItems 
+            ?? dashboardData.PendingOrderItems 
+            ?? 0,
+          // Additional fields with default values for UI compatibility
+          totalOrders: 0,
+          pendingOrders: dashboardData.pendingOrderItems 
+            ?? dashboardData.PendingOrderItems 
+            ?? 0,
+          monthlyRevenue: 0,
+          recentOrders: [],
+          recentActivities: [],
+        };
+        
+        console.log('[ShopDashboard] Mapped stats:', stats);
+        setDashboardStats(stats);
+
+        // Load products
+        const productsData = await shopApi.getShopProducts();
+        setProducts(productsData as ShopProduct[]);
+
+        // Load shop profile
+        const profileData = await shopApi.getShopProfile();
+        setShopProfile(profileData as ShopProfile);
+
+        // Load orders
+        const ordersData = await shopApi.getShopOrders();
+        setOrders(ordersData as ShopOrder[]);
+      } catch (err: any) {
+        console.error("Error loading shop data:", err);
+        
+        // Handle 401 Unauthorized - show error but don't redirect
+        if (err?.message?.includes('401') || err?.message?.includes('Unauthorized')) {
+          console.warn('[ShopDashboard] 401 Unauthorized - showing error (not redirecting)');
+          setError('Bạn không có quyền truy cập hoặc token đã hết hạn. Vui lòng đăng nhập lại.');
+          // Don't auto-redirect - let user stay and see the error message
+          return;
+        }
+        
+        // Show user-friendly error message
+        const errorMessage = err?.message || "Không thể tải dữ liệu. Vui lòng thử lại sau.";
+        
+        // If it's a network error, provide more helpful message
+        if (errorMessage.includes('Không thể kết nối đến server') || 
+            errorMessage.includes('Failed to fetch')) {
+          setError(`${errorMessage}\n\nVui lòng đảm bảo backend server đang chạy tại https://localhost:5001`);
+        } else {
+          setError(errorMessage);
+        }
+
+        // Fallback to sample data if API fails
+        const sampleProducts: Product[] = [
+          {
+            id: 1,
+            name: "Hoa Hồng Đỏ",
+            description: "Hoa hồng đỏ tươi, biểu tượng của tình yêu",
+            features: "Ý nghĩa cao quý;Màu sắc rực rỡ",
+            isPopular: true,
+            basePrice: 150000,
+            maxPrice: 300000,
+            stockQuantity: 50,
+            productCategoryId: 1,
+            imageUrl:
+              "https://images.unsplash.com/photo-1563241527-3004b7be0ffd",
+            specifications: {
+              xuatXu: "Việt Nam",
+              baoQuan: "Nơi khô ráo, thoáng mát",
+              hanSuDung: "3-5 ngày",
+            },
+          },
+          {
+            id: 2,
+            name: "Xôi Nước Cốt Dừa",
+            description: "Xôi nước cốt dừa thơm béo, vị ngọt đậm đà",
+            features: "Thơm béo;Vị ngọt tự nhiên",
+            isPopular: false,
+            basePrice: 50000,
+            stockQuantity: 30,
+            productCategoryId: 3,
+            imageUrl:
+              "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b",
+            specifications: {
+              xuatXu: "Việt Nam",
+              baoQuan: "Bảo quản lạnh",
+              hanSuDung: "1-2 ngày",
+            },
+          },
+          {
+            id: 3,
+            name: "Combo Tốt Nghiệp Cơ Bản",
+            description: "Gói cơ bản với hoa tươi và hương nến",
+            features: "Đầy đủ vật phẩm;Ý nghĩa tốt lành",
+            isPopular: true,
+            basePrice: 300000,
+            stockQuantity: 20,
+            productCategoryId: 4,
+            imageUrl:
+              "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0",
+            specifications: {
+              xuatXu: "Việt Nam",
+              baoQuan: "Nơi khô ráo",
+              hanSuDung: "7 ngày",
+            },
+          },
+        ];
+        setProducts(sampleProducts);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadShopData();
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("userToken");
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("userData");
+    clearAuthData();
     navigate("/login");
   };
 
-  const handleDeleteProduct = (id: number) => {
+  const debugTokenInfo = () => {
+    console.log("=== TOKEN DEBUG INFO ===");
+    console.log("Token:", localStorage.getItem("userToken"));
+    console.log("UserRole (localStorage):", localStorage.getItem("userRole"));
+    console.log("Token Info:", getTokenInfo());
+    console.log("User Role (decoded):", getUserRole());
+    console.log("Has Shop Role:", hasShopRole());
+    console.log("Token Valid:", isTokenValid());
+    console.log("========================");
+  };
+
+  const handleDeleteProduct = async (id: number) => {
     if (window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
-      setProducts(products.filter((p) => p.id !== id));
+      try {
+        await shopApi.deleteProduct(id.toString());
+        setProducts(products.filter((p) => p.id !== id));
+      } catch (err) {
+        console.error("Error deleting product:", err);
+        setError("Không thể xóa sản phẩm. Vui lòng thử lại sau.");
+      }
     }
   };
 
@@ -153,24 +260,63 @@ const ShopDashboard = () => {
     setShowAddForm(true);
   };
 
-  const handleSaveProduct = (formData: ProductFormData) => {
-    if (editingProduct) {
-      // Update existing product
-      setProducts(
-        products.map((p) =>
-          p.id === editingProduct.id ? { ...p, ...formData } : p
-        )
-      );
-    } else {
-      // Add new product
-      const newProduct: Product = {
-        id: Math.max(...products.map((p) => p.id)) + 1,
-        ...formData,
-      };
-      setProducts([...products, newProduct]);
+  const handleSaveProduct = async (formData: ProductFormData) => {
+    try {
+      let imageUrl = formData.imageUrl;
+
+      // Upload image if file is provided
+      if (formData.imageFile) {
+        try {
+          const uploadResult = await shopApi.uploadImage(formData.imageFile);
+          imageUrl = uploadResult.url;
+        } catch (uploadErr) {
+          console.error("Error uploading image:", uploadErr);
+          setError("Không thể tải lên hình ảnh. Vui lòng thử lại sau.");
+          return;
+        }
+      }
+
+      if (editingProduct) {
+        // Update existing product
+        const apiProductData = {
+          name: formData.name,
+          description: formData.description,
+          price: formData.basePrice,
+          category: formData.productCategoryId.toString(),
+          images: imageUrl ? [imageUrl] : [],
+          inStock: formData.stockQuantity > 0,
+        };
+
+        const updatedProduct = await shopApi.updateProduct(
+          editingProduct.id.toString(),
+          apiProductData
+        );
+        setProducts(
+          products.map((p) =>
+            p.id === editingProduct.id ? { ...p, ...formData, imageUrl } : p
+          )
+        );
+      } else {
+        // Add new product
+        // Convert ProductFormData to API format
+        const apiProductData = {
+          name: formData.name,
+          description: formData.description,
+          price: formData.basePrice,
+          category: formData.productCategoryId.toString(),
+          images: imageUrl ? [imageUrl] : [],
+          inStock: formData.stockQuantity > 0,
+        };
+
+        const newProduct = await shopApi.createProduct(apiProductData);
+        setProducts([...products, newProduct as Product]);
+      }
+      setShowAddForm(false);
+      setEditingProduct(null);
+    } catch (err) {
+      console.error("Error saving product:", err);
+      setError("Không thể lưu sản phẩm. Vui lòng thử lại sau.");
     }
-    setShowAddForm(false);
-    setEditingProduct(null);
   };
 
   const categoryMap = {
@@ -180,29 +326,30 @@ const ShopDashboard = () => {
     4: "Combo",
   };
 
+  // Use dashboardStats from API, fallback to products data if not available
   const stats = [
     {
       title: "Tổng Sản Phẩm",
-      value: products.length,
+      value: dashboardStats?.totalProducts ?? products.length,
       icon: Package,
       color: "bg-blue-500",
     },
     {
       title: "Đang Bán",
-      value: products.filter((p) => p.stockQuantity > 0).length,
+      value: dashboardStats?.productsInStock ?? products.filter((p) => p.stockQuantity > 0).length,
       icon: ShoppingCart,
       color: "bg-green-500",
     },
     {
       title: "Hết Hàng",
-      value: products.filter((p) => p.stockQuantity <= 0).length,
+      value: dashboardStats?.outOfStockProducts ?? products.filter((p) => p.stockQuantity <= 0).length,
       icon: Heart,
       color: "bg-red-500",
     },
     {
-      title: "Sản Phẩm Nổi Bật",
-      value: products.filter((p) => p.isPopular).length,
-      icon: Star,
+      title: "Đơn Hàng Chờ",
+      value: dashboardStats?.pendingOrderItems ?? 0,
+      icon: FileText,
       color: "bg-amber-500",
     },
   ];
@@ -248,99 +395,125 @@ const ShopDashboard = () => {
               );
             })}
           </nav>
-
-          <div className="absolute bottom-4 left-4 right-4">
-            <Button
-              onClick={handleLogout}
-              variant="outline"
-              className="w-full border-red-200 text-red-600 hover:bg-red-50"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Đăng Xuất
-            </Button>
-          </div>
         </div>
 
         {/* Main Content */}
         <div className="flex-1 p-8">
           {/* Header */}
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-gray-800">
-              {sidebarItems.find((item) => item.id === activeTab)?.label ||
-                "Dashboard"}
-            </h2>
-            <p className="text-gray-600 mt-2">
-              Quản lý và điều chỉnh cửa hàng của bạn
-            </p>
+          <div className="mb-8 flex justify-between items-center">
+            <div>
+              <h2 className="text-3xl font-bold text-gray-800">
+                {sidebarItems.find((item) => item.id === activeTab)?.label ||
+                  "Dashboard"}
+              </h2>
+              <p className="text-gray-600 mt-2">
+                Quản lý và điều chỉnh cửa hàng của bạn
+              </p>
+            </div>
+            <Button
+              onClick={debugTokenInfo}
+              variant="outline"
+              size="sm"
+              className="border-blue-200 text-blue-600 hover:bg-blue-50"
+            >
+              <AlertCircle className="h-4 w-4 mr-2" />
+              Debug Token
+            </Button>
           </div>
 
           {/* Dashboard Content */}
           {activeTab === "dashboard" && (
             <div className="space-y-8">
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {stats.map((stat, index) => {
-                  const IconComponent = stat.icon;
-                  return (
-                    <Card
-                      key={index}
-                      className="hover:shadow-lg transition-shadow"
-                    >
-                      <CardContent className="p-6 flex items-center">
-                        <div
-                          className={`p-3 rounded-full ${stat.color} text-white mr-4`}
-                        >
-                          <IconComponent className="h-6 w-6" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">{stat.title}</p>
-                          <p className="text-2xl font-bold text-gray-800">
-                            {stat.value}
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-
-              {/* Recent Activity */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Hoạt Động Gần Đây</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
-                      <div className="flex items-center">
-                        <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-                        <span>Sản phẩm "Hoa Hồng Đỏ" đã được cập nhật</span>
-                      </div>
-                      <span className="text-sm text-gray-500">
-                        2 phút trước
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
-                      <div className="flex items-center">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                        <span>Đơn hàng mới #1234 được tạo</span>
-                      </div>
-                      <span className="text-sm text-gray-500">
-                        15 phút trước
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-4 bg-amber-50 rounded-lg">
-                      <div className="flex items-center">
-                        <div className="w-2 h-2 bg-amber-500 rounded-full mr-3"></div>
-                        <span>Shop đã đăng nhập vào hệ thống</span>
-                      </div>
-                      <span className="text-sm text-gray-500">
-                        30 phút trước
-                      </span>
-                    </div>
+              {loading ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C99F4D]"></div>
+                </div>
+              ) : error ? (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                  <div className="flex items-center">
+                    <AlertCircle className="h-5 w-5 mr-2" />
+                    <span>{error}</span>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              ) : (
+                <>
+                  {/* Stats Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {stats.map((stat, index) => {
+                      const IconComponent = stat.icon;
+                      return (
+                        <Card
+                          key={index}
+                          className="hover:shadow-lg transition-shadow"
+                        >
+                          <CardContent className="p-6 flex items-center">
+                            <div
+                              className={`p-3 rounded-full ${stat.color} text-white mr-4`}
+                            >
+                              <IconComponent className="h-6 w-6" />
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-600">
+                                {stat.title}
+                              </p>
+                              <p className="text-2xl font-bold text-gray-800">
+                                {stat.value}
+                              </p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+
+                  {/* Recent Activity */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Hoạt Động Gần Đây</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {dashboardStats?.recentActivities?.map(
+                          (activity, index) => (
+                            <div
+                              key={index}
+                              className={`flex items-center justify-between p-4 rounded-lg ${
+                                activity.type === "product_updated"
+                                  ? "bg-green-50"
+                                  : activity.type === "order_created"
+                                  ? "bg-blue-50"
+                                  : "bg-amber-50"
+                              }`}
+                            >
+                              <div className="flex items-center">
+                                <div
+                                  className={`w-2 h-2 rounded-full mr-3 ${
+                                    activity.type === "product_updated"
+                                      ? "bg-green-500"
+                                      : activity.type === "order_created"
+                                      ? "bg-blue-500"
+                                      : "bg-amber-500"
+                                  }`}
+                                ></div>
+                                <span>{activity.description}</span>
+                              </div>
+                              <span className="text-sm text-gray-500">
+                                {new Date(activity.timestamp).toLocaleString(
+                                  "vi-VN"
+                                )}
+                              </span>
+                            </div>
+                          )
+                        ) || (
+                          <div className="text-center py-8 text-gray-500">
+                            Chưa có hoạt động nào
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
             </div>
           )}
 
@@ -776,6 +949,8 @@ const ProductForm = ({
                   <input
                     type="file"
                     accept="image/*"
+                    title="Chọn file ảnh"
+                    placeholder="Chọn file ảnh"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       setFormData({
@@ -802,7 +977,7 @@ const ProductForm = ({
                     Xuất xứ
                   </label>
                   <Input
-                    value={formData.specifications.xuatXu || ""}
+                    value={formData.specifications?.xuatXu || ""}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
@@ -821,7 +996,7 @@ const ProductForm = ({
                     Bảo quản
                   </label>
                   <Input
-                    value={formData.specifications.baoQuan || ""}
+                    value={formData.specifications?.baoQuan || ""}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
@@ -840,7 +1015,7 @@ const ProductForm = ({
                     Hạn sử dụng
                   </label>
                   <Input
-                    value={formData.specifications.hanSuDung || ""}
+                    value={formData.specifications?.hanSuDung || ""}
                     onChange={(e) =>
                       setFormData({
                         ...formData,

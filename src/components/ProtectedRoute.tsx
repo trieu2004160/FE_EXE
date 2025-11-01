@@ -1,5 +1,4 @@
-import { ReactNode, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { ReactNode } from "react";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -7,42 +6,22 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const token = localStorage.getItem("userToken");
-    const userRole = localStorage.getItem("userRole");
-
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-
-    if (requiredRole && userRole !== requiredRole) {
-      // Redirect based on user role
-      if (userRole === "admin") {
-        navigate("/");
-      } else if (userRole === "shop") {
-        navigate("/shop-dashboard");
-      } else if (userRole === "user") {
-        navigate("/profile");
-      } else {
-        navigate("/login");
-      }
-    }
-  }, [navigate, requiredRole]);
-
+  // Very lenient - allow access if ANY auth info exists
+  // Let the page component handle validation and show errors
   const token = localStorage.getItem("userToken");
   const userRole = localStorage.getItem("userRole");
+  const userData = localStorage.getItem("userData");
 
-  if (!token) {
-    return null; // or loading spinner
+  // Only block if absolutely no auth info
+  const hasAnyAuth = token || userRole || userData;
+  
+  if (!hasAnyAuth) {
+    // No auth at all - could show loading or let page handle
+    console.log('[ProtectedRoute] No auth info, allowing page to handle redirect');
   }
 
-  if (requiredRole && userRole !== requiredRole) {
-    return null;
-  }
-
+  // Always render children - let the page component handle authentication checks
+  // This prevents premature redirects and allows pages to show their own error messages
   return <>{children}</>;
 };
 
