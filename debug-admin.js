@@ -18,15 +18,15 @@ const testVariables = {
   categories: [],
   revenueStats: {
     today: 0,
-    thisWeek: 0, 
+    thisWeek: 0,
     thisMonth: 0,
-    thisYear: 0
+    thisYear: 0,
   },
   commissionConfig: {
     defaultCommissionRate: 10,
-    shopCommissionRates: {}
+    shopCommissionRates: {},
   },
-  systemLogs: []
+  systemLogs: [],
 };
 
 console.log("✅ Variable declarations test:", testVariables);
@@ -35,9 +35,9 @@ console.log("✅ Variable declarations test:", testVariables);
 const mockComponentStructure = {
   AdminDashboard: "Main component",
   CategoryForm: "Modal component",
-  ShopForm: "Modal component", 
+  ShopForm: "Modal component",
   ConvertToShopForm: "Modal component",
-  ResetPasswordModal: "Modal component"
+  ResetPasswordModal: "Modal component",
 };
 
 console.log("✅ Component structure test:", mockComponentStructure);

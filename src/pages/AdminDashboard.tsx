@@ -683,8 +683,6 @@ const AdminDashboard = () => {
     }
   };
 
-
-
   const sidebarItems = [
     { id: "dashboard", label: "Dashboard", icon: BarChart3 },
     { id: "categories", label: "Quản lý Danh Mục", icon: Package },
