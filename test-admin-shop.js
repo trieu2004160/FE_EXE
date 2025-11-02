@@ -11,7 +11,7 @@ const mockShops = [
     contactPhoneNumber: "0123456789",
     address: "123 Nguyễn Huệ, Q1, TP.HCM",
     isLocked: false,
-    commissionRate: 10
+    commissionRate: 10,
   },
   {
     id: 2,
@@ -21,8 +21,8 @@ const mockShops = [
     contactPhoneNumber: "0987654321",
     address: "456 Lê Lợi, Q3, TP.HCM",
     isLocked: true,
-    commissionRate: 15
-  }
+    commissionRate: 15,
+  },
 ];
 
 console.log("Mock shops data:", mockShops);
@@ -34,7 +34,7 @@ const testShopFormData = {
   ownerFullName: "Test Owner",
   phone: "0123456789",
   address: "Test Address",
-  isActive: true
+  isActive: true,
 };
 
 console.log("Test shop form data:", testShopFormData);

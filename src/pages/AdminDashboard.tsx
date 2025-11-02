@@ -125,7 +125,8 @@ const AdminDashboard = () => {
   const [showShopForm, setShowShopForm] = useState(false);
   const [showConvertForm, setShowConvertForm] = useState(false);
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
-  const [resetPasswordShop, setResetPasswordShop] = useState<AdminShopDto | null>(null);
+  const [resetPasswordShop, setResetPasswordShop] =
+    useState<AdminShopDto | null>(null);
 
   // State for products
   const [products, setProducts] = useState<AdminProductDto[]>([]);
@@ -423,7 +424,7 @@ const AdminDashboard = () => {
           shopName: formData.shopName,
         });
         toast({
-          title: "Thành công", 
+          title: "Thành công",
           description: "Tạo shop mới thành công. Mật khẩu mặc định: Shop123456",
         });
       }
@@ -500,7 +501,7 @@ const AdminDashboard = () => {
       await apiService.updateShopStatus(id, !isLocked);
       toast({
         title: "Thành công",
-        description: `Đã ${isLocked ? 'mở khóa' : 'khóa'} shop`,
+        description: `Đã ${isLocked ? "mở khóa" : "khóa"} shop`,
       });
       loadShops();
     } catch (error) {
@@ -1016,7 +1017,9 @@ const AdminDashboard = () => {
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <RefreshCw className="h-8 w-8 animate-spin text-[#C99F4D] mr-3" />
-                  <span className="text-gray-600">Đang tải danh sách shop...</span>
+                  <span className="text-gray-600">
+                    Đang tải danh sách shop...
+                  </span>
                 </div>
               ) : (
                 <Card>
@@ -1045,7 +1048,10 @@ const AdminDashboard = () => {
                             </TableRow>
                           ) : (
                             shops.map((shop) => (
-                              <TableRow key={shop.id} className="hover:bg-gray-50">
+                              <TableRow
+                                key={shop.id}
+                                className="hover:bg-gray-50"
+                              >
                                 <TableCell>
                                   <div className="font-medium">{shop.name}</div>
                                   <div className="text-sm text-gray-500">
@@ -1054,7 +1060,7 @@ const AdminDashboard = () => {
                                 </TableCell>
                                 <TableCell>
                                   <div className="font-medium">
-                                    {shop.ownerFullName || 'N/A'}
+                                    {shop.ownerFullName || "N/A"}
                                   </div>
                                   <div className="text-sm text-gray-500">
                                     {shop.ownerEmail}
@@ -1062,10 +1068,10 @@ const AdminDashboard = () => {
                                 </TableCell>
                                 <TableCell>
                                   <div className="text-sm">
-                                    {shop.contactPhoneNumber || 'Chưa có'}
+                                    {shop.contactPhoneNumber || "Chưa có"}
                                   </div>
                                   <div className="text-sm text-gray-500">
-                                    {shop.address || 'Chưa có địa chỉ'}
+                                    {shop.address || "Chưa có địa chỉ"}
                                   </div>
                                 </TableCell>
                                 <TableCell>
@@ -1077,15 +1083,23 @@ const AdminDashboard = () => {
                                     }
                                   >
                                     {!shop.isLocked ? (
-                                      <><CheckCircle className="h-3 w-3 mr-1" />Hoạt Động</>
+                                      <>
+                                        <CheckCircle className="h-3 w-3 mr-1" />
+                                        Hoạt Động
+                                      </>
                                     ) : (
-                                      <><Lock className="h-3 w-3 mr-1" />Bị Khóa</>
+                                      <>
+                                        <Lock className="h-3 w-3 mr-1" />
+                                        Bị Khóa
+                                      </>
                                     )}
                                   </Badge>
                                 </TableCell>
                                 <TableCell>
                                   <div className="text-sm font-medium">
-                                    {shop.commissionRate ? `${shop.commissionRate}%` : 'Mặc định'}
+                                    {shop.commissionRate
+                                      ? `${shop.commissionRate}%`
+                                      : "Mặc định"}
                                   </div>
                                 </TableCell>
                                 <TableCell>
@@ -1104,13 +1118,22 @@ const AdminDashboard = () => {
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      onClick={() => handleToggleShopStatus(shop.id, shop.isLocked)}
+                                      onClick={() =>
+                                        handleToggleShopStatus(
+                                          shop.id,
+                                          shop.isLocked
+                                        )
+                                      }
                                       className={
                                         shop.isLocked
                                           ? "text-green-600 hover:bg-green-50"
                                           : "text-orange-600 hover:bg-orange-50"
                                       }
-                                      title={shop.isLocked ? "Mở khóa shop" : "Khóa shop"}
+                                      title={
+                                        shop.isLocked
+                                          ? "Mở khóa shop"
+                                          : "Khóa shop"
+                                      }
                                     >
                                       {shop.isLocked ? (
                                         <Unlock className="h-4 w-4" />
@@ -1145,9 +1168,7 @@ const AdminDashboard = () => {
           )}
 
           {/* Other tabs - Products, Revenue, Config, Logs will be added here */}
-          {["products", "revenue", "config", "logs"].includes(
-            activeTab
-          ) && (
+          {["products", "revenue", "config", "logs"].includes(activeTab) && (
             <Card>
               <CardHeader>
                 <CardTitle>
