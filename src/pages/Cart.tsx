@@ -57,7 +57,7 @@ const Cart = () => {
         const flattenedItems: CartItem[] = [];
         cartResponse.shops.forEach((shop: ShopInCartDto) => {
           shop.items.forEach((item: CartItemDto) => {
-            console.log('Cart item imageUrl:', item.imageUrl);
+            console.log("Cart item imageUrl:", item.imageUrl);
             flattenedItems.push({
               id: item.id,
               name: item.productName,
@@ -373,18 +373,32 @@ const Cart = () => {
                             aria-label={`Chọn ${item.name}`}
                           />
                           <img
-                            src={
-                              (() => {
-                                const normalizedUrl = normalizeImageUrl(item.imageUrl);
-                                console.log('Normalized image URL for', item.name, ':', normalizedUrl);
-                                return normalizedUrl || "https://via.placeholder.com/200?text=No+Image";
-                              })()
-                            }
+                            src={(() => {
+                              const normalizedUrl = normalizeImageUrl(
+                                item.imageUrl
+                              );
+                              console.log(
+                                "Normalized image URL for",
+                                item.name,
+                                ":",
+                                normalizedUrl
+                              );
+                              return (
+                                normalizedUrl ||
+                                "https://via.placeholder.com/200?text=No+Image"
+                              );
+                            })()}
                             alt={item.name}
                             className="w-24 h-24 object-cover rounded-xl shadow-md"
                             onError={(e) => {
-                              console.log('Image load error for', item.name, ':', e.currentTarget.src);
-                              e.currentTarget.src = "https://via.placeholder.com/200?text=No+Image";
+                              console.log(
+                                "Image load error for",
+                                item.name,
+                                ":",
+                                e.currentTarget.src
+                              );
+                              e.currentTarget.src =
+                                "https://via.placeholder.com/200?text=No+Image";
                             }}
                           />
                           <div className="flex-1">
