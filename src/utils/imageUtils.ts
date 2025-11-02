@@ -1,111 +1,115 @@
 // Image Utilities - Handle image URLs from backend
 
 /**
- * Get the first image URL from product response
- * Backend may return ImageUrls (array) or imageUrl (single string)
- */
-export function getProductImageUrl(product: {
-  imageUrl?: string;
-  imageUrls?: string[];
-  ImageUrls?: string[];
-}): string | undefined {
-  console.log('getProductImageUrl - Product data:', {
-    name: (product as any).name || 'Unknown',
-    imageUrl: product.imageUrl,
-    imageUrls: product.imageUrls,
-    ImageUrls: product.ImageUrls,
-  });
-
-  // Priority: imageUrl > imageUrls > ImageUrls > first from array
-  if (product.imageUrl) {
-    return normalizeImageUrl(product.imageUrl);
-  }
-  
-  const images = product.imageUrls || product.ImageUrls || [];
-  console.log('getProductImageUrl - Found images array:', images);
-  if (images.length > 0) {
-    const normalized = normalizeImageUrl(images[0]);
-    console.log('getProductImageUrl - Normalized URL:', normalized);
-    return normalized;
-  }
-  
-  console.log('getProductImageUrl - No images found');
-  return undefined;
-}
-
-/**
  * Normalize image URL - handle relative paths from backend
- * Backend returns paths like /images/products/xxx.jpg
+ * Backend returns paths like /images/products/xxx.jpg or full URLs
  * Use proxy in development, or full URL in production
  */
-function normalizeImageUrl(url: string | undefined | null): string | undefined {
-  if (!url || url.trim() === '') {
-    console.log('normalizeImageUrl: Empty URL');
+export function normalizeImageUrl(url: string | undefined | null): string | undefined {
+  try {
+    if (!url || typeof url !== 'string' || url.trim() === '') {
+      return undefined;
+    }
+
+    const trimmedUrl = url.trim();
+
+    // If already absolute URL (http:// or https://), return as is
+    if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')) {
+      return trimmedUrl;
+    }
+
+    // Ensure URL starts with / for relative paths
+    const cleanUrl = trimmedUrl.startsWith('/') ? trimmedUrl : `/${trimmedUrl}`;
+
+    // In development, use proxy (vite.config.ts proxies /images to backend)
+    if (import.meta.env.DEV) {
+      // Development: use proxy - vite will proxy /images/* to https://localhost:5001/images/*
+      return cleanUrl;
+    }
+
+    // Production: construct full URL
+    let backendBaseUrl = 'https://localhost:5001';
+    
+    if (import.meta.env.VITE_API_BASE_URL) {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL;
+      if (apiUrl.startsWith('http://') || apiUrl.startsWith('https://')) {
+        // Full URL like https://localhost:5001/api
+        backendBaseUrl = apiUrl.replace('/api', '').replace(/\/$/, '');
+      } else if (apiUrl.startsWith('/api')) {
+        // Relative path like /api, use default backend
+        backendBaseUrl = 'https://localhost:5001';
+      }
+    } else if (import.meta.env.VITE_BACKEND_URL) {
+      backendBaseUrl = import.meta.env.VITE_BACKEND_URL.replace(/\/$/, '');
+    }
+    
+    // Construct full URL: https://localhost:5001/images/products/xxx.jpg
+    return `${backendBaseUrl}${cleanUrl}`;
+  } catch (error) {
+    console.error('Error normalizing image URL:', error, url);
     return undefined;
   }
-
-  // If already absolute URL (http:// or https://), return as is
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    console.log('normalizeImageUrl: Already absolute URL:', url);
-    return url;
-  }
-
-  // Ensure URL starts with / for relative paths
-  const cleanUrl = url.startsWith('/') ? url : `/${url}`;
-
-  // In development, use proxy (vite.config.ts proxies /images to backend)
-  // In production, need full backend URL
-  if (import.meta.env.DEV) {
-    // Development: use proxy - vite will proxy /images/* to https://localhost:5001/images/*
-    console.log('normalizeImageUrl: Dev mode, using proxy URL:', cleanUrl);
-    return cleanUrl;
-  }
-
-  // Production: construct full URL
-  let backendBaseUrl = 'https://localhost:5001';
-  
-  if (import.meta.env.VITE_API_BASE_URL) {
-    const apiUrl = import.meta.env.VITE_API_BASE_URL;
-    if (apiUrl.startsWith('http://') || apiUrl.startsWith('https://')) {
-      // Full URL like https://localhost:5001/api
-      backendBaseUrl = apiUrl.replace('/api', '');
-    } else if (apiUrl.startsWith('/api')) {
-      // Relative path like /api, use default backend
-      backendBaseUrl = 'https://localhost:5001';
-    }
-  } else if (import.meta.env.VITE_BACKEND_URL) {
-    backendBaseUrl = import.meta.env.VITE_BACKEND_URL;
-  }
-  
-  // Construct full URL: https://localhost:5001/images/products/xxx.jpg
-  return `${backendBaseUrl}${cleanUrl}`;
 }
 
 /**
  * Get all image URLs from product
  */
-export function getAllProductImages(product: {
-  imageUrl?: string;
-  imageUrls?: string[];
-  ImageUrls?: string[];
-}): string[] {
+export function getAllProductImages(product: any): string[] {
   const images: string[] = [];
   
-  // Add single imageUrl if exists
-  if (product.imageUrl) {
-    const normalized = normalizeImageUrl(product.imageUrl);
+  // Check for single imageUrl (camelCase or PascalCase)
+  const imageUrl = product.imageUrl || product.ImageUrl;
+  if (imageUrl && typeof imageUrl === 'string') {
+    const normalized = normalizeImageUrl(imageUrl);
     if (normalized) images.push(normalized);
   }
   
-  // Add array of images
+  // Check for array of images (camelCase or PascalCase)
   const imageArray = product.imageUrls || product.ImageUrls || [];
-  imageArray.forEach(img => {
-    const normalized = normalizeImageUrl(img);
-    if (normalized && !images.includes(normalized)) {
-      images.push(normalized);
-    }
-  });
+  if (Array.isArray(imageArray)) {
+    imageArray.forEach((img: any) => {
+      if (img && typeof img === 'string') {
+        const normalized = normalizeImageUrl(img);
+        if (normalized && !images.includes(normalized)) {
+          images.push(normalized);
+        }
+      }
+    });
+  }
   
   return images;
+}
+
+/**
+ * Get the first image URL from product response
+ * Backend returns ImageUrls (PascalCase array) from ProductResponseDto
+ */
+export function getProductImageUrl(product: any): string | undefined {
+  try {
+    if (!product) return undefined;
+    
+    // Backend returns ImageUrls (PascalCase) as List<string>
+    // Check all possible field names
+    const imageUrl = product.imageUrl || product.ImageUrl;
+    const imageUrls = product.imageUrls || product.ImageUrls || [];
+    
+    // Priority: single imageUrl > first from ImageUrls array
+    if (imageUrl && typeof imageUrl === 'string') {
+      return normalizeImageUrl(imageUrl);
+    }
+    
+    // Check array of images
+    if (Array.isArray(imageUrls) && imageUrls.length > 0) {
+      const firstImage = imageUrls[0];
+      if (firstImage && typeof firstImage === 'string') {
+        return normalizeImageUrl(firstImage);
+      }
+    }
+    
+    return undefined;
+  } catch (error) {
+    console.error('Error getting product image URL:', error, product);
+    return undefined;
+  }
 }
 

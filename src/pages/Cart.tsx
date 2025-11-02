@@ -1,21 +1,34 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Minus, Plus, X, ShoppingBag, ArrowRight, Tag, Loader2 } from "lucide-react";
+import {
+  Minus,
+  Plus,
+  X,
+  ShoppingBag,
+  ArrowRight,
+  Tag,
+  Loader2,
+} from "lucide-react";
 import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import AIAssistant from "@/components/AIAssistant";
-import { apiService, CartResponseDto, CartItemDto, ShopInCartDto } from "@/services/apiService";
+import {
+  apiService,
+  CartResponseDto,
+  CartItemDto,
+  ShopInCartDto,
+} from "@/services/apiService";
 import { useNavigate } from "react-router-dom";
+import { normalizeImageUrl } from "@/utils/imageUtils";
 
 interface CartItem {
   id: number;
   name: string;
   price: number;
-  image: string;
+  imageUrl?: string;
   quantity: number;
   category: string;
   shopId: number;
@@ -39,16 +52,17 @@ const Cart = () => {
       try {
         const cartResponse = await apiService.getCart();
         setCartData(cartResponse);
-        
+
         // Flatten cart items from shops structure
         const flattenedItems: CartItem[] = [];
         cartResponse.shops.forEach((shop: ShopInCartDto) => {
           shop.items.forEach((item: CartItemDto) => {
+            console.log('Cart item imageUrl:', item.imageUrl);
             flattenedItems.push({
               id: item.id,
               name: item.productName,
               price: item.price,
-              image: item.imageUrl || "https://via.placeholder.com/200?text=No+Image",
+              imageUrl: item.imageUrl,
               quantity: item.quantity,
               category: "", // Category not available in cart API
               shopId: shop.shopId,
@@ -59,7 +73,7 @@ const Cart = () => {
         });
         setCartItems(flattenedItems);
       } catch (err: any) {
-        console.error('Error fetching cart:', err);
+        console.error("Error fetching cart:", err);
         setError(err.message || "Không thể tải giỏ hàng. Vui lòng đăng nhập.");
         setCartItems([]);
       } finally {
@@ -82,28 +96,30 @@ const Cart = () => {
 
   // Get shop info from cartData
   const getShopName = (shopId: number): string => {
-    const shop = cartData?.shops.find(s => s.shopId === shopId);
+    const shop = cartData?.shops.find((s) => s.shopId === shopId);
     return shop?.shopName || `Shop ${shopId}`;
   };
 
   const toggleItemSelection = async (itemId: number) => {
-    const item = cartItems.find(i => i.id === itemId);
+    const item = cartItems.find((i) => i.id === itemId);
     if (!item) return;
 
     const newSelected = !(item.selected ?? item.isSelected ?? false);
-    
+
     try {
       const updatedCart = await apiService.selectCartItem(itemId, newSelected);
       setCartData(updatedCart);
-      
+
       // Update local state
       setCartItems((items) =>
         items.map((i) =>
-          i.id === itemId ? { ...i, selected: newSelected, isSelected: newSelected } : i
+          i.id === itemId
+            ? { ...i, selected: newSelected, isSelected: newSelected }
+            : i
         )
       );
     } catch (err: any) {
-      console.error('Error updating item selection:', err);
+      console.error("Error updating item selection:", err);
     }
   };
 
@@ -139,18 +155,24 @@ const Cart = () => {
       await removeItem(id);
       return;
     }
-    
+
     try {
-      const updatedCart = await apiService.updateCartItemQuantity(id, newQuantity);
+      const updatedCart = await apiService.updateCartItemQuantity(
+        id,
+        newQuantity
+      );
       setCartData(updatedCart);
-      
+
       setCartItems((items) =>
         items.map((item) =>
           item.id === id ? { ...item, quantity: newQuantity } : item
         )
       );
+
+      // Dispatch event to update cart count in Header
+      window.dispatchEvent(new Event("cartUpdated"));
     } catch (err: any) {
-      console.error('Error updating quantity:', err);
+      console.error("Error updating quantity:", err);
     }
   };
 
@@ -158,7 +180,7 @@ const Cart = () => {
     try {
       const updatedCart = await apiService.removeCartItem(id);
       setCartData(updatedCart);
-      
+
       // Update local state
       const flattenedItems: CartItem[] = [];
       updatedCart.shops.forEach((shop: ShopInCartDto) => {
@@ -167,7 +189,7 @@ const Cart = () => {
             id: item.id,
             name: item.productName,
             price: item.price,
-            image: item.imageUrl || "https://via.placeholder.com/200?text=No+Image",
+            imageUrl: item.imageUrl,
             quantity: item.quantity,
             category: "",
             shopId: shop.shopId,
@@ -177,19 +199,23 @@ const Cart = () => {
         });
       });
       setCartItems(flattenedItems);
+
+      // Dispatch event to update cart count in Header
+      window.dispatchEvent(new Event("cartUpdated"));
     } catch (err: any) {
-      console.error('Error removing item:', err);
+      console.error("Error removing item:", err);
     }
   };
 
   // Calculate totals only for selected items
-  const selectedItems = cartItems.filter((item) => item.selected || item.isSelected);
-  
-  // Use totalPrice from API if available (for selected items), otherwise calculate
-  const subtotal = cartData?.totalPrice || selectedItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
+  const selectedItems = cartItems.filter(
+    (item) => item.selected || item.isSelected
   );
+
+  // Use totalPrice from API if available (for selected items), otherwise calculate
+  const subtotal =
+    cartData?.totalPrice ||
+    selectedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const shipping = subtotal > 500000 ? 0 : 30000;
   const discount = promoCode === "TOTNGHIEP10" ? subtotal * 0.1 : 0;
   const total = subtotal + shipping - discount;
@@ -210,7 +236,7 @@ const Cart = () => {
             <p className="text-gray-600">Đang tải giỏ hàng...</p>
           </div>
         </section>
-        <Footer />
+
         <AIAssistant />
       </div>
     );
@@ -224,11 +250,13 @@ const Cart = () => {
           <div className="container mx-auto px-4 text-center">
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-12 max-w-2xl mx-auto">
               <p className="text-red-500 mb-4">{error}</p>
-              <p className="text-gray-600">Vui lòng đăng nhập để xem giỏ hàng</p>
+              <p className="text-gray-600">
+                Vui lòng đăng nhập để xem giỏ hàng
+              </p>
             </div>
           </div>
         </section>
-        <Footer />
+
         <AIAssistant />
       </div>
     );
@@ -257,7 +285,7 @@ const Cart = () => {
             </div>
           </div>
         </section>
-        <Footer />
+
         <AIAssistant />
       </div>
     );
@@ -332,7 +360,7 @@ const Cart = () => {
                         <div
                           key={item.id}
                           className={`flex items-center gap-4 p-4 border rounded-xl bg-white hover:shadow-lg transition-all duration-300 ${
-                            (item.selected || item.isSelected)
+                            item.selected || item.isSelected
                               ? "border-[#A67C42] bg-[#A67C42]/5"
                               : "border-gray-200"
                           }`}
@@ -345,9 +373,19 @@ const Cart = () => {
                             aria-label={`Chọn ${item.name}`}
                           />
                           <img
-                            src={item.imageUrl || item.image || "https://via.placeholder.com/200?text=No+Image"}
+                            src={
+                              (() => {
+                                const normalizedUrl = normalizeImageUrl(item.imageUrl);
+                                console.log('Normalized image URL for', item.name, ':', normalizedUrl);
+                                return normalizedUrl || "https://via.placeholder.com/200?text=No+Image";
+                              })()
+                            }
                             alt={item.name}
                             className="w-24 h-24 object-cover rounded-xl shadow-md"
+                            onError={(e) => {
+                              console.log('Image load error for', item.name, ':', e.currentTarget.src);
+                              e.currentTarget.src = "https://via.placeholder.com/200?text=No+Image";
+                            }}
                           />
                           <div className="flex-1">
                             <h3 className="font-semibold text-gray-800 mb-2">
@@ -486,7 +524,9 @@ const Cart = () => {
                   <Button
                     className="w-full bg-gradient-to-r from-[#A67C42] to-[#C99F4D] hover:from-[#8B6835] hover:to-[#A67C42] text-white py-6 text-lg rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
                     disabled={selectedItems.length === 0}
-                    onClick={() => selectedItems.length > 0 && navigate('/checkout')}
+                    onClick={() =>
+                      selectedItems.length > 0 && navigate("/checkout")
+                    }
                   >
                     {selectedItems.length > 0
                       ? `Tiến hành thanh toán (${selectedItems.length} sản phẩm)`
@@ -497,7 +537,7 @@ const Cart = () => {
                   <Button
                     variant="outline"
                     className="w-full border-2 border-[#A67C42] text-[#A67C42] hover:bg-[#A67C42] hover:text-white py-6 text-lg rounded-xl transition-all duration-300"
-                    onClick={() => navigate('/')}
+                    onClick={() => navigate("/")}
                   >
                     Tiếp tục mua sắm
                   </Button>
@@ -508,7 +548,6 @@ const Cart = () => {
         </div>
       </section>
 
-      <Footer />
       <AIAssistant />
     </div>
   );

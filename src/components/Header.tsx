@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useWishlist } from "@/contexts/WishlistContext";
 import Search from "@/components/Search";
+import { apiService } from "@/services/apiService";
 
 import logoIcon from "@/assets/z7048679417409_951f2312b6a4acf2cd06da22ec333170-removebg-preview.png";
 
@@ -23,6 +24,31 @@ const Header = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [showSearch, setShowSearch] = useState(false);
+  const [cartItemCount, setCartItemCount] = useState(0);
+
+  // Fetch cart count from API
+  const fetchCartCount = async () => {
+    try {
+      const token = localStorage.getItem("userToken");
+      if (!token || token === "authenticated") {
+        setCartItemCount(0);
+        return;
+      }
+
+      const cart = await apiService.getCart();
+      // Calculate total quantity from all shops
+      const totalCount = cart.shops.reduce((total, shop) => {
+        return (
+          total +
+          shop.items.reduce((sum, item) => sum + item.quantity, 0)
+        );
+      }, 0);
+      setCartItemCount(totalCount);
+    } catch (error) {
+      console.error("Error fetching cart count:", error);
+      setCartItemCount(0);
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("userToken");
@@ -30,6 +56,34 @@ const Header = () => {
 
     setIsLoggedIn(!!token);
     setUserRole(role);
+
+    // Fetch cart count if logged in
+    if (token && token !== "authenticated") {
+      fetchCartCount();
+    }
+  }, []);
+
+  // Listen for cart updates from custom event
+  useEffect(() => {
+    const handleCartUpdate = () => {
+      fetchCartCount();
+    };
+
+    // Listen for custom event when cart is updated
+    window.addEventListener("cartUpdated", handleCartUpdate);
+
+    // Also poll periodically to keep count updated
+    const interval = setInterval(() => {
+      const token = localStorage.getItem("userToken");
+      if (token && token !== "authenticated") {
+        fetchCartCount();
+      }
+    }, 10000); // Poll every 10 seconds
+
+    return () => {
+      window.removeEventListener("cartUpdated", handleCartUpdate);
+      clearInterval(interval);
+    };
   }, []);
 
   const handleLogout = () => {
@@ -38,6 +92,7 @@ const Header = () => {
     localStorage.removeItem("userData");
     setIsLoggedIn(false);
     setUserRole(null);
+    setCartItemCount(0);
     navigate("/");
   };
 
@@ -159,9 +214,11 @@ const Header = () => {
                 onClick={() => navigate("/cart")}
               >
                 <ShoppingCart className="h-5 w-5 text-gray-600 group-hover:text-amber-600" />
-                <span className="absolute -top-1 -right-1 h-5 w-5 bg-amber-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
-                  3
-                </span>
+                {cartItemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 w-5 bg-amber-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
+                    {cartItemCount}
+                  </span>
+                )}
               </Button>
 
               {/* Admin Dashboard Button - Only show when user has admin role */}

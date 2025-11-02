@@ -33,7 +33,6 @@ import {
 } from "@/services/apiService";
 import { getProductImageUrl, getAllProductImages } from "@/utils/imageUtils";
 
-
 const ProductDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -139,13 +138,47 @@ const ProductDetail = () => {
       }
     : null;
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!product) return;
 
-    toast({
-      title: "Đã thêm vào giỏ hàng!",
-      description: `${product.name} x${quantity}`,
-    });
+    try {
+      // Check if user is authenticated
+      const token = localStorage.getItem("userToken");
+      if (!token || token === "authenticated") {
+        toast({
+          title: "Vui lòng đăng nhập",
+          description: "Bạn cần đăng nhập để thêm sản phẩm vào giỏ hàng",
+          variant: "destructive",
+        });
+        navigate("/login");
+        return;
+      }
+
+      // Call API to add item to cart
+      await apiService.addItemToCart({
+        productId: product.id,
+        quantity: quantity,
+      });
+
+      // Dispatch custom event to update cart count in Header
+      window.dispatchEvent(new Event("cartUpdated"));
+
+      toast({
+        title: "Đã thêm vào giỏ hàng!",
+        description: `${product.name} x${quantity}`,
+      });
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Không thể thêm vào giỏ hàng. Vui lòng thử lại.";
+      toast({
+        title: "Lỗi",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleAddToWishlist = () => {

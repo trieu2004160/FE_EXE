@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +6,8 @@ import { Heart, ShoppingCart, Star } from "lucide-react";
 import { Product } from "@/data/mockData";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useToast } from "@/hooks/use-toast";
+import { apiService } from "@/services/apiService";
+import { getProductImageUrl } from "@/utils/imageUtils";
 
 type ProductCardProps = Product;
 
@@ -24,10 +26,13 @@ const ProductCard = (product: ProductCardProps) => {
   } = product;
 
   // Support both 'image' (from mockData) and 'imageUrl' (from API)
-  const imageUrl = (product as any).imageUrl || image;
+  // Use getProductImageUrl to properly handle ImageUrls from backend
+  const apiImageUrl = getProductImageUrl(product);
+  const imageUrl = apiImageUrl || (product as any).imageUrl || image;
 
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const discount = originalPrice
     ? Math.round(((originalPrice - price) / originalPrice) * 100)
@@ -50,6 +55,47 @@ const ProductCard = (product: ProductCardProps) => {
       toast({
         title: "Đã thêm vào danh sách yêu thích",
         description: `${name} đã được thêm`,
+      });
+    }
+  };
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    try {
+      // Check if user is authenticated
+      const token = localStorage.getItem('userToken');
+      if (!token || token === 'authenticated') {
+        toast({
+          title: "Vui lòng đăng nhập",
+          description: "Bạn cần đăng nhập để thêm sản phẩm vào giỏ hàng",
+          variant: "destructive",
+        });
+        navigate('/login');
+        return;
+      }
+
+      // Call API to add item to cart
+      await apiService.addItemToCart({
+        productId: id,
+        quantity: 1,
+      });
+
+      // Dispatch custom event to update cart count in Header
+      window.dispatchEvent(new Event("cartUpdated"));
+
+      toast({
+        title: "Đã thêm vào giỏ hàng!",
+        description: `${name} đã được thêm vào giỏ hàng`,
+      });
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      const errorMessage = error instanceof Error ? error.message : "Không thể thêm vào giỏ hàng. Vui lòng thử lại.";
+      toast({
+        title: "Lỗi",
+        description: errorMessage,
+        variant: "destructive",
       });
     }
   };
@@ -142,7 +188,10 @@ const ProductCard = (product: ProductCardProps) => {
       </CardContent>
 
       <CardFooter className="p-3 pt-0">
-        <Button className="w-full h-9 text-sm bg-[#C99F4D] hover:bg-[#B8904A] text-white">
+        <Button 
+          className="w-full h-9 text-sm bg-[#C99F4D] hover:bg-[#B8904A] text-white"
+          onClick={handleAddToCart}
+        >
           <ShoppingCart className="h-4 w-4 mr-1.5" />
           Thêm vào giỏ
         </Button>
