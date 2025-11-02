@@ -33,7 +33,8 @@ const Login = () => {
 
     try {
       // Check demo accounts using new system
-      const demoAccount = findDemoAccount(email, password);
+      const demoAccount = null;
+      // findDemoAccount(email, password);
       if (demoAccount) {
         // Simulate JWT token with demo user data
         const demoUserData = getDemoUserData(email, password);
