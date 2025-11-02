@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import ProductCard from "@/components/ProductCard";
-import { getProductsByCategory, Product } from "@/data/mockData";
+import { apiService, Product } from "@/services/apiService";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import fruitsHeroImage from "@/assets/flowers-hero.jpg"; // Sẽ thay bằng ảnh hoa quả
@@ -25,10 +25,53 @@ import fruitsBannerImage from "@/assets/traditional-flowers.jpg"; // Sẽ thay b
 
 const FruitsCategory = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fruitProducts = getProductsByCategory("Hoa Quả");
-    setProducts(fruitProducts);
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const [allProducts, categories] = await Promise.all([
+          apiService.getProducts(),
+          apiService.getCategories(),
+        ]);
+
+        // Find fruit category
+        const fruitCategory = categories.find(
+          (cat) =>
+            cat.name.toLowerCase().includes("hoa quả") ||
+            cat.name.toLowerCase().includes("trái cây") ||
+            cat.name.toLowerCase().includes("fruit")
+        );
+
+        if (fruitCategory) {
+          const fruitProducts = allProducts.filter(
+            (product) => product.productCategoryId === fruitCategory.id
+          );
+          setProducts(fruitProducts);
+        } else {
+          // If no fruit category found, filter by name containing fruit keywords
+          const fruitProducts = allProducts.filter(
+            (product) =>
+              product.name.toLowerCase().includes("quả") ||
+              product.name.toLowerCase().includes("trái cây") ||
+              product.name.toLowerCase().includes("fruit")
+          );
+          setProducts(fruitProducts);
+        }
+      } catch (apiError) {
+        console.error("Error fetching products:", apiError);
+        setError("Không thể tải sản phẩm. Vui lòng thử lại sau.");
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const features = [

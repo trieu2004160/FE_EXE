@@ -33,31 +33,6 @@ import {
 } from "@/services/apiService";
 import { getProductImageUrl, getAllProductImages } from "@/utils/imageUtils";
 
-import { mockProducts } from "@/data/mockData";
-
-// Fallback product data
-const fallbackProduct: Product = {
-  id: 1,
-  name: "Bộ Hoa Quả Tốt Nghiệp Cao Cấp",
-  basePrice: 299000,
-  maxPrice: 399000,
-  imageUrl:
-    "https://images.unsplash.com/photo-1610832958506-aa56368176cf?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-  isPopular: true,
-  stockQuantity: 15,
-  productCategoryId: 1,
-  description:
-    "Bộ hoa quả cao cấp được tuyển chọn kỹ lưỡng, bao gồm 5 loại hoa quả tươi ngon nhất, mang ý nghĩa cát tường cho lễ tốt nghiệp.",
-  features:
-    "5 loại hoa quả tươi ngon được tuyển chọn\nÝ nghĩa cát tường cho lễ tốt nghiệp\nĐóng gói cẩn thận, đảm bảo chất lượng\nCó thể tùy chỉnh theo yêu cầu",
-  specifications:
-    "Xuất xứ: Việt Nam\nBảo quản: Nơi khô ráo, thoáng mát\nHạn sử dụng: 3-5 ngày\nTrọng lượng: 2-3 kg",
-  shop: {
-    id: 1,
-    shopName: "Shop Đồ Cúng Tâm Linh",
-  },
-  reviews: [],
-};
 
 const ProductDetail = () => {
   const navigate = useNavigate();
@@ -130,14 +105,6 @@ const ProductDetail = () => {
         setError(
           apiError?.message || "Không thể tải sản phẩm. Vui lòng thử lại sau."
         );
-
-        // Fallback to mock data when API is not available (only for development)
-        if (process.env.NODE_ENV === "development") {
-          console.warn("Using fallback data in development mode");
-          setProduct(fallbackProduct);
-          setRelatedProducts([]);
-          setReviews([]);
-        }
       } finally {
         setLoading(false);
       }
@@ -154,22 +121,21 @@ const ProductDetail = () => {
         )
       : 0;
 
-  // Get shop info
+  // Get shop info from product data
   const shop = product?.shop
     ? {
         id: product.shop.id,
         name: product.shop.shopName,
-        avatar: "https://randomuser.me/api/portraits/men/32.jpg",
-        description:
-          "Chuyên cung cấp đồ cúng, hoa quả, hương nến chất lượng cao.",
-        address: "123 Lê Lợi, Quận 1, TP.HCM",
-        phone: "0909 123 456",
-        email: "shop1@email.com",
-        isVerified: true,
-        rating: 4.9,
-        totalSales: 1200,
-        totalProducts: 25,
-        joinedDate: "2023-01-15",
+        avatar: "", // Will be fetched from shop API if needed
+        description: "",
+        address: "",
+        phone: "",
+        email: "",
+        isVerified: false,
+        rating: 0,
+        totalSales: 0,
+        totalProducts: 0,
+        joinedDate: "",
       }
     : null;
 

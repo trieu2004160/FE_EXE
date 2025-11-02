@@ -191,6 +191,129 @@ export interface GrantShopRoleResponse {
   shopId: number;
 }
 
+// Cart Types
+export interface CartItemDto {
+  id: number;
+  productId: number;
+  productName: string;
+  imageUrl?: string;
+  price: number;
+  quantity: number;
+  isSelected: boolean;
+}
+
+export interface ShopInCartDto {
+  shopId: number;
+  shopName: string;
+  items: CartItemDto[];
+}
+
+export interface CartResponseDto {
+  id: number;
+  shops: ShopInCartDto[];
+  totalPrice: number;
+}
+
+// UserAddress Types
+export interface UpsertAddressDto {
+  fullName: string;
+  phoneNumber: string;
+  street: string;
+  ward: string;
+  district: string;
+  city: string;
+  isDefault?: boolean;
+}
+
+export interface AddressResponseDto {
+  id: number;
+  fullName: string;
+  phoneNumber: string;
+  street: string;
+  ward: string;
+  district: string;
+  city: string;
+  isDefault: boolean;
+}
+
+// Order Types
+export interface OrderResponseDto {
+  id: number;
+  orderDate: string;
+  status: string;
+  subtotal: number;
+  total: number;
+  shippingAddress: {
+    fullName: string;
+    phoneNumber: string;
+    street: string;
+    ward: string;
+    district: string;
+    city: string;
+  };
+  items: OrderItemDto[];
+}
+
+export interface OrderItemDto {
+  productId: number;
+  productName: string;
+  imageUrl?: string;
+  price: number;
+  quantity: number;
+  shopName: string;
+}
+
+// Admin Types
+export interface AdminCategoryDto {
+  id: number;
+  name: string;
+  description?: string;
+  imageUrl?: string;
+  isVisible?: boolean;
+  displayOrder?: number;
+}
+
+export interface AdminShopDto {
+  id: number;
+  name: string; // Shop name
+  ownerEmail: string;
+  contactPhoneNumber?: string;
+  isLocked: boolean;
+  commissionRate?: number;
+  // Additional fields that might be in response
+  ownerFullName?: string;
+  address?: string;
+}
+
+export interface AdminProductDto {
+  id: number;
+  name: string;
+  shopName: string;
+  categoryName: string;
+  basePrice: number;
+  stockQuantity: number;
+  isVisible?: boolean;
+}
+
+export interface CommissionConfig {
+  defaultCommissionRate?: number;
+  shopCommissionRates?: Record<number, number>;
+}
+
+export interface RevenueStats {
+  today: number;
+  thisWeek: number;
+  thisMonth: number;
+  thisYear: number;
+}
+
+export interface RevenueByShop {
+  shopId: number;
+  shopName: string;
+  revenue: number;
+  orderCount: number;
+}
+
 // API service class
 class ApiService {
   private baseURL: string;
@@ -258,12 +381,12 @@ class ApiService {
       if (!response.ok) {
         // Try to get error message from response
         let errorMessage = `HTTP error! status: ${response.status}`;
-        let errorData: any = {};
+        let errorData: { message?: string; error?: string } = {};
         
         try {
           const responseText = await response.text();
           if (responseText) {
-            errorData = JSON.parse(responseText);
+            errorData = JSON.parse(responseText) as { message?: string; error?: string };
             errorMessage = errorData.message || errorData.error || errorMessage;
           }
         } catch {
@@ -284,7 +407,7 @@ class ApiService {
               email: tokenInfo.email,
               role: tokenInfo.role,
               shopId: tokenInfo.ShopId,
-              exp: new Date(tokenInfo.exp * 1000).toISOString(),
+              exp: tokenInfo.exp ? new Date(tokenInfo.exp * 1000).toISOString() : undefined,
             } : null,
             responseHeaders: Object.fromEntries(response.headers.entries()),
           });
@@ -660,7 +783,7 @@ class ApiService {
    */
   async getShopDashboard(): Promise<ShopDashboardDto> {
     try {
-      const data = await this.request<any>('/shop/dashboard', {
+      const data = await this.request<ShopDashboardDto>('/shop/dashboard', {
         method: 'GET',
       });
       
@@ -868,6 +991,397 @@ class ApiService {
    */
   async getShopStatistics() {
     return this.request('/shop/statistics', {
+      method: 'GET',
+    });
+  }
+
+  // ==================== CART API ====================
+  // Base URL: /api/cart
+
+  /**
+   * Get current user's cart
+   * GET /api/cart
+   * Requires authentication
+   */
+  async getCart(): Promise<CartResponseDto> {
+    return this.request<CartResponseDto>('/cart', {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Add item to cart
+   * POST /api/cart/items
+   * Requires authentication
+   */
+  async addItemToCart(data: { productId: number; quantity: number }): Promise<CartResponseDto> {
+    return this.request<CartResponseDto>('/cart/items', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * Update cart item quantity
+   * PUT /api/cart/items/{cartItemId}/quantity
+   * Requires authentication
+   */
+  async updateCartItemQuantity(cartItemId: number, quantity: number): Promise<CartResponseDto> {
+    return this.request<CartResponseDto>(`/cart/items/${cartItemId}/quantity`, {
+      method: 'PUT',
+      body: JSON.stringify({ quantity }),
+    });
+  }
+
+  /**
+   * Toggle cart item selection
+   * PUT /api/cart/items/{cartItemId}/select
+   * Requires authentication
+   */
+  async selectCartItem(cartItemId: number, isSelected: boolean): Promise<CartResponseDto> {
+    return this.request<CartResponseDto>(`/cart/items/${cartItemId}/select`, {
+      method: 'PUT',
+      body: JSON.stringify({ isSelected }),
+    });
+  }
+
+  /**
+   * Remove item from cart
+   * DELETE /api/cart/items/{cartItemId}
+   * Requires authentication
+   */
+  async removeCartItem(cartItemId: number): Promise<CartResponseDto> {
+    return this.request<CartResponseDto>(`/cart/items/${cartItemId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ==================== USER ADDRESSES API ====================
+  // Base URL: /api/useraddresses
+
+  /**
+   * Get all addresses for current user
+   * GET /api/useraddresses
+   * Requires authentication
+   */
+  async getUserAddresses(): Promise<AddressResponseDto[]> {
+    return this.request<AddressResponseDto[]>('/useraddresses', {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Get address by ID
+   * GET /api/useraddresses/{id}
+   * Requires authentication
+   */
+  async getUserAddressById(id: number): Promise<AddressResponseDto> {
+    return this.request<AddressResponseDto>(`/useraddresses/${id}`, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Add new address
+   * POST /api/useraddresses
+   * Requires authentication
+   */
+  async addUserAddress(data: UpsertAddressDto): Promise<AddressResponseDto> {
+    return this.request<AddressResponseDto>('/useraddresses', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * Update address
+   * PUT /api/useraddresses/{id}
+   * Requires authentication
+   */
+  async updateUserAddress(id: number, data: UpsertAddressDto): Promise<void> {
+    return this.request<void>(`/useraddresses/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * Delete address
+   * DELETE /api/useraddresses/{id}
+   * Requires authentication
+   */
+  async deleteUserAddress(id: number): Promise<void> {
+    return this.request<void>(`/useraddresses/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  /**
+   * Set default address
+   * POST /api/useraddresses/{id}/set-default
+   * Requires authentication
+   */
+  async setDefaultAddress(id: number): Promise<ApiResponse> {
+    return this.request<ApiResponse>(`/useraddresses/${id}/set-default`, {
+      method: 'POST',
+    });
+  }
+
+  // ==================== ORDERS API ====================
+  // Base URL: /api/orders
+
+  /**
+   * Get order by ID
+   * GET /api/orders/{id}
+   * Requires authentication
+   */
+  async getOrderById(id: number): Promise<OrderResponseDto> {
+    return this.request<OrderResponseDto>(`/orders/${id}`, {
+      method: 'GET',
+    });
+  }
+
+  // ==================== ADMIN API ====================
+  // Base URL: /api/admin
+  // All endpoints require Admin role
+
+  /**
+   * Get all categories (Admin)
+   * GET /api/admin/categories
+   */
+  async getAdminCategories(): Promise<AdminCategoryDto[]> {
+    return this.request<AdminCategoryDto[]>('/admin/categories', {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Create category (Admin)
+   * POST /api/admin/categories
+   */
+  async createAdminCategory(data: CreateCategoryRequest): Promise<AdminCategoryDto> {
+    return this.request<AdminCategoryDto>('/admin/categories', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * Update category (Admin)
+   * PUT /api/admin/categories/{id}
+   */
+  async updateAdminCategory(id: number, data: UpdateCategoryRequest): Promise<void> {
+    return this.request<void>(`/admin/categories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * Delete category (Admin)
+   * DELETE /api/admin/categories/{id}
+   */
+  async deleteAdminCategory(id: number): Promise<void> {
+    return this.request<void>(`/admin/categories/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  /**
+   * Toggle category visibility (Admin)
+   * PUT /api/admin/categories/{id}/visibility
+   */
+  async toggleCategoryVisibility(id: number, isVisible: boolean): Promise<void> {
+    return this.request<void>(`/admin/categories/${id}/visibility`, {
+      method: 'PUT',
+      body: JSON.stringify({ isVisible }),
+    });
+  }
+
+  /**
+   * Reorder categories (Admin)
+   * PUT /api/admin/categories/reorder
+   */
+  async reorderCategories(categoryIds: number[]): Promise<void> {
+    return this.request<void>('/admin/categories/reorder', {
+      method: 'PUT',
+      body: JSON.stringify({ categoryIds }),
+    });
+  }
+
+  /**
+   * Get all shops (Admin)
+   * GET /api/admin/shops
+   */
+  async getAdminShops(): Promise<AdminShopDto[]> {
+    return this.request<AdminShopDto[]>('/admin/shops', {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Create new shop account (Admin)
+   * POST /api/admin/shops/create-new
+   */
+  async createShopAccount(data: {
+    email: string;
+    fullName: string;
+    password: string;
+    shopName: string;
+  }): Promise<AdminShopDto> {
+    return this.request<AdminShopDto>('/admin/shops/create-new', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * Convert guest to shop (Admin)
+   * POST /api/admin/shops/convert-guest
+   */
+  async convertGuestToShop(data: {
+    userEmail: string;
+    shopName: string;
+  }): Promise<AdminShopDto> {
+    return this.request<AdminShopDto>('/admin/shops/convert-guest', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * Update shop info (Admin)
+   * PUT /api/admin/shops/{id}
+   */
+  async updateShopInfo(id: number, data: Partial<AdminShopDto>): Promise<void> {
+    return this.request<void>(`/admin/shops/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * Update shop status (Admin)
+   * PUT /api/admin/shops/{id}/status
+   */
+  async updateShopStatus(id: number, isActive: boolean): Promise<void> {
+    return this.request<void>(`/admin/shops/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ isActive }),
+    });
+  }
+
+  /**
+   * Reset shop password (Admin)
+   * POST /api/admin/shops/{id}/reset-password
+   */
+  async resetShopPassword(id: number, newPassword: string): Promise<ApiResponse> {
+    return this.request<ApiResponse>(`/admin/shops/${id}/reset-password`, {
+      method: 'POST',
+      body: JSON.stringify({ newPassword }),
+    });
+  }
+
+  /**
+   * Get all products (Admin)
+   * GET /api/admin/products
+   */
+  async getAdminProducts(): Promise<AdminProductDto[]> {
+    return this.request<AdminProductDto[]>('/admin/products', {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Toggle product visibility (Admin)
+   * PUT /api/admin/products/{id}/visibility
+   */
+  async toggleProductVisibility(id: number, isVisible: boolean): Promise<void> {
+    return this.request<void>(`/admin/products/${id}/visibility`, {
+      method: 'PUT',
+      body: JSON.stringify({ isVisible }),
+    });
+  }
+
+  /**
+   * Change product category (Admin)
+   * PUT /api/admin/products/{id}/change-category
+   */
+  async changeProductCategory(id: number, categoryId: number): Promise<void> {
+    return this.request<void>(`/admin/products/${id}/change-category`, {
+      method: 'PUT',
+      body: JSON.stringify({ categoryId }),
+    });
+  }
+
+  /**
+   * Get commission config (Admin)
+   * GET /api/admin/config/commissions
+   */
+  async getCommissionConfig(): Promise<CommissionConfig> {
+    return this.request<CommissionConfig>('/admin/config/commissions', {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Set default commission (Admin)
+   * PUT /api/admin/config/commissions/default
+   */
+  async setDefaultCommission(rate: number): Promise<void> {
+    return this.request<void>('/admin/config/commissions/default', {
+      method: 'PUT',
+      body: JSON.stringify({ rate }),
+    });
+  }
+
+  /**
+   * Set shop commission (Admin)
+   * PUT /api/admin/config/commissions/shop/{shopId}
+   */
+  async setShopCommission(shopId: number, rate: number): Promise<void> {
+    return this.request<void>(`/admin/config/commissions/shop/${shopId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ rate }),
+    });
+  }
+
+  /**
+   * Get revenue statistics (Admin)
+   * GET /api/admin/dashboard/revenue-stats
+   */
+  async getRevenueStats(): Promise<RevenueStats> {
+    return this.request<RevenueStats>('/admin/dashboard/revenue-stats', {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Get revenue by shop (Admin)
+   * GET /api/admin/dashboard/revenue-by-shop
+   */
+  async getRevenueByShop(): Promise<RevenueByShop[]> {
+    return this.request<RevenueByShop[]>('/admin/dashboard/revenue-by-shop', {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Get system logs (Admin)
+   * GET /api/admin/logs
+   */
+  async getSystemLogs(params?: {
+    page?: number;
+    limit?: number;
+  }): Promise<unknown> {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.append('page', params.page.toString());
+    if (params?.limit) searchParams.append('limit', params.limit.toString());
+    
+    const queryString = searchParams.toString();
+    const endpoint = queryString ? `/admin/logs?${queryString}` : '/admin/logs';
+    
+    return this.request(endpoint, {
       method: 'GET',
     });
   }

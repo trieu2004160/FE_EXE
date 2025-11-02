@@ -22,16 +22,10 @@ const AIAssistant = () => {
     },
   ]);
   const [inputMessage, setInputMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const mockResponses = [
-    "Để chuẩn bị lễ cúng tốt nghiệp, bạn sẽ cần: hoa quả 5 loại, hương nến chất lượng và nước uống. Bạn có muốn tôi gợi ý combo nào phù hợp không?",
-    "Hoa quả nên chọn những loại có ý nghĩa tốt như: cam (ý nghĩa viên mãn), chuối (ý nghĩa thuận lợi), táo (bình an), nho (sum vầy), lê (lợi ích). Tôi có thể giúp bạn đặt combo hoa quả cao cấp.",
-    "Về hương nến, tôi khuyên nên chọn loại hương nụ tâm an hoặc hương trầm để tạo không gian trang nghiêm. Nến thờ nên chọn loại đỏ hoặc vàng mang ý nghĩa cát tường.",
-    "Combo tiết kiệm dành cho sinh viên: Bộ hoa quả 5 loại (199k) + Hương nến cơ bản (99k) + Bánh kẹo (149k) = Tổng 447k (giảm còn 399k). Bạn có muốn đặt không?",
-  ];
-
-  const handleSendMessage = () => {
-    if (!inputMessage.trim()) return;
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || isLoading) return;
 
     // Add user message
     const userMessage: Message = {
@@ -42,18 +36,34 @@ const AIAssistant = () => {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    const currentInput = inputMessage;
     setInputMessage("");
+    setIsLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      // TODO: Integrate with actual AI API endpoint when available
+      // For now, provide a simple response indicating AI assistant is not yet connected
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       const botResponse: Message = {
         id: messages.length + 2,
-        text: mockResponses[Math.floor(Math.random() * mockResponses.length)],
+        text: "Xin lỗi, tính năng AI Assistant đang được phát triển. Vui lòng liên hệ với chúng tôi qua số điện thoại hoặc email để được tư vấn.",
         isBot: true,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, botResponse]);
-    }, 1000);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      const errorResponse: Message = {
+        id: messages.length + 2,
+        text: "Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại sau.",
+        isBot: true,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorResponse]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

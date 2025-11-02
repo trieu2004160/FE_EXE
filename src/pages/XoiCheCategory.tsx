@@ -14,16 +14,58 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import ProductCard from "@/components/ProductCard";
-import { getProductsByCategory, Product } from "@/data/mockData";
+import { apiService, Product } from "@/services/apiService";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 const XoiCheCategory = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const xoiCheProducts = getProductsByCategory("Xôi – Chè");
-    setProducts(xoiCheProducts);
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const [allProducts, categories] = await Promise.all([
+          apiService.getProducts(),
+          apiService.getCategories(),
+        ]);
+
+        // Find xôi chè category
+        const xoiCheCategory = categories.find(
+          (cat) =>
+            cat.name.toLowerCase().includes("xôi") ||
+            cat.name.toLowerCase().includes("chè") ||
+            cat.name.toLowerCase().includes("combo")
+        );
+
+        if (xoiCheCategory) {
+          const xoiCheProducts = allProducts.filter(
+            (product) => product.productCategoryId === xoiCheCategory.id
+          );
+          setProducts(xoiCheProducts);
+        } else {
+          // If no category found, filter by name
+          const xoiCheProducts = allProducts.filter(
+            (product) =>
+              product.name.toLowerCase().includes("xôi") ||
+              product.name.toLowerCase().includes("chè")
+          );
+          setProducts(xoiCheProducts);
+        }
+      } catch (apiError) {
+        console.error("Error fetching products:", apiError);
+        setError("Không thể tải sản phẩm. Vui lòng thử lại sau.");
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const features = [

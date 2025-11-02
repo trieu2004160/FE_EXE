@@ -114,21 +114,6 @@ const AdminLogin = () => {
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <p className="text-sm text-amber-800 font-medium mb-2">
-                Thông tin đăng nhập demo:
-              </p>
-              <div className="text-xs text-amber-700 space-y-1">
-                <p>
-                  <strong>Username:</strong> admin
-                </p>
-                <p>
-                  <strong>Password:</strong> admin123
-                </p>
-              </div>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>

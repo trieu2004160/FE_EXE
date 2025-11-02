@@ -4,16 +4,57 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import ProductCard from "@/components/ProductCard";
-import { getProductsByCategory, Product } from "@/data/mockData";
+import { apiService, Product } from "@/services/apiService";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 const ComboCategory = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const comboProducts = getProductsByCategory("Combo");
-    setProducts(comboProducts);
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const [allProducts, categories] = await Promise.all([
+          apiService.getProducts(),
+          apiService.getCategories(),
+        ]);
+
+        // Find combo category
+        const comboCategory = categories.find(
+          (cat) =>
+            cat.name.toLowerCase().includes("combo") ||
+            cat.name.toLowerCase().includes("bộ")
+        );
+
+        if (comboCategory) {
+          const comboProducts = allProducts.filter(
+            (product) => product.productCategoryId === comboCategory.id
+          );
+          setProducts(comboProducts);
+        } else {
+          // If no combo category found, filter by name
+          const comboProducts = allProducts.filter(
+            (product) =>
+              product.name.toLowerCase().includes("combo") ||
+              product.name.toLowerCase().includes("bộ")
+          );
+          setProducts(comboProducts);
+        }
+      } catch (apiError) {
+        console.error("Error fetching products:", apiError);
+        setError("Không thể tải sản phẩm. Vui lòng thử lại sau.");
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const features = [

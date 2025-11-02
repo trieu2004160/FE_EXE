@@ -3,6 +3,35 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "@/components/ui/use-toast";
 import {
   Settings,
   Users,
@@ -20,37 +49,104 @@ import {
   CheckCircle,
   XCircle,
   Clock,
+  Eye,
+  EyeOff,
+  ArrowUp,
+  ArrowDown,
+  RefreshCw,
+  GripVertical,
+  TrendingUp,
+  Calendar,
+  Activity,
+  DollarSign,
+  Percent,
+  Key,
+  Lock,
+  Unlock,
+  AlertCircle,
+  ChevronUp,
+  ChevronDown,
+  MoreHorizontal,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 
-interface Product {
-  id: number;
+import {
+  apiService,
+  AdminCategoryDto,
+  AdminShopDto,
+  AdminProductDto,
+  CommissionConfig,
+  RevenueStats,
+  RevenueByShop,
+} from "@/services/apiService";
+
+// Types
+interface CategoryFormData {
   name: string;
-  category: string;
-  price: number;
-  image: string;
-  description: string;
-  inStock: boolean;
+  description?: string;
+  imageUrl?: string;
+  isVisible: boolean;
+  displayOrder: number;
 }
 
-interface ProductFormData {
-  name: string;
-  category: string;
-  price: number;
-  image: string;
-  description: string;
-  inStock: boolean;
+interface ShopFormData {
+  shopName: string;
+  ownerEmail: string;
+  ownerFullName: string;
+  phone?: string;
+  address?: string;
+  isActive: boolean;
+}
+
+interface SystemLog {
+  id: number;
+  action: string;
+  entity: string;
+  entityId: number;
+  details: string;
+  createdAt: string;
+  userEmail?: string;
 }
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [products, setProducts] = useState<Product[]>([]);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  // State for categories
+  const [categories, setCategories] = useState<AdminCategoryDto[]>([]);
+  const [editingCategory, setEditingCategory] =
+    useState<AdminCategoryDto | null>(null);
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
+
+  // State for shops
+  const [shops, setShops] = useState<AdminShopDto[]>([]);
+  const [editingShop, setEditingShop] = useState<AdminShopDto | null>(null);
+  const [showShopForm, setShowShopForm] = useState(false);
+  const [showConvertForm, setShowConvertForm] = useState(false);
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+  const [resetPasswordShop, setResetPasswordShop] = useState<AdminShopDto | null>(null);
+
+  // State for products
+  const [products, setProducts] = useState<AdminProductDto[]>([]);
+
+  // State for commission config
+  const [commissionConfig, setCommissionConfig] = useState<CommissionConfig>({
+    defaultCommissionRate: 10,
+    shopCommissionRates: {},
+  });
+
+  // State for revenue stats
+  const [revenueStats, setRevenueStats] = useState<RevenueStats>({
+    today: 0,
+    thisWeek: 0,
+    thisMonth: 0,
+    thisYear: 0,
+  });
+  const [revenueByShop, setRevenueByShop] = useState<RevenueByShop[]>([]);
+
+  // State for system logs
+  const [systemLogs, setSystemLogs] = useState<SystemLog[]>([]);
 
   // Check authentication
   useEffect(() => {
@@ -61,39 +157,480 @@ const AdminDashboard = () => {
     }
   }, [navigate]);
 
-  // Sample data
+  // Load data based on active tab
   useEffect(() => {
-    const sampleProducts: Product[] = [
-      {
-        id: 1,
-        name: "Hoa Hồng Đỏ",
-        category: "Hoa Tươi",
-        price: 150000,
-        image: "https://images.unsplash.com/photo-1563241527-3004b7be0ffd",
-        description: "Hoa hồng đỏ tươi, biểu tượng của tình yêu",
-        inStock: true,
-      },
-      {
-        id: 2,
-        name: "Xôi Nước Cốt Dừa",
-        category: "Xôi Chè",
-        price: 50000,
-        image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b",
-        description: "Xôi nước cốt dừa thơm béo, vị ngọt đậm đà",
-        inStock: true,
-      },
-      {
-        id: 3,
-        name: "Combo Tốt Nghiệp Cơ Bản",
-        category: "Combo",
-        price: 300000,
-        image: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0",
-        description: "Gói cơ bản với hoa tươi và hương nến",
-        inStock: true,
-      },
+    if (activeTab === "categories") {
+      loadCategories();
+    } else if (activeTab === "shops") {
+      loadShops();
+    } else if (activeTab === "products") {
+      loadProducts();
+    } else if (activeTab === "config") {
+      loadCommissionConfig();
+    } else if (activeTab === "revenue") {
+      loadRevenueStats();
+    } else if (activeTab === "logs") {
+      loadSystemLogs();
+    }
+  }, [activeTab]);
+
+  // Data loading functions
+  const loadCategories = async () => {
+    try {
+      setLoading(true);
+      const data = await apiService.getAdminCategories();
+      setCategories(data);
+    } catch (error) {
+      console.error("Failed to load categories:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải danh mục sản phẩm",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadShops = async () => {
+    try {
+      setLoading(true);
+      const data = await apiService.getAdminShops();
+      setShops(data);
+    } catch (error) {
+      console.error("Failed to load shops:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải danh sách shop",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      const data = await apiService.getAdminProducts();
+      setProducts(data);
+    } catch (error) {
+      console.error("Failed to load products:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải danh sách sản phẩm",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadCommissionConfig = async () => {
+    try {
+      setLoading(true);
+      const data = await apiService.getCommissionConfig();
+      setCommissionConfig(data);
+    } catch (error) {
+      console.error("Failed to load commission config:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải cấu hình hoa hồng",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadRevenueStats = async () => {
+    try {
+      setLoading(true);
+      const [stats, byShop] = await Promise.all([
+        apiService.getRevenueStats(),
+        apiService.getRevenueByShop(),
+      ]);
+      setRevenueStats(stats);
+      setRevenueByShop(byShop);
+    } catch (error) {
+      console.error("Failed to load revenue stats:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải thống kê doanh thu",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadSystemLogs = async () => {
+    try {
+      setLoading(true);
+      const data = await apiService.getSystemLogs({ limit: 50 });
+      setSystemLogs(data as SystemLog[]);
+    } catch (error) {
+      console.error("Failed to load system logs:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải nhật ký hệ thống",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Category management functions
+  const handleSaveCategory = async (formData: CategoryFormData) => {
+    try {
+      setLoading(true);
+      if (editingCategory) {
+        await apiService.updateAdminCategory(editingCategory.id, formData);
+        toast({
+          title: "Thành công",
+          description: "Cập nhật danh mục thành công",
+        });
+      } else {
+        await apiService.createAdminCategory(formData);
+        toast({
+          title: "Thành công",
+          description: "Tạo danh mục mới thành công",
+        });
+      }
+      setShowCategoryForm(false);
+      setEditingCategory(null);
+      loadCategories();
+    } catch (error) {
+      console.error("Failed to save category:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể lưu danh mục",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteCategory = async (id: number) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa danh mục này?")) return;
+
+    try {
+      setLoading(true);
+      await apiService.deleteAdminCategory(id);
+      toast({
+        title: "Thành công",
+        description: "Xóa danh mục thành công",
+      });
+      loadCategories();
+    } catch (error) {
+      console.error("Failed to delete category:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể xóa danh mục",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleCategoryVisibility = async (
+    id: number,
+    isVisible: boolean
+  ) => {
+    try {
+      setLoading(true);
+      await apiService.toggleCategoryVisibility(id, isVisible);
+      toast({
+        title: "Thành công",
+        description: `Đã ${isVisible ? "hiện" : "ẩn"} danh mục`,
+      });
+      loadCategories();
+    } catch (error) {
+      console.error("Failed to toggle category visibility:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể thay đổi trạng thái danh mục",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReorderCategories = async (categoryIds: number[]) => {
+    try {
+      setLoading(true);
+      await apiService.reorderCategories(categoryIds);
+      toast({
+        title: "Thành công",
+        description: "Cập nhật thứ tự danh mục thành công",
+      });
+      loadCategories();
+    } catch (error) {
+      console.error("Failed to reorder categories:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể sắp xếp lại danh mục",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMoveCategory = async (
+    currentIndex: number,
+    direction: "up" | "down"
+  ) => {
+    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= categories.length) return;
+
+    const newCategories = [...categories];
+    [newCategories[currentIndex], newCategories[newIndex]] = [
+      newCategories[newIndex],
+      newCategories[currentIndex],
     ];
-    setProducts(sampleProducts);
-  }, []);
+
+    // Update displayOrder
+    const categoryIds = newCategories.map((cat) => cat.id);
+    await handleReorderCategories(categoryIds);
+  };
+
+  // Shop management functions
+  const handleSaveShop = async (formData: ShopFormData) => {
+    try {
+      setLoading(true);
+      if (editingShop) {
+        await apiService.updateShopInfo(editingShop.id, {
+          name: formData.shopName,
+          ownerFullName: formData.ownerFullName,
+          contactPhoneNumber: formData.phone,
+          address: formData.address,
+          isLocked: !formData.isActive,
+        });
+        toast({
+          title: "Thành công",
+          description: "Cập nhật thông tin shop thành công",
+        });
+      } else {
+        await apiService.createShopAccount({
+          email: formData.ownerEmail,
+          fullName: formData.ownerFullName,
+          password: "Shop123456", // Default password
+          shopName: formData.shopName,
+        });
+        toast({
+          title: "Thành công", 
+          description: "Tạo shop mới thành công. Mật khẩu mặc định: Shop123456",
+        });
+      }
+      setShowShopForm(false);
+      setEditingShop(null);
+      loadShops();
+    } catch (error) {
+      console.error("Failed to save shop:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể lưu thông tin shop",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateShopStatus = async (id: number, isActive: boolean) => {
+    try {
+      setLoading(true);
+      await apiService.updateShopStatus(id, isActive);
+      toast({
+        title: "Thành công",
+        description: `Đã ${isActive ? "mở" : "khóa"} shop`,
+      });
+      loadShops();
+    } catch (error) {
+      console.error("Failed to update shop status:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể cập nhật trạng thái shop",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetShopPassword = async (id: number, shopName: string) => {
+    const newPassword = prompt("Nhập mật khẩu mới cho shop:");
+    if (!newPassword || newPassword.length < 6) {
+      toast({
+        title: "Lỗi",
+        description: "Mật khẩu phải có ít nhất 6 ký tự",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await apiService.resetShopPassword(id, newPassword);
+      toast({
+        title: "Thành công",
+        description: `Đã reset mật khẩu cho shop ${shopName}`,
+      });
+      loadShops();
+    } catch (error) {
+      console.error("Failed to reset shop password:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể reset mật khẩu shop",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleShopStatus = async (id: number, isLocked: boolean) => {
+    try {
+      setLoading(true);
+      await apiService.updateShopStatus(id, !isLocked);
+      toast({
+        title: "Thành công",
+        description: `Đã ${isLocked ? 'mở khóa' : 'khóa'} shop`,
+      });
+      loadShops();
+    } catch (error) {
+      console.error("Failed to update shop status:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể thay đổi trạng thái shop",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConvertGuestToShop = async (
+    userEmail: string,
+    shopName: string
+  ) => {
+    try {
+      setLoading(true);
+      await apiService.convertGuestToShop({ userEmail, shopName });
+      toast({
+        title: "Thành công",
+        description: `Đã chuyển tài khoản ${userEmail} thành shop ${shopName}`,
+      });
+      setShowConvertForm(false);
+      loadShops();
+    } catch (error) {
+      console.error("Failed to convert guest to shop:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể chuyển đổi tài khoản",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Product management functions
+  const handleToggleProductVisibility = async (
+    id: number,
+    isVisible: boolean
+  ) => {
+    try {
+      setLoading(true);
+      await apiService.toggleProductVisibility(id, isVisible);
+      toast({
+        title: "Thành công",
+        description: `Đã ${isVisible ? "hiện" : "ẩn"} sản phẩm`,
+      });
+      loadProducts();
+    } catch (error) {
+      console.error("Failed to toggle product visibility:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể thay đổi trạng thái sản phẩm",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChangeProductCategory = async (
+    productId: number,
+    categoryId: number
+  ) => {
+    try {
+      setLoading(true);
+      await apiService.changeProductCategory(productId, categoryId);
+      toast({
+        title: "Thành công",
+        description: "Đã chuyển danh mục sản phẩm",
+      });
+      loadProducts();
+    } catch (error) {
+      console.error("Failed to change product category:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể chuyển danh mục sản phẩm",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Commission config functions
+  const handleSetDefaultCommission = async (rate: number) => {
+    try {
+      setLoading(true);
+      await apiService.setDefaultCommission(rate);
+      toast({
+        title: "Thành công",
+        description: "Cập nhật hoa hồng mặc định thành công",
+      });
+      loadCommissionConfig();
+    } catch (error) {
+      console.error("Failed to set default commission:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể cập nhật hoa hồng mặc định",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSetShopCommission = async (shopId: number, rate: number) => {
+    try {
+      setLoading(true);
+      await apiService.setShopCommission(shopId, rate);
+      toast({
+        title: "Thành công",
+        description: "Cập nhật hoa hồng shop thành công",
+      });
+      loadCommissionConfig();
+    } catch (error) {
+      console.error("Failed to set shop commission:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể cập nhật hoa hồng shop",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("userToken");
@@ -102,71 +639,14 @@ const AdminDashboard = () => {
     navigate("/login");
   };
 
-  const handleDeleteProduct = (id: number) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
-      setProducts(products.filter((p) => p.id !== id));
-    }
-  };
-
-  const handleEditProduct = (product: Product) => {
-    setEditingProduct(product);
-    setShowAddForm(true);
-  };
-
-  const handleSaveProduct = (formData: ProductFormData) => {
-    if (editingProduct) {
-      // Update existing product
-      setProducts(
-        products.map((p) =>
-          p.id === editingProduct.id ? { ...p, ...formData } : p
-        )
-      );
-    } else {
-      // Add new product
-      const newProduct: Product = {
-        id: Math.max(...products.map((p) => p.id)) + 1,
-        ...formData,
-      };
-      setProducts([...products, newProduct]);
-    }
-    setShowAddForm(false);
-    setEditingProduct(null);
-  };
-
-  const stats = [
-    {
-      title: "Tổng Sản Phẩm",
-      value: products.length,
-      icon: Package,
-      color: "bg-blue-500",
-    },
-    {
-      title: "Đang Bán",
-      value: products.filter((p) => p.inStock).length,
-      icon: ShoppingCart,
-      color: "bg-green-500",
-    },
-    {
-      title: "Hết Hàng",
-      value: products.filter((p) => !p.inStock).length,
-      icon: Heart,
-      color: "bg-red-500",
-    },
-    {
-      title: "Danh Mục",
-      value: [...new Set(products.map((p) => p.category))].length,
-      icon: Star,
-      color: "bg-amber-500",
-    },
-  ];
-
   const sidebarItems = [
     { id: "dashboard", label: "Dashboard", icon: BarChart3 },
-    { id: "products", label: "Quản Lý Sản Phẩm", icon: Package },
-    { id: "orders", label: "Đơn Hàng", icon: FileText },
-    { id: "shops", label: "Duyệt Shop", icon: Store },
-    { id: "users", label: "Người Dùng", icon: Users },
-    { id: "settings", label: "Cài Đặt", icon: Settings },
+    { id: "categories", label: "Quản lý Danh Mục", icon: Package },
+    { id: "shops", label: "Quản lý Shop", icon: Store },
+    { id: "products", label: "Quản lý Sản Phẩm", icon: Package },
+    { id: "config", label: "Cấu Hình", icon: Settings },
+    { id: "revenue", label: "Doanh Thu", icon: DollarSign },
+    { id: "logs", label: "Nhật Ký", icon: Activity },
   ];
 
   return (
@@ -234,29 +714,58 @@ const AdminDashboard = () => {
             <div className="space-y-8">
               {/* Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {stats.map((stat, index) => {
-                  const IconComponent = stat.icon;
-                  return (
-                    <Card
-                      key={index}
-                      className="hover:shadow-lg transition-shadow"
-                    >
-                      <CardContent className="p-6 flex items-center">
-                        <div
-                          className={`p-3 rounded-full ${stat.color} text-white mr-4`}
-                        >
-                          <IconComponent className="h-6 w-6" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">{stat.title}</p>
-                          <p className="text-2xl font-bold text-gray-800">
-                            {stat.value}
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardContent className="p-6 flex items-center">
+                    <div className="p-3 rounded-full bg-blue-500 text-white mr-4">
+                      <Store className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Tổng Shop</p>
+                      <p className="text-2xl font-bold text-gray-800">
+                        {shops.length}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardContent className="p-6 flex items-center">
+                    <div className="p-3 rounded-full bg-green-500 text-white mr-4">
+                      <Package className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Tổng Sản Phẩm</p>
+                      <p className="text-2xl font-bold text-gray-800">
+                        {products.length}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardContent className="p-6 flex items-center">
+                    <div className="p-3 rounded-full bg-amber-500 text-white mr-4">
+                      <DollarSign className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Doanh Thu Tháng</p>
+                      <p className="text-2xl font-bold text-gray-800">
+                        {revenueStats.thisMonth.toLocaleString("vi-VN")}đ
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardContent className="p-6 flex items-center">
+                    <div className="p-3 rounded-full bg-purple-500 text-white mr-4">
+                      <Percent className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Hoa Hồng Mặc Định</p>
+                      <p className="text-2xl font-bold text-gray-800">
+                        {commissionConfig.defaultCommissionRate}%
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
 
               {/* Recent Activity */}
@@ -266,333 +775,386 @@ const AdminDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
-                      <div className="flex items-center">
-                        <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-                        <span>Sản phẩm "Hoa Hồng Đỏ" đã được cập nhật</span>
+                    {systemLogs.slice(0, 5).map((log) => (
+                      <div
+                        key={log.id}
+                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                      >
+                        <div className="flex items-center">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                          <div>
+                            <p className="font-medium">{log.action}</p>
+                            <p className="text-sm text-gray-500">
+                              {log.details}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="text-sm text-gray-500">
+                          {new Date(log.createdAt).toLocaleString("vi-VN")}
+                        </span>
                       </div>
-                      <span className="text-sm text-gray-500">
-                        2 phút trước
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
-                      <div className="flex items-center">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                        <span>Đơn hàng mới #1234 được tạo</span>
-                      </div>
-                      <span className="text-sm text-gray-500">
-                        15 phút trước
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-4 bg-amber-50 rounded-lg">
-                      <div className="flex items-center">
-                        <div className="w-2 h-2 bg-amber-500 rounded-full mr-3"></div>
-                        <span>Admin đã đăng nhập vào hệ thống</span>
-                      </div>
-                      <span className="text-sm text-gray-500">
-                        30 phút trước
-                      </span>
-                    </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
             </div>
           )}
 
-          {/* Products Management */}
-          {activeTab === "products" && (
+          {/* Categories Management */}
+          {activeTab === "categories" && (
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <div>
-                  <h3 className="text-xl font-semibold">Quản Lý Sản Phẩm</h3>
-                  <p className="text-gray-600">Thêm, sửa, xóa sản phẩm</p>
+                  <h3 className="text-xl font-semibold">
+                    Quản Lý Danh Mục Sản Phẩm
+                  </h3>
+                  <p className="text-gray-600">
+                    Thêm, sửa, xóa và sắp xếp danh mục
+                  </p>
                 </div>
                 <Button
                   onClick={() => {
-                    setEditingProduct(null);
-                    setShowAddForm(true);
+                    setEditingCategory(null);
+                    setShowCategoryForm(true);
                   }}
                   className="bg-[#C99F4D] hover:bg-[#B8904A]"
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Thêm Sản Phẩm
+                  Thêm Danh Mục
                 </Button>
               </div>
 
-              {/* Products Table */}
-              <Card>
-                <CardContent className="p-0">
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Sản Phẩm
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Danh Mục
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Giá
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Trạng Thái
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Thao Tác
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {products.map((product) => (
-                          <tr key={product.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="flex items-center">
-                                <img
-                                  src={product.image}
-                                  alt={product.name}
-                                  className="h-10 w-10 rounded-lg object-cover mr-3"
-                                />
-                                <div>
-                                  <div className="text-sm font-medium text-gray-900">
-                                    {product.name}
-                                  </div>
-                                  <div className="text-sm text-gray-500 truncate max-w-xs">
-                                    {product.description}
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <Badge variant="outline">
-                                {product.category}
-                              </Badge>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {product.price.toLocaleString("vi-VN")}đ
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <Badge
-                                className={
-                                  product.inStock
-                                    ? "bg-green-100 text-green-800"
-                                    : "bg-red-100 text-red-800"
-                                }
-                              >
-                                {product.inStock ? "Còn hàng" : "Hết hàng"}
-                              </Badge>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                              <div className="flex space-x-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleEditProduct(product)}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="text-red-600 hover:bg-red-50"
-                                  onClick={() =>
-                                    handleDeleteProduct(product.id)
-                                  }
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* Shops Management */}
-          {activeTab === "shops" && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="text-xl font-semibold">Duyệt Shop</h3>
-                  <p className="text-gray-600">
-                    Phê duyệt các đơn đăng ký mở shop
-                  </p>
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <RefreshCw className="h-8 w-8 animate-spin text-[#C99F4D] mr-3" />
+                  <span className="text-gray-600">Đang tải danh mục...</span>
                 </div>
-              </div>
-
-              {/* Shops Table */}
-              <Card>
-                <CardContent className="p-0">
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Tên Shop
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Chủ Shop
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Email
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Ngày Đăng Ký
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Trạng Thái
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Thao Tác
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {[
-                          {
-                            id: 1,
-                            shopName: "Hoa Tươi An Lành",
-                            ownerName: "Nguyễn Văn A",
-                            email: "anlanh@email.com",
-                            registerDate: "2023-10-15",
-                            status: "pending",
-                          },
-                          {
-                            id: 2,
-                            shopName: "Xôi Chè Mẹ Gọi",
-                            ownerName: "Trần Thị B",
-                            email: "xoiche@email.com",
-                            registerDate: "2023-10-18",
-                            status: "approved",
-                          },
-                          {
-                            id: 3,
-                            shopName: "Hương Nến Thư Giãn",
-                            ownerName: "Lê Văn C",
-                            email: "huongnen@email.com",
-                            registerDate: "2023-10-20",
-                            status: "pending",
-                          },
-                        ].map((shop) => (
-                          <tr key={shop.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm font-medium text-gray-900">
-                                {shop.shopName}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-gray-900">
-                                {shop.ownerName}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-gray-900">
-                                {shop.email}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-gray-900">
-                                {shop.registerDate}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <Badge
-                                className={
-                                  shop.status === "approved"
-                                    ? "bg-green-100 text-green-800"
-                                    : shop.status === "rejected"
-                                    ? "bg-red-100 text-red-800"
-                                    : "bg-amber-100 text-amber-800"
-                                }
+              ) : (
+                <Card>
+                  <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-32">Thứ tự</TableHead>
+                            <TableHead>Tên Danh Mục</TableHead>
+                            <TableHead>Mô Tả</TableHead>
+                            <TableHead>Trạng Thái</TableHead>
+                            <TableHead className="w-48">Thao Tác</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {categories.length === 0 ? (
+                            <TableRow>
+                              <TableCell
+                                colSpan={5}
+                                className="text-center py-12 text-gray-500"
                               >
-                                {shop.status === "approved" && "Đã duyệt"}
-                                {shop.status === "rejected" && "Đã từ chối"}
-                                {shop.status === "pending" && "Chờ duyệt"}
-                              </Badge>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                              <div className="flex space-x-2">
-                                {shop.status === "pending" && (
-                                  <>
+                                Chưa có danh mục nào. Hãy thêm danh mục mới!
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            categories.map((category, index) => (
+                              <TableRow
+                                key={category.id}
+                                className="hover:bg-gray-50"
+                              >
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <GripVertical className="h-5 w-5 text-gray-400 cursor-move" />
+                                    <span className="text-sm font-medium w-8">
+                                      {index + 1}
+                                    </span>
+                                    <div className="flex flex-col gap-1">
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-6 w-6 p-0"
+                                        onClick={() =>
+                                          handleMoveCategory(index, "up")
+                                        }
+                                        disabled={index === 0}
+                                      >
+                                        <ChevronUp className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-6 w-6 p-0"
+                                        onClick={() =>
+                                          handleMoveCategory(index, "down")
+                                        }
+                                        disabled={
+                                          index === categories.length - 1
+                                        }
+                                      >
+                                        <ChevronDown className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-3">
+                                    {category.imageUrl && (
+                                      <img
+                                        src={category.imageUrl}
+                                        alt={category.name}
+                                        className="h-10 w-10 rounded-lg object-cover"
+                                      />
+                                    )}
+                                    <div className="font-medium">
+                                      {category.name}
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="text-sm text-gray-500 truncate max-w-xs">
+                                    {category.description || "—"}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    className={
+                                      category.isVisible !== false
+                                        ? "bg-green-100 text-green-800"
+                                        : "bg-red-100 text-red-800"
+                                    }
+                                  >
+                                    {category.isVisible !== false
+                                      ? "Hiển thị"
+                                      : "Ẩn"}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex gap-2">
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      className="text-green-600 hover:bg-green-50"
+                                      onClick={() =>
+                                        handleToggleCategoryVisibility(
+                                          category.id,
+                                          category.isVisible !== false
+                                        )
+                                      }
+                                      title={
+                                        category.isVisible !== false
+                                          ? "Ẩn danh mục"
+                                          : "Hiển thị danh mục"
+                                      }
+                                    >
+                                      {category.isVisible !== false ? (
+                                        <EyeOff className="h-4 w-4" />
+                                      ) : (
+                                        <Eye className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
                                       onClick={() => {
-                                        // Handle approve shop
-                                        alert(`Đã duyệt shop ${shop.shopName}`);
+                                        setEditingCategory(category);
+                                        setShowCategoryForm(true);
                                       }}
                                     >
-                                      <CheckCircle className="h-4 w-4" />
+                                      <Edit className="h-4 w-4" />
                                     </Button>
                                     <Button
                                       size="sm"
                                       variant="outline"
                                       className="text-red-600 hover:bg-red-50"
-                                      onClick={() => {
-                                        // Handle reject shop
-                                        alert(
-                                          `Đã từ chối shop ${shop.shopName}`
-                                        );
-                                      }}
+                                      onClick={() =>
+                                        handleDeleteCategory(category.id)
+                                      }
                                     >
-                                      <XCircle className="h-4 w-4" />
+                                      <Trash2 className="h-4 w-4" />
                                     </Button>
-                                  </>
-                                )}
-                                {shop.status === "approved" && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="text-amber-600 hover:bg-amber-50"
-                                    onClick={() => {
-                                      // Handle deactivate shop
-                                      alert(
-                                        `Đã vô hiệu hóa shop ${shop.shopName}`
-                                      );
-                                    }}
-                                  >
-                                    <XCircle className="h-4 w-4" />
-                                  </Button>
-                                )}
-                                {shop.status === "rejected" && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="text-green-600 hover:bg-green-50"
-                                    onClick={() => {
-                                      // Handle approve shop
-                                      alert(`Đã duyệt shop ${shop.shopName}`);
-                                    }}
-                                  >
-                                    <CheckCircle className="h-4 w-4" />
-                                  </Button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
 
-          {/* Other tabs placeholder */}
-          {["orders", "users", "settings"].includes(activeTab) && (
+          {/* Shop Management */}
+          {activeTab === "shops" && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-xl font-semibold">Quản Lý Shop</h3>
+                  <p className="text-gray-600">
+                    Thêm mới, sửa thông tin và quản lý trạng thái shop
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => {
+                      setEditingShop(null);
+                      setShowShopForm(true);
+                    }}
+                    className="bg-[#C99F4D] hover:bg-[#B8904A]"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Thêm Shop Mới
+                  </Button>
+                  <Button
+                    onClick={() => setShowConvertForm(true)}
+                    variant="outline"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Chuyển Đổi User
+                  </Button>
+                </div>
+              </div>
+
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <RefreshCw className="h-8 w-8 animate-spin text-[#C99F4D] mr-3" />
+                  <span className="text-gray-600">Đang tải danh sách shop...</span>
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Thông Tin Shop</TableHead>
+                            <TableHead>Chủ Shop</TableHead>
+                            <TableHead>Liên Hệ</TableHead>
+                            <TableHead>Trạng Thái</TableHead>
+                            <TableHead>Hoa Hồng</TableHead>
+                            <TableHead className="w-48">Thao Tác</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {shops.length === 0 ? (
+                            <TableRow>
+                              <TableCell
+                                colSpan={6}
+                                className="text-center py-12 text-gray-500"
+                              >
+                                Chưa có shop nào. Hãy thêm shop mới!
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            shops.map((shop) => (
+                              <TableRow key={shop.id} className="hover:bg-gray-50">
+                                <TableCell>
+                                  <div className="font-medium">{shop.name}</div>
+                                  <div className="text-sm text-gray-500">
+                                    ID: #{shop.id}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="font-medium">
+                                    {shop.ownerFullName || 'N/A'}
+                                  </div>
+                                  <div className="text-sm text-gray-500">
+                                    {shop.ownerEmail}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="text-sm">
+                                    {shop.contactPhoneNumber || 'Chưa có'}
+                                  </div>
+                                  <div className="text-sm text-gray-500">
+                                    {shop.address || 'Chưa có địa chỉ'}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    className={
+                                      !shop.isLocked
+                                        ? "bg-green-100 text-green-800"
+                                        : "bg-red-100 text-red-800"
+                                    }
+                                  >
+                                    {!shop.isLocked ? (
+                                      <><CheckCircle className="h-3 w-3 mr-1" />Hoạt Động</>
+                                    ) : (
+                                      <><Lock className="h-3 w-3 mr-1" />Bị Khóa</>
+                                    )}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="text-sm font-medium">
+                                    {shop.commissionRate ? `${shop.commissionRate}%` : 'Mặc định'}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex gap-1">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        setEditingShop(shop);
+                                        setShowShopForm(true);
+                                      }}
+                                      title="Sửa thông tin"
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleToggleShopStatus(shop.id, shop.isLocked)}
+                                      className={
+                                        shop.isLocked
+                                          ? "text-green-600 hover:bg-green-50"
+                                          : "text-orange-600 hover:bg-orange-50"
+                                      }
+                                      title={shop.isLocked ? "Mở khóa shop" : "Khóa shop"}
+                                    >
+                                      {shop.isLocked ? (
+                                        <Unlock className="h-4 w-4" />
+                                      ) : (
+                                        <Lock className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        setResetPasswordShop(shop);
+                                        setShowResetPasswordModal(true);
+                                      }}
+                                      className="text-blue-600 hover:bg-blue-50"
+                                      title="Reset mật khẩu"
+                                    >
+                                      <Key className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {/* Other tabs - Products, Revenue, Config, Logs will be added here */}
+          {["products", "revenue", "config", "logs"].includes(
+            activeTab
+          ) && (
             <Card>
               <CardHeader>
                 <CardTitle>
-                  {activeTab === "orders" && "Quản Lý Đơn Hàng"}
-                  {activeTab === "users" && "Quản Lý Người Dùng"}
-                  {activeTab === "settings" && "Cài Đặt Hệ Thống"}
+                  {activeTab === "products" && "Quản Lý Sản Phẩm"}
+                  {activeTab === "revenue" && "Doanh Thu"}
+                  {activeTab === "config" && "Cấu Hình"}
+                  {activeTab === "logs" && "Nhật Ký"}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -610,17 +1172,46 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Include Footer */}
-      <Footer />
-
-      {/* Add/Edit Product Modal */}
-      {showAddForm && (
-        <ProductForm
-          product={editingProduct}
-          onSave={handleSaveProduct}
+      {/* Category Form Modal */}
+      {showCategoryForm && (
+        <CategoryForm
+          category={editingCategory}
+          onSave={handleSaveCategory}
           onCancel={() => {
-            setShowAddForm(false);
-            setEditingProduct(null);
+            setShowCategoryForm(false);
+            setEditingCategory(null);
+          }}
+        />
+      )}
+
+      {/* Shop Form Modal */}
+      {showShopForm && (
+        <ShopForm
+          shop={editingShop}
+          onSave={handleSaveShop}
+          onCancel={() => {
+            setShowShopForm(false);
+            setEditingShop(null);
+          }}
+        />
+      )}
+
+      {/* Convert User to Shop Modal */}
+      {showConvertForm && (
+        <ConvertToShopForm
+          onSave={handleConvertGuestToShop}
+          onCancel={() => setShowConvertForm(false)}
+        />
+      )}
+
+      {/* Reset Password Modal */}
+      {showResetPasswordModal && resetPasswordShop && (
+        <ResetPasswordModal
+          shop={resetPasswordShop}
+          onSave={handleResetShopPassword}
+          onCancel={() => {
+            setShowResetPasswordModal(false);
+            setResetPasswordShop(null);
           }}
         />
       )}
@@ -628,136 +1219,255 @@ const AdminDashboard = () => {
   );
 };
 
-// Product Form Component
-const ProductForm = ({
-  product,
+// Category Form Component
+const CategoryForm = ({
+  category,
   onSave,
   onCancel,
 }: {
-  product: Product | null;
-  onSave: (data: ProductFormData) => void;
+  category: AdminCategoryDto | null;
+  onSave: (data: CategoryFormData) => void;
   onCancel: () => void;
 }) => {
-  const [formData, setFormData] = useState({
-    name: product?.name || "",
-    category: product?.category || "",
-    price: product?.price || 0,
-    image: product?.image || "",
-    description: product?.description || "",
-    inStock: product?.inStock ?? true,
+  const [formData, setFormData] = useState<CategoryFormData>({
+    name: category?.name || "",
+    description: category?.description || "",
+    imageUrl: category?.imageUrl || "",
+    isVisible: category?.isVisible !== false,
+    displayOrder: category?.displayOrder || 0,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.name.trim()) {
+      alert("Vui lòng nhập tên danh mục");
+      return;
+    }
     onSave(formData);
   };
-
-  const categories = ["Hoa Tươi", "Hương Nến", "Xôi Chè", "Combo"];
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle>
-            {product ? "Chỉnh Sửa Sản Phẩm" : "Thêm Sản Phẩm Mới"}
+            {category ? "Chỉnh Sửa Danh Mục" : "Thêm Danh Mục Mới"}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Tên sản phẩm
-                </label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Danh mục
-                </label>
-                <select
-                  value={formData.category}
-                  onChange={(e) =>
-                    setFormData({ ...formData, category: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  title="Chọn danh mục sản phẩm"
-                  required
-                >
-                  <option value="">Chọn danh mục</option>
-                  {categories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Giá (VNĐ)
-                </label>
-                <Input
-                  type="number"
-                  value={formData.price}
-                  onChange={(e) =>
-                    setFormData({ ...formData, price: Number(e.target.value) })
-                  }
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Trạng thái
-                </label>
-                <select
-                  value={formData.inStock.toString()}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      inStock: e.target.value === "true",
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  title="Chọn trạng thái sản phẩm"
-                >
-                  <option value="true">Còn hàng</option>
-                  <option value="false">Hết hàng</option>
-                </select>
-              </div>
-            </div>
-
             <div>
-              <label className="block text-sm font-medium mb-2">
-                URL hình ảnh
-              </label>
+              <Label htmlFor="categoryName">Tên danh mục *</Label>
               <Input
-                value={formData.image}
+                id="categoryName"
+                value={formData.name}
                 onChange={(e) =>
-                  setFormData({ ...formData, image: e.target.value })
+                  setFormData({ ...formData, name: e.target.value })
                 }
-                placeholder="https://example.com/image.jpg"
+                placeholder="Ví dụ: Hoa Tươi, Hương Nến..."
                 required
+                className="mt-1"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Mô tả</label>
+              <Label htmlFor="categoryDescription">Mô tả</Label>
               <Textarea
+                id="categoryDescription"
                 value={formData.description}
                 onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
                 }
+                placeholder="Mô tả về danh mục này..."
                 rows={3}
-                required
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="categoryImageUrl">URL hình ảnh</Label>
+              <Input
+                id="categoryImageUrl"
+                value={formData.imageUrl || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, imageUrl: e.target.value })
+                }
+                placeholder="https://example.com/image.jpg"
+                className="mt-1"
+              />
+              {formData.imageUrl && (
+                <div className="mt-2">
+                  <img
+                    src={formData.imageUrl}
+                    alt="Preview"
+                    className="h-20 w-20 object-cover rounded-lg border"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = "none";
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="isVisible"
+                  checked={formData.isVisible}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, isVisible: checked })
+                  }
+                />
+                <Label htmlFor="isVisible" className="cursor-pointer">
+                  Hiển thị danh mục
+                </Label>
+              </div>
+            </div>
+
+            <div className="flex gap-4 pt-4">
+              <Button
+                type="submit"
+                className="bg-[#C99F4D] hover:bg-[#B8904A] flex-1"
+              >
+                {category ? "Cập Nhật" : "Thêm Mới"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onCancel}
+                className="flex-1"
+              >
+                Hủy
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+// Shop Form Component
+const ShopForm = ({
+  shop,
+  onSave,
+  onCancel,
+}: {
+  shop: AdminShopDto | null;
+  onSave: (data: ShopFormData) => void;
+  onCancel: () => void;
+}) => {
+  const [formData, setFormData] = useState<ShopFormData>({
+    shopName: shop?.name || "",
+    ownerEmail: shop?.ownerEmail || "",
+    ownerFullName: shop?.ownerFullName || "",
+    phone: shop?.contactPhoneNumber || "",
+    address: shop?.address || "",
+    isActive: shop ? !shop.isLocked : true,
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.shopName.trim() || !formData.ownerEmail.trim()) {
+      alert("Vui lòng nhập tên shop và email chủ shop");
+      return;
+    }
+    onSave(formData);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <Card className="w-full max-w-2xl">
+        <CardHeader>
+          <CardTitle>
+            {shop ? "Chỉnh Sửa Thông Tin Shop" : "Thêm Shop Mới"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="shopName">Tên Shop *</Label>
+                <Input
+                  id="shopName"
+                  value={formData.shopName}
+                  onChange={(e) =>
+                    setFormData({ ...formData, shopName: e.target.value })
+                  }
+                  placeholder="Ví dụ: Shop Hoa Tươi ABC"
+                  required
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="ownerEmail">Email Chủ Shop *</Label>
+                <Input
+                  id="ownerEmail"
+                  type="email"
+                  value={formData.ownerEmail}
+                  onChange={(e) =>
+                    setFormData({ ...formData, ownerEmail: e.target.value })
+                  }
+                  placeholder="shop@example.com"
+                  required
+                  disabled={!!shop}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="ownerFullName">Tên Chủ Shop</Label>
+              <Input
+                id="ownerFullName"
+                value={formData.ownerFullName}
+                onChange={(e) =>
+                  setFormData({ ...formData, ownerFullName: e.target.value })
+                }
+                placeholder="Nguyễn Văn A"
+                className="mt-1"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="phone">Số Điện Thoại</Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone: e.target.value })
+                  }
+                  placeholder="0123456789"
+                  className="mt-1"
+                />
+              </div>
+              <div className="flex items-center gap-2 mt-6">
+                <Switch
+                  id="isActive"
+                  checked={formData.isActive}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, isActive: checked })
+                  }
+                />
+                <Label htmlFor="isActive" className="cursor-pointer">
+                  Cho phép hoạt động
+                </Label>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="address">Địa Chỉ</Label>
+              <Textarea
+                id="address"
+                value={formData.address}
+                onChange={(e) =>
+                  setFormData({ ...formData, address: e.target.value })
+                }
+                placeholder="Địa chỉ của shop..."
+                rows={3}
+                className="mt-1"
               />
             </div>
 
@@ -766,7 +1476,174 @@ const ProductForm = ({
                 type="submit"
                 className="bg-[#C99F4D] hover:bg-[#B8904A] flex-1"
               >
-                {product ? "Cập Nhật" : "Thêm Mới"}
+                {shop ? "Cập Nhật" : "Thêm Shop"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onCancel}
+                className="flex-1"
+              >
+                Hủy
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+// Convert User to Shop Form Component
+const ConvertToShopForm = ({
+  onSave,
+  onCancel,
+}: {
+  onSave: (userEmail: string, shopName: string) => void;
+  onCancel: () => void;
+}) => {
+  const [userEmail, setUserEmail] = useState("");
+  const [shopName, setShopName] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userEmail.trim() || !shopName.trim()) {
+      alert("Vui lòng nhập email user và tên shop");
+      return;
+    }
+    onSave(userEmail, shopName);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Chuyển User Thành Shop</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="userEmail">Email User *</Label>
+              <Input
+                id="userEmail"
+                type="email"
+                value={userEmail}
+                onChange={(e) => setUserEmail(e.target.value)}
+                placeholder="user@example.com"
+                required
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="shopName">Tên Shop *</Label>
+              <Input
+                id="shopName"
+                value={shopName}
+                onChange={(e) => setShopName(e.target.value)}
+                placeholder="Shop của tôi"
+                required
+                className="mt-1"
+              />
+            </div>
+
+            <div className="flex gap-4 pt-4">
+              <Button
+                type="submit"
+                className="bg-[#C99F4D] hover:bg-[#B8904A] flex-1"
+              >
+                Chuyển Đổi
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onCancel}
+                className="flex-1"
+              >
+                Hủy
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+// Reset Password Modal Component
+const ResetPasswordModal = ({
+  shop,
+  onSave,
+  onCancel,
+}: {
+  shop: AdminShopDto;
+  onSave: (id: number, newPassword: string, shopName: string) => void;
+  onCancel: () => void;
+}) => {
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPassword.trim()) {
+      alert("Vui lòng nhập mật khẩu mới");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      alert("Mật khẩu xác nhận không khớp");
+      return;
+    }
+    if (newPassword.length < 6) {
+      alert("Mật khẩu phải có ít nhất 6 ký tự");
+      return;
+    }
+    onSave(shop.id, newPassword, shop.name);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Reset Mật Khẩu Shop</CardTitle>
+          <p className="text-sm text-gray-600">
+            Đặt lại mật khẩu cho: <strong>{shop.name}</strong>
+          </p>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="newPassword">Mật Khẩu Mới *</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
+                required
+                minLength={6}
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="confirmPassword">Xác Nhận Mật Khẩu *</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Nhập lại mật khẩu mới"
+                required
+                className="mt-1"
+              />
+            </div>
+
+            <div className="flex gap-4 pt-4">
+              <Button
+                type="submit"
+                className="bg-red-600 hover:bg-red-700 flex-1"
+              >
+                Reset Mật Khẩu
               </Button>
               <Button
                 type="button"

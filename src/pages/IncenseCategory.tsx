@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import ProductCard from "@/components/ProductCard";
-import { getProductsByCategory, Product } from "@/data/mockData";
+import { apiService, Product } from "@/services/apiService";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import nen from "@/assets/4c.jpg";
@@ -12,10 +12,53 @@ import { Flower, Leaf, Heart, Star, Gift, Shield, Award } from "lucide-react";
 const IncenseCategory = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const incenseProducts = getProductsByCategory("Hương Nến");
-    setProducts(incenseProducts);
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const [allProducts, categories] = await Promise.all([
+          apiService.getProducts(),
+          apiService.getCategories(),
+        ]);
+
+        // Find incense category
+        const incenseCategory = categories.find(
+          (cat) =>
+            cat.name.toLowerCase().includes("hương") ||
+            cat.name.toLowerCase().includes("nến") ||
+            cat.name.toLowerCase().includes("incense")
+        );
+
+        if (incenseCategory) {
+          const incenseProducts = allProducts.filter(
+            (product) => product.productCategoryId === incenseCategory.id
+          );
+          setProducts(incenseProducts);
+        } else {
+          // If no incense category found, filter by name
+          const incenseProducts = allProducts.filter(
+            (product) =>
+              product.name.toLowerCase().includes("hương") ||
+              product.name.toLowerCase().includes("nến") ||
+              product.name.toLowerCase().includes("incense")
+          );
+          setProducts(incenseProducts);
+        }
+      } catch (apiError) {
+        console.error("Error fetching products:", apiError);
+        setError("Không thể tải sản phẩm. Vui lòng thử lại sau.");
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const singleImage =

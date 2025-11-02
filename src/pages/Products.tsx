@@ -14,7 +14,6 @@ import ProductCard from "@/components/ProductCard";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { apiService, Product, Category } from "@/services/apiService";
-import { mockProducts, getAllCategories } from "@/data/mockData";
 import { getProductImageUrl } from "@/utils/imageUtils";
 
 const Products = () => {
@@ -55,40 +54,8 @@ const Products = () => {
         setProducts(normalizedProducts);
         setCategories(categoriesData);
       } catch (apiError) {
-        console.warn("API not available, using fallback data:", apiError);
-
-        // Fallback to mock data when API is not available
-        setProducts(
-          mockProducts.map(
-            (p) =>
-              ({
-                id: p.id,
-                name: p.name,
-                basePrice: p.price,
-                maxPrice: p.originalPrice,
-                imageUrl: p.image,
-                isPopular: p.isBestSeller || false,
-                stockQuantity: 10,
-                productCategoryId: 1,
-                description: p.description,
-                features: undefined,
-                specifications: undefined,
-                shop: {
-                  id: p.shopId,
-                  shopName: `Shop ${p.shopId}`,
-                },
-              } as Product)
-          )
-        );
-
-        setCategories(
-          getAllCategories().map((c) => ({
-            id: Math.random(),
-            name: c.name,
-            description: "",
-            imageUrl: "",
-          }))
-        );
+        console.error("Failed to fetch data from API:", apiError);
+        setError("Không thể tải dữ liệu từ server. Vui lòng thử lại sau.");
       } finally {
         setLoading(false);
       }

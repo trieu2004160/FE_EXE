@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import ProductCard from "@/components/ProductCard";
 import { apiService, Product } from "@/services/apiService";
-import { getProductsByCategory } from "@/data/mockData";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import flowersHeroImage from "@/assets/flowers-hero.jpg";
@@ -60,32 +59,9 @@ const FlowersCategory = () => {
           setProducts(flowerProducts);
         }
       } catch (apiError) {
-        console.warn("API not available, using fallback data:", apiError);
-
-        // Fallback to mock data when API is not available
-        const mockProducts = getProductsByCategory("Hoa Tươi");
-        setProducts(
-          mockProducts.map(
-            (p) =>
-              ({
-                id: p.id,
-                name: p.name,
-                basePrice: p.price,
-                maxPrice: p.originalPrice,
-                imageUrl: p.image,
-                isPopular: p.isBestSeller || false,
-                stockQuantity: 10,
-                productCategoryId: 1,
-                description: p.description,
-                features: undefined,
-                specifications: undefined,
-                shop: {
-                  id: p.shopId,
-                  shopName: `Shop ${p.shopId}`,
-                },
-              } as Product)
-          )
-        );
+        console.error("Error fetching products:", apiError);
+        setError("Không thể tải sản phẩm. Vui lòng thử lại sau.");
+        setProducts([]);
       } finally {
         setLoading(false);
       }

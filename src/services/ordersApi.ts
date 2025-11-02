@@ -8,6 +8,8 @@ export interface ShippingAddress {
   address: string;
   city: string;
   postalCode: string;
+  district?: string;
+  ward?: string;
 }
 
 export interface OrderItem {
@@ -16,19 +18,28 @@ export interface OrderItem {
 }
 
 export interface CreateOrderRequest {
-  products: OrderItem[];
-  shippingAddress: ShippingAddress;
-  paymentMethod: 'cash_on_delivery' | 'payos';
+  shippingAddress?: ShippingAddress; // Optional - can use address from user profile
+  paymentMethod?: 'cash_on_delivery' | 'payos';
 }
 
-export interface Order {
-  _id: string;
+export interface OrderResponseDto {
+  id: number;
   orderNumber?: string;
   status: string;
   total: number;
+  subtotal: number;
   createdAt: string;
   shippingAddress: ShippingAddress;
-  items: OrderItem[];
+  items: OrderItemDto[];
+}
+
+export interface OrderItemDto {
+  productId: number;
+  productName: string;
+  imageUrl?: string;
+  price: number;
+  quantity: number;
+  shopName: string;
 }
 
 // Axios error type for API errors
@@ -44,77 +55,48 @@ export interface AxiosErrorResponse {
 }
 
 class OrdersApi {
-  // Create order with cash on delivery
-  async create(orderData: CreateOrderRequest): Promise<Order> {
+  // Create order from cart (selected items only)
+  async create(orderData: CreateOrderRequest): Promise<OrderResponseDto> {
     try {
-      // For now, simulate API call
-      // In production, this would call your backend API
-      // const response = await apiService.request('/orders', {
-      //   method: 'POST',
-      //   body: JSON.stringify(orderData),
-      // });
-
-      // Simulate API response
-      const mockOrder: Order = {
-        _id: `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        orderNumber: `ORD-${Date.now()}`,
-        status: 'pending',
-        total: orderData.products.reduce((sum, item) => sum + item.quantity * 100000, 0), // Mock total
-        createdAt: new Date().toISOString(),
-        shippingAddress: orderData.shippingAddress,
-        items: orderData.products,
-      };
-
-      // Save to localStorage for order history
-      const orders = this.getLocalOrders();
-      orders.push(mockOrder);
-      localStorage.setItem('user_orders', JSON.stringify(orders));
-
-      return mockOrder;
-    } catch (error) {
+      const response = await apiService.request<OrderResponseDto>('/orders', {
+        method: 'POST',
+        body: JSON.stringify(orderData),
+      });
+      
+      return response;
+    } catch (error: any) {
       console.error('Error creating order:', error);
-      throw error;
+      throw new Error(error.message || 'Không thể tạo đơn hàng. Vui lòng thử lại.');
     }
   }
 
-  // Create order with PayOS payment
-  async createWithPayOS(orderData: CreateOrderRequest): Promise<Order> {
+  // Create order with PayOS payment (same as create, PayOS integration will be handled on backend)
+  async createWithPayOS(orderData: CreateOrderRequest): Promise<OrderResponseDto> {
     try {
-      // Similar to create, but would include PayOS integration
-      const order = await this.create(orderData);
-      
-      // In production, this would initialize PayOS payment
-      // const payosResponse = await apiService.request('/orders/payos', {
-      //   method: 'POST',
-      //   body: JSON.stringify({ orderId: order._id, ...orderData }),
-      // });
-
-      return order;
+      const orderWithPayment = {
+        ...orderData,
+        paymentMethod: 'payos' as const,
+      };
+      return await this.create(orderWithPayment);
     } catch (error) {
       console.error('Error creating order with PayOS:', error);
       throw error;
     }
   }
 
-  // Get orders from localStorage (for development)
-  private getLocalOrders(): Order[] {
+  // Get order by ID from API
+  async getOrderById(orderId: number): Promise<OrderResponseDto | null> {
     try {
-      const orders = localStorage.getItem('user_orders');
-      return orders ? JSON.parse(orders) : [];
-    } catch (error) {
-      console.error('Error reading orders:', error);
-      return [];
-    }
-  }
-
-  // Get order by ID
-  async getOrderById(orderId: string): Promise<Order | null> {
-    try {
-      const orders = this.getLocalOrders();
-      return orders.find((o) => o._id === orderId) || null;
-    } catch (error) {
+      const response = await apiService.request<OrderResponseDto>(`/orders/${orderId}`, {
+        method: 'GET',
+      });
+      return response;
+    } catch (error: any) {
       console.error('Error getting order:', error);
-      return null;
+      if (error.message?.includes('404') || error.message?.includes('Not Found')) {
+        return null;
+      }
+      throw error;
     }
   }
 }

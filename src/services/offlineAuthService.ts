@@ -157,54 +157,6 @@ class OfflineAuthService {
     localStorage.removeItem(this.AUTH_TOKEN_KEY);
   }
 
-  // Create some demo offline accounts
-  initDemoAccounts(): void {
-    const existingUsers = this.getOfflineUsers();
-    
-    const demoAccounts = [
-      {
-        email: 'admin@nova.com',
-        password: 'admin123',
-        user: {
-          id: 'offline_demo_admin',
-          fullName: 'Admin NOVA',
-          email: 'admin@nova.com',
-          phone: '0123456789',
-          role: 'admin',
-          createdAt: new Date().toISOString(),
-          isOffline: true
-        }
-      },
-      {
-        email: 'user@nova.com',
-        password: 'user123',
-        user: {
-          id: 'offline_demo_user',
-          fullName: 'Người Dùng Demo',
-          email: 'user@nova.com',
-          phone: '0987654321',
-          role: 'user',
-          createdAt: new Date().toISOString(),
-          isOffline: true
-        }
-      }
-    ];
-
-    // Only add demo accounts if they don't exist
-    demoAccounts.forEach(demo => {
-      const exists = existingUsers.find(u => u.email === demo.email);
-      if (!exists) {
-        existingUsers.push(demo);
-      }
-    });
-
-    this.saveOfflineUsers(existingUsers);
-  }
 }
 
 export const offlineAuthService = new OfflineAuthService();
-
-// Initialize demo accounts on first load
-if (typeof window !== 'undefined') {
-  offlineAuthService.initDemoAccounts();
-}

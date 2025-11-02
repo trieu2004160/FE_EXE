@@ -3,12 +3,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Users,
-  Wifi,
-  WifiOff,
-  RefreshCw,
-  Info,
-  Eye,
-  EyeOff,
 } from "lucide-react";
 import { offlineAuthService } from "@/services/offlineAuthService";
 import { apiService } from "@/services/apiService";
@@ -18,7 +12,6 @@ export const OfflineStatus = () => {
     null
   );
   const [offlineUsersCount, setOfflineUsersCount] = useState(0);
-  const [showDemoAccounts, setShowDemoAccounts] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
 
   const checkBackendStatus = async () => {
@@ -46,21 +39,6 @@ export const OfflineStatus = () => {
     const interval = setInterval(checkBackendStatus, 30000);
     return () => clearInterval(interval);
   }, []);
-
-  const demoAccounts = [
-    {
-      email: "admin@nova.com",
-      password: "admin123",
-      role: "Admin",
-      description: "Quản trị viên hệ thống",
-    },
-    {
-      email: "user@nova.com",
-      password: "user123",
-      role: "User",
-      description: "Người dùng thông thường",
-    },
-  ];
 
   return (
     <div className="space-y-4 max-w-md mx-auto">
@@ -145,59 +123,6 @@ export const OfflineStatus = () => {
           </AlertDescription>
         </Alert>
       )}
-      {/* Demo Accounts */}
-      {/* <Alert className="border-purple-200 bg-purple-50 dark:bg-purple-900/20">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Info className="h-4 w-4 text-purple-600" />
-            <AlertDescription className="text-purple-800 dark:text-purple-200 text-sm font-medium">
-              Tài khoản demo có sẵn
-            </AlertDescription>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowDemoAccounts(!showDemoAccounts)}
-            className="h-6 px-2 py-1"
-          >
-            {showDemoAccounts ? (
-              <EyeOff className="h-3 w-3" />
-            ) : (
-              <Eye className="h-3 w-3" />
-            )}
-          </Button>
-        </div>
-
-        {showDemoAccounts && (
-          <div className="mt-3 space-y-2">
-            {demoAccounts.map((account, index) => (
-              <div
-                key={index}
-                className="p-2 bg-white dark:bg-gray-800 rounded border text-xs"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="font-medium text-gray-900 dark:text-gray-100">
-                      {account.email}
-                    </div>
-                    <div className="text-gray-600 dark:text-gray-400">
-                      {account.description}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-mono text-gray-700 dark:text-gray-300">
-                      {account.password}
-                    </div>
-                    <div className="text-xs text-purple-600 dark:text-purple-400">
-                      {account.role}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Alert> */}
     </div>
   );
 };

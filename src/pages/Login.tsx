@@ -6,7 +6,6 @@ import { Eye, EyeOff } from "lucide-react";
 import { apiService, authUtils } from "@/services/apiService";
 import { offlineAuthService } from "@/services/offlineAuthService";
 import { OfflineStatus } from "@/components/OfflineStatus";
-import { findDemoAccount, getDemoUserData } from "@/data/demoAccounts";
 
 interface User {
   id: string;
@@ -32,55 +31,7 @@ const Login = () => {
     setError("");
 
     try {
-      // Check demo accounts using new system
-      const demoAccount = null;
-      // findDemoAccount(email, password);
-      if (demoAccount) {
-        // Simulate JWT token with demo user data
-        const demoUserData = getDemoUserData(email, password);
-        if (demoUserData) {
-          // Create a mock JWT token (in real app, this would come from backend)
-          const header = { alg: "HS256", typ: "JWT" };
-          const payload = {
-            email: demoUserData.email,
-            nameid: demoUserData.id,
-            role: demoUserData.role,
-            exp: Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60, // 7 days
-            iss: "nova-app",
-            aud: "nova-users",
-          };
-
-          // Add ShopId for shop users
-          if (
-            demoUserData.role?.toLowerCase() === "shop" &&
-            demoUserData.shopId
-          ) {
-            payload.ShopId = demoUserData.shopId.toString();
-          }
-
-          // Create JWT format: header.payload.signature
-          const encodedHeader = btoa(JSON.stringify(header));
-          const encodedPayload = btoa(JSON.stringify(payload));
-          const mockSignature = btoa("mock-signature");
-          const mockToken = `${encodedHeader}.${encodedPayload}.${mockSignature}`;
-
-          localStorage.setItem("userToken", mockToken);
-          localStorage.setItem("userRole", demoAccount.role);
-          localStorage.setItem(
-            "userData",
-            JSON.stringify({
-              email: demoUserData.email,
-              name: demoUserData.fullName,
-              role: demoUserData.role,
-              shopId: demoUserData.shopId,
-            })
-          );
-          navigate(demoAccount.redirectPath || "/");
-          return;
-        }
-      }
-
-      // Try backend API login first
+      // Try backend API login
       try {
         const response = await apiService.login({ email, password });
 

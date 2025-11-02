@@ -4,11 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Minus, Plus, X, ShoppingBag, ArrowRight, Tag } from "lucide-react";
+import { Minus, Plus, X, ShoppingBag, ArrowRight, Tag, Loader2 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import AIAssistant from "@/components/AIAssistant";
-import { getShopById } from "@/data/mockData";
+import { apiService, CartResponseDto, CartItemDto, ShopInCartDto } from "@/services/apiService";
+import { useNavigate } from "react-router-dom";
 
 interface CartItem {
   id: number;
@@ -17,48 +18,57 @@ interface CartItem {
   image: string;
   quantity: number;
   category: string;
-  shopId: number; // Added shopId to track which shop the product belongs to
-  selected?: boolean; // Added selection status for individual items
+  shopId: number;
+  selected?: boolean;
+  isSelected?: boolean;
 }
 
-const mockCartItems: CartItem[] = [
-  {
-    id: 1,
-    name: "Bộ Hoa Quả Tốt Nghiệp Cao Cấp",
-    price: 299000,
-    image:
-      "https://images.unsplash.com/photo-1610832958506-aa56368176cf?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80",
-    quantity: 1,
-    category: "Hoa Quả",
-    shopId: 1,
-    selected: false, // Default to not selected
-  },
-  {
-    id: 2,
-    name: "Bó Hương Nụ Tâm An",
-    price: 149000,
-    image:
-      "https://vach-ngan.com/uploads/images/Nhang%20N%E1%BB%A5%20Tr%E1%BA%A7m%20H%C6%B0%C6%A1ng%20An%20Y%C3%AAn.png",
-    quantity: 2,
-    category: "Hương Nến",
-    shopId: 2,
-    selected: false, // Default to not selected
-  },
-  {
-    id: 4,
-    name: "Hoa Sen Tươi Phúc Lộc",
-    price: 179000,
-    image: "https://nongsandalat.vn/wp-content/uploads/2023/10/sen.jpg",
-    quantity: 1,
-    category: "Hoa Tươi",
-    shopId: 1,
-    selected: false, // Default to not selected
-  },
-];
-
 const Cart = () => {
-  const [cartItems, setCartItems] = useState<CartItem[]>(mockCartItems);
+  const [cartData, setCartData] = useState<CartResponseDto | null>(null);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [promoCode, setPromoCode] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  // Fetch cart data from API
+  useEffect(() => {
+    const fetchCart = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const cartResponse = await apiService.getCart();
+        setCartData(cartResponse);
+        
+        // Flatten cart items from shops structure
+        const flattenedItems: CartItem[] = [];
+        cartResponse.shops.forEach((shop: ShopInCartDto) => {
+          shop.items.forEach((item: CartItemDto) => {
+            flattenedItems.push({
+              id: item.id,
+              name: item.productName,
+              price: item.price,
+              image: item.imageUrl || "https://via.placeholder.com/200?text=No+Image",
+              quantity: item.quantity,
+              category: "", // Category not available in cart API
+              shopId: shop.shopId,
+              selected: item.isSelected,
+              isSelected: item.isSelected,
+            });
+          });
+        });
+        setCartItems(flattenedItems);
+      } catch (err: any) {
+        console.error('Error fetching cart:', err);
+        setError(err.message || "Không thể tải giỏ hàng. Vui lòng đăng nhập.");
+        setCartItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCart();
+  }, []);
 
   // Group cart items by shop
   const groupedItems = cartItems.reduce((groups, item) => {
@@ -70,12 +80,31 @@ const Cart = () => {
     return groups;
   }, {} as Record<number, CartItem[]>);
 
-  const toggleItemSelection = (itemId: number) => {
-    setCartItems((items) =>
-      items.map((item) =>
-        item.id === itemId ? { ...item, selected: !item.selected } : item
-      )
-    );
+  // Get shop info from cartData
+  const getShopName = (shopId: number): string => {
+    const shop = cartData?.shops.find(s => s.shopId === shopId);
+    return shop?.shopName || `Shop ${shopId}`;
+  };
+
+  const toggleItemSelection = async (itemId: number) => {
+    const item = cartItems.find(i => i.id === itemId);
+    if (!item) return;
+
+    const newSelected = !(item.selected ?? item.isSelected ?? false);
+    
+    try {
+      const updatedCart = await apiService.selectCartItem(itemId, newSelected);
+      setCartData(updatedCart);
+      
+      // Update local state
+      setCartItems((items) =>
+        items.map((i) =>
+          i.id === itemId ? { ...i, selected: newSelected, isSelected: newSelected } : i
+        )
+      );
+    } catch (err: any) {
+      console.error('Error updating item selection:', err);
+    }
   };
 
   const toggleShopSelection = (shopId: number) => {
@@ -105,25 +134,59 @@ const Cart = () => {
     );
   };
 
-  const updateQuantity = (id: number, newQuantity: number) => {
+  const updateQuantity = async (id: number, newQuantity: number) => {
     if (newQuantity === 0) {
-      removeItem(id);
+      await removeItem(id);
       return;
     }
-    setCartItems((items) =>
-      items.map((item) =>
-        item.id === id ? { ...item, quantity: newQuantity } : item
-      )
-    );
+    
+    try {
+      const updatedCart = await apiService.updateCartItemQuantity(id, newQuantity);
+      setCartData(updatedCart);
+      
+      setCartItems((items) =>
+        items.map((item) =>
+          item.id === id ? { ...item, quantity: newQuantity } : item
+        )
+      );
+    } catch (err: any) {
+      console.error('Error updating quantity:', err);
+    }
   };
 
-  const removeItem = (id: number) => {
-    setCartItems((items) => items.filter((item) => item.id !== id));
+  const removeItem = async (id: number) => {
+    try {
+      const updatedCart = await apiService.removeCartItem(id);
+      setCartData(updatedCart);
+      
+      // Update local state
+      const flattenedItems: CartItem[] = [];
+      updatedCart.shops.forEach((shop: ShopInCartDto) => {
+        shop.items.forEach((item: CartItemDto) => {
+          flattenedItems.push({
+            id: item.id,
+            name: item.productName,
+            price: item.price,
+            image: item.imageUrl || "https://via.placeholder.com/200?text=No+Image",
+            quantity: item.quantity,
+            category: "",
+            shopId: shop.shopId,
+            selected: item.isSelected,
+            isSelected: item.isSelected,
+          });
+        });
+      });
+      setCartItems(flattenedItems);
+    } catch (err: any) {
+      console.error('Error removing item:', err);
+    }
   };
 
   // Calculate totals only for selected items
-  const selectedItems = cartItems.filter((item) => item.selected);
-  const subtotal = selectedItems.reduce(
+  const selectedItems = cartItems.filter((item) => item.selected || item.isSelected);
+  
+  // Use totalPrice from API if available (for selected items), otherwise calculate
+  const subtotal = cartData?.totalPrice || selectedItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
@@ -136,6 +199,40 @@ const Cart = () => {
       // Promo code applied successfully
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
+        <Header />
+        <section className="py-16">
+          <div className="container mx-auto px-4 text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-[#A67C42]" />
+            <p className="text-gray-600">Đang tải giỏ hàng...</p>
+          </div>
+        </section>
+        <Footer />
+        <AIAssistant />
+      </div>
+    );
+  }
+
+  if (error && !cartItems.length) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
+        <Header />
+        <section className="py-16">
+          <div className="container mx-auto px-4 text-center">
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-12 max-w-2xl mx-auto">
+              <p className="text-red-500 mb-4">{error}</p>
+              <p className="text-gray-600">Vui lòng đăng nhập để xem giỏ hàng</p>
+            </div>
+          </div>
+        </section>
+        <Footer />
+        <AIAssistant />
+      </div>
+    );
+  }
 
   if (cartItems.length === 0) {
     return (
@@ -179,9 +276,9 @@ const Cart = () => {
             <div className="lg:col-span-2">
               {Object.entries(groupedItems).map(([shopId, items]) => {
                 const shopIdNum = parseInt(shopId, 10);
-                const shop = getShopById(shopIdNum);
+                const shopName = getShopName(shopIdNum);
                 const selectedCount = items.filter(
-                  (item) => item.selected
+                  (item) => item.selected || item.isSelected
                 ).length;
                 const allSelected =
                   items.length > 0 && selectedCount === items.length;
@@ -207,11 +304,11 @@ const Cart = () => {
                               checked={allSelected}
                               onChange={() => toggleShopSelection(shopIdNum)}
                               className="mr-2 h-4 w-4 text-[#A67C42] rounded border-gray-300 focus:ring-2 focus:ring-[#A67C42]"
-                              aria-label={`Chọn sản phẩm từ ${shop?.name}`}
+                              aria-label={`Chọn sản phẩm từ ${shopName}`}
                             />
                             <ShoppingBag className="h-5 w-5 mr-2 text-[#A67C42]" />
                             <span>
-                              {shop?.name} ({selectedCount}/{items.length} sản
+                              {shopName} ({selectedCount}/{items.length} sản
                               phẩm được chọn)
                             </span>
                           </label>
@@ -235,20 +332,20 @@ const Cart = () => {
                         <div
                           key={item.id}
                           className={`flex items-center gap-4 p-4 border rounded-xl bg-white hover:shadow-lg transition-all duration-300 ${
-                            item.selected
+                            (item.selected || item.isSelected)
                               ? "border-[#A67C42] bg-[#A67C42]/5"
                               : "border-gray-200"
                           }`}
                         >
                           <input
                             type="checkbox"
-                            checked={item.selected || false}
+                            checked={item.selected || item.isSelected || false}
                             onChange={() => toggleItemSelection(item.id)}
                             className="h-4 w-4 text-[#A67C42] rounded border-gray-300 focus:ring-2 focus:ring-[#A67C42]"
                             aria-label={`Chọn ${item.name}`}
                           />
                           <img
-                            src={item.image}
+                            src={item.imageUrl || item.image || "https://via.placeholder.com/200?text=No+Image"}
                             alt={item.name}
                             className="w-24 h-24 object-cover rounded-xl shadow-md"
                           />
@@ -389,6 +486,7 @@ const Cart = () => {
                   <Button
                     className="w-full bg-gradient-to-r from-[#A67C42] to-[#C99F4D] hover:from-[#8B6835] hover:to-[#A67C42] text-white py-6 text-lg rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
                     disabled={selectedItems.length === 0}
+                    onClick={() => selectedItems.length > 0 && navigate('/checkout')}
                   >
                     {selectedItems.length > 0
                       ? `Tiến hành thanh toán (${selectedItems.length} sản phẩm)`
@@ -399,6 +497,7 @@ const Cart = () => {
                   <Button
                     variant="outline"
                     className="w-full border-2 border-[#A67C42] text-[#A67C42] hover:bg-[#A67C42] hover:text-white py-6 text-lg rounded-xl transition-all duration-300"
+                    onClick={() => navigate('/')}
                   >
                     Tiếp tục mua sắm
                   </Button>

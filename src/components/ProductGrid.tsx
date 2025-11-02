@@ -1,9 +1,42 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import ProductCard from "./ProductCard";
-import { getFeaturedProducts } from "@/data/mockData";
+import { apiService, Product } from "@/services/apiService";
+import { Loader2 } from "lucide-react";
 
 const ProductGrid = () => {
-  const featuredProducts = getFeaturedProducts(8);
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFeaturedProducts = async () => {
+      try {
+        setLoading(true);
+        const allProducts = await apiService.getProducts();
+        // Get popular/featured products (isPopular = true) or first 8 products
+        const featured = allProducts
+          .filter((p) => p.isPopular)
+          .slice(0, 8);
+        
+        // If not enough popular products, add more
+        if (featured.length < 8) {
+          const remaining = allProducts
+            .filter((p) => !featured.includes(p))
+            .slice(0, 8 - featured.length);
+          setFeaturedProducts([...featured, ...remaining]);
+        } else {
+          setFeaturedProducts(featured);
+        }
+      } catch (error) {
+        console.error("Error fetching featured products:", error);
+        setFeaturedProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeaturedProducts();
+  }, []);
 
   return (
     <section className="py-20 bg-gradient-to-br from-amber-50/70 via-white to-orange-50/70 relative overflow-hidden">
@@ -35,8 +68,13 @@ const ProductGrid = () => {
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 p-4">
-          {featuredProducts.map((product, index) => (
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-[#C99F4D]" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 p-4">
+            {featuredProducts.map((product, index) => (
             <div
               key={product.id}
               className="transform hover:-translate-y-2 transition-all duration-500 ease-out animate-fade-in-up"
@@ -44,10 +82,23 @@ const ProductGrid = () => {
                 animationDelay: `${index * 100}ms`,
               }}
             >
-              <ProductCard {...product} />
+              <ProductCard
+                id={product.id}
+                name={product.name}
+                price={product.basePrice}
+                originalPrice={product.maxPrice}
+                image={product.imageUrl || ""}
+                rating={4.5}
+                reviews={0}
+                category=""
+                shopId={product.shop?.id || 1}
+                isBestSeller={product.isPopular}
+                isNew={false}
+              />
             </div>
           ))}
         </div>
+        )}
 
         {/* Call to Action Section */}
         <div className="text-center mt-16">

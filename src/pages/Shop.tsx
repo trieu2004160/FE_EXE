@@ -21,12 +21,8 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import AIAssistant from "@/components/AIAssistant";
 import ProductCard from "@/components/ProductCard";
-import {
-  getShopById,
-  getProductsByShopId,
-  Shop,
-  Product,
-} from "@/data/mockData";
+import { apiService, Product } from "@/services/apiService";
+import { Shop } from "@/data/mockData";
 
 const ShopPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -34,17 +30,56 @@ const ShopPage = () => {
   const [shop, setShop] = useState<Shop | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (id) {
-      const shopId = parseInt(id);
-      const shopData = getShopById(shopId);
-      const shopProducts = getProductsByShopId(shopId);
+    const fetchShopData = async () => {
+      if (!id) return;
+      
+      setLoading(true);
+      setError("");
+      try {
+        const shopId = parseInt(id);
+        
+        // Fetch all products and filter by shopId
+        const allProducts = await apiService.getProducts();
+        const shopProducts = allProducts.filter(p => p.shop?.id === shopId);
+        
+        if (shopProducts.length === 0) {
+          setError("Không tìm thấy cửa hàng hoặc cửa hàng chưa có sản phẩm.");
+          setLoading(false);
+          return;
+        }
+        
+        // Extract shop info from first product
+        const firstProduct = shopProducts[0];
+        if (firstProduct.shop) {
+          setShop({
+            id: firstProduct.shop.id,
+            name: firstProduct.shop.shopName,
+            avatar: firstProduct.imageUrl || "",
+            description: "Cửa hàng chuyên cung cấp đồ cúng và vật phẩm tâm linh",
+            address: "",
+            phone: "",
+            email: "",
+            isVerified: false,
+            rating: 0,
+            totalSales: 0,
+            totalProducts: shopProducts.length,
+            joinedDate: new Date().toISOString(),
+          });
+        }
+        
+        setProducts(shopProducts);
+      } catch (err: any) {
+        console.error('Error fetching shop data:', err);
+        setError(err.message || "Không thể tải thông tin cửa hàng.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      setShop(shopData || null);
-      setProducts(shopProducts);
-      setLoading(false);
-    }
+    fetchShopData();
   }, [id]);
 
   if (loading) {
@@ -64,14 +99,14 @@ const ShopPage = () => {
     );
   }
 
-  if (!shop) {
+  if (!loading && (!shop || error)) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-foreground mb-4">
-              Không tìm thấy cửa hàng
+              {error || "Không tìm thấy cửa hàng"}
             </h1>
             <Button onClick={() => navigate("/")}>
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -82,6 +117,10 @@ const ShopPage = () => {
         <Footer />
       </div>
     );
+  }
+
+  if (!shop) {
+    return null; // Still loading
   }
 
   const formatDate = (dateString: string) => {
