@@ -301,17 +301,23 @@ export interface CommissionConfig {
 }
 
 export interface RevenueStats {
-  today: number;
-  thisWeek: number;
-  thisMonth: number;
-  thisYear: number;
+  totalRevenue: number;
+  totalCommission: number;
+  totalOrders: number;
+  activeShops: number;
+  revenueToday: number;
+  revenueThisWeek: number;
+  revenueThisMonth: number;
+  revenueThisYear: number;
 }
 
 export interface RevenueByShop {
   shopId: number;
   shopName: string;
   revenue: number;
+  commission: number;
   orderCount: number;
+  commissionRate: number;
 }
 
 // API service class

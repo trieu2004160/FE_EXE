@@ -1,9 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import {
   Table,
   TableBody,
@@ -15,6 +21,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -30,43 +37,33 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+
 import { toast } from "@/components/ui/use-toast";
 import {
   Settings,
-  Users,
   Package,
   BarChart3,
-  LogOut,
   Plus,
   Edit,
   Trash2,
-  FileText,
-  ShoppingCart,
-  Heart,
-  Star,
+  ShoppingBag,
   Store,
   CheckCircle,
-  XCircle,
-  Clock,
   Eye,
   EyeOff,
-  ArrowUp,
-  ArrowDown,
   RefreshCw,
   GripVertical,
   TrendingUp,
-  Calendar,
   Activity,
   DollarSign,
   Percent,
   Key,
   Lock,
   Unlock,
-  AlertCircle,
   ChevronUp,
   ChevronDown,
-  MoreHorizontal,
+  Check,
+  X,
 } from "lucide-react";
 import Header from "@/components/Header";
 
@@ -99,13 +96,14 @@ interface ShopFormData {
 }
 
 interface SystemLog {
-  id: number;
+  id: string;
+  timestamp: string;
+  userName: string;
+  userEmail: string;
+  userType: "Admin" | "Shop";
   action: string;
-  entity: string;
-  entityId: number;
   details: string;
-  createdAt: string;
-  userEmail?: string;
+  ipAddress: string;
 }
 
 const AdminDashboard = () => {
@@ -139,12 +137,19 @@ const AdminDashboard = () => {
 
   // State for revenue stats
   const [revenueStats, setRevenueStats] = useState<RevenueStats>({
-    today: 0,
-    thisWeek: 0,
-    thisMonth: 0,
-    thisYear: 0,
+    totalRevenue: 0,
+    totalCommission: 0,
+    totalOrders: 0,
+    activeShops: 0,
+    revenueToday: 0,
+    revenueThisWeek: 0,
+    revenueThisMonth: 0,
+    revenueThisYear: 0,
   });
   const [revenueByShop, setRevenueByShop] = useState<RevenueByShop[]>([]);
+  const [revenuePeriod, setRevenuePeriod] = useState<
+    "daily" | "weekly" | "monthly" | "yearly"
+  >("daily");
 
   // State for system logs
   const [systemLogs, setSystemLogs] = useState<SystemLog[]>([]);
@@ -160,7 +165,9 @@ const AdminDashboard = () => {
 
   // Load data based on active tab
   useEffect(() => {
-    if (activeTab === "categories") {
+    if (activeTab === "dashboard") {
+      loadDashboardData();
+    } else if (activeTab === "categories") {
       loadCategories();
     } else if (activeTab === "shops") {
       loadShops();
@@ -168,14 +175,60 @@ const AdminDashboard = () => {
       loadProducts();
     } else if (activeTab === "config") {
       loadCommissionConfig();
+      loadShops();
     } else if (activeTab === "revenue") {
       loadRevenueStats();
+      loadRevenueByShop();
     } else if (activeTab === "logs") {
       loadSystemLogs();
     }
   }, [activeTab]);
 
+  // Reload revenue data when period changes
+  useEffect(() => {
+    if (activeTab === "revenue") {
+      loadRevenueStats();
+      loadRevenueByShop();
+    }
+  }, [activeTab, revenuePeriod]);
+
   // Data loading functions
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      // Load all necessary data for dashboard
+      const [shopsData, productsData, revenueData, logsData] =
+        await Promise.all([
+          apiService.getAdminShops(),
+          apiService.getAdminProducts(),
+          apiService.getRevenueStats(),
+          apiService.getSystemLogs(),
+        ]);
+
+      setShops(shopsData);
+      setProducts(productsData);
+      setRevenueStats(revenueData as RevenueStats);
+      setSystemLogs(logsData as SystemLog[]);
+
+      // Also load commission config
+      try {
+        const commissionData = await apiService.getCommissionConfig();
+        setCommissionConfig(commissionData);
+      } catch (error) {
+        console.log("Commission config not available:", error);
+      }
+    } catch (error) {
+      console.error("Failed to load dashboard data:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải dữ liệu dashboard",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const loadCategories = async () => {
     try {
       setLoading(true);
@@ -227,6 +280,13 @@ const AdminDashboard = () => {
     }
   };
 
+  // Load categories when needed for product category change
+  useEffect(() => {
+    if (activeTab === "products" && categories.length === 0) {
+      loadCategories();
+    }
+  }, [activeTab, categories.length]);
+
   const loadCommissionConfig = async () => {
     try {
       setLoading(true);
@@ -247,17 +307,30 @@ const AdminDashboard = () => {
   const loadRevenueStats = async () => {
     try {
       setLoading(true);
-      const [stats, byShop] = await Promise.all([
-        apiService.getRevenueStats(),
-        apiService.getRevenueByShop(),
-      ]);
+      const stats = await apiService.getRevenueStats();
       setRevenueStats(stats);
-      setRevenueByShop(byShop);
     } catch (error) {
       console.error("Failed to load revenue stats:", error);
       toast({
         title: "Lỗi",
         description: "Không thể tải thống kê doanh thu",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadRevenueByShop = async () => {
+    try {
+      setLoading(true);
+      const byShop = await apiService.getRevenueByShop();
+      setRevenueByShop(byShop);
+    } catch (error) {
+      console.error("Failed to load revenue by shop:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải doanh thu theo shop",
         variant: "destructive",
       });
     } finally {
@@ -443,38 +516,11 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleUpdateShopStatus = async (id: number, isActive: boolean) => {
-    try {
-      setLoading(true);
-      await apiService.updateShopStatus(id, isActive);
-      toast({
-        title: "Thành công",
-        description: `Đã ${isActive ? "mở" : "khóa"} shop`,
-      });
-      loadShops();
-    } catch (error) {
-      console.error("Failed to update shop status:", error);
-      toast({
-        title: "Lỗi",
-        description: "Không thể cập nhật trạng thái shop",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResetShopPassword = async (id: number, shopName: string) => {
-    const newPassword = prompt("Nhập mật khẩu mới cho shop:");
-    if (!newPassword || newPassword.length < 6) {
-      toast({
-        title: "Lỗi",
-        description: "Mật khẩu phải có ít nhất 6 ký tự",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleResetShopPassword = async (
+    id: number,
+    newPassword: string,
+    shopName: string
+  ) => {
     try {
       setLoading(true);
       await apiService.resetShopPassword(id, newPassword);
@@ -482,6 +528,8 @@ const AdminDashboard = () => {
         title: "Thành công",
         description: `Đã reset mật khẩu cho shop ${shopName}`,
       });
+      setShowResetPasswordModal(false);
+      setResetPasswordShop(null);
       loadShops();
     } catch (error) {
       console.error("Failed to reset shop password:", error);
@@ -569,7 +617,7 @@ const AdminDashboard = () => {
   const handleChangeProductCategory = async (
     productId: number,
     categoryId: number
-  ) => {
+  ): Promise<boolean> => {
     try {
       setLoading(true);
       await apiService.changeProductCategory(productId, categoryId);
@@ -578,6 +626,7 @@ const AdminDashboard = () => {
         description: "Đã chuyển danh mục sản phẩm",
       });
       loadProducts();
+      return true;
     } catch (error) {
       console.error("Failed to change product category:", error);
       toast({
@@ -585,6 +634,7 @@ const AdminDashboard = () => {
         description: "Không thể chuyển danh mục sản phẩm",
         variant: "destructive",
       });
+      return false;
     } finally {
       setLoading(false);
     }
@@ -633,12 +683,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("userToken");
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("userData");
-    navigate("/login");
-  };
+
 
   const sidebarItems = [
     { id: "dashboard", label: "Dashboard", icon: BarChart3 },
@@ -684,31 +729,11 @@ const AdminDashboard = () => {
               );
             })}
           </nav>
-
-          <div className="absolute bottom-4 left-4 right-4">
-            <Button
-              onClick={handleLogout}
-              variant="outline"
-              className="w-full border-red-200 text-red-600 hover:bg-red-50"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Đăng Xuất
-            </Button>
-          </div>
         </div>
 
         {/* Main Content */}
         <div className="flex-1 p-8">
           {/* Header */}
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-gray-800">
-              {sidebarItems.find((item) => item.id === activeTab)?.label ||
-                "Dashboard"}
-            </h2>
-            <p className="text-gray-600 mt-2">
-              Quản lý và điều chỉnh toàn bộ hệ thống
-            </p>
-          </div>
 
           {/* Dashboard Content */}
           {activeTab === "dashboard" && (
@@ -749,7 +774,7 @@ const AdminDashboard = () => {
                     <div>
                       <p className="text-sm text-gray-600">Doanh Thu Tháng</p>
                       <p className="text-2xl font-bold text-gray-800">
-                        {revenueStats.thisMonth.toLocaleString("vi-VN")}đ
+                        {revenueStats.revenueThisMonth.toLocaleString("vi-VN")}đ
                       </p>
                     </div>
                   </CardContent>
@@ -791,7 +816,7 @@ const AdminDashboard = () => {
                           </div>
                         </div>
                         <span className="text-sm text-gray-500">
-                          {new Date(log.createdAt).toLocaleString("vi-VN")}
+                          {new Date(log.timestamp).toLocaleString("vi-VN")}
                         </span>
                       </div>
                     ))}
@@ -805,14 +830,6 @@ const AdminDashboard = () => {
           {activeTab === "categories" && (
             <div className="space-y-6">
               <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="text-xl font-semibold">
-                    Quản Lý Danh Mục Sản Phẩm
-                  </h3>
-                  <p className="text-gray-600">
-                    Thêm, sửa, xóa và sắp xếp danh mục
-                  </p>
-                </div>
                 <Button
                   onClick={() => {
                     setEditingCategory(null);
@@ -1167,28 +1184,516 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {/* Other tabs - Products, Revenue, Config, Logs will be added here */}
-          {["products", "revenue", "config", "logs"].includes(activeTab) && (
-            <Card>
-              <CardHeader>
-                <CardTitle>
-                  {activeTab === "products" && "Quản Lý Sản Phẩm"}
-                  {activeTab === "revenue" && "Doanh Thu"}
-                  {activeTab === "config" && "Cấu Hình"}
-                  {activeTab === "logs" && "Nhật Ký"}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12">
-                  <div className="text-gray-400 mb-4">
-                    <Package className="h-16 w-16 mx-auto" />
-                  </div>
-                  <p className="text-gray-500">
-                    Tính năng này đang được phát triển...
+          {/* Products Management */}
+          {activeTab === "products" && (
+            <div className="space-y-6">
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <RefreshCw className="h-8 w-8 animate-spin text-[#C99F4D] mr-3" />
+                  <span className="text-gray-600">Đang tải sản phẩm...</span>
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Sản Phẩm</TableHead>
+                            <TableHead>Shop</TableHead>
+                            <TableHead>Danh Mục</TableHead>
+                            <TableHead>Giá</TableHead>
+                            <TableHead>Tồn Kho</TableHead>
+                            <TableHead>Trạng Thái</TableHead>
+                            <TableHead className="w-64">Thao Tác</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {products.length === 0 ? (
+                            <TableRow>
+                              <TableCell
+                                colSpan={7}
+                                className="text-center py-12 text-gray-500"
+                              >
+                                Chưa có sản phẩm nào trong hệ thống
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            products.map((product) => (
+                              <TableRow
+                                key={product.id}
+                                className="hover:bg-gray-50"
+                              >
+                                <TableCell>
+                                  <div className="font-medium">
+                                    {product.name}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="text-sm text-gray-600">
+                                    {product.shopName}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="outline">
+                                    {product.categoryName}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="font-medium">
+                                    {product.basePrice.toLocaleString("vi-VN")}đ
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="text-sm">
+                                    {product.stockQuantity > 0 ? (
+                                      <span className="text-green-600">
+                                        {product.stockQuantity}
+                                      </span>
+                                    ) : (
+                                      <span className="text-red-600">
+                                        Hết hàng
+                                      </span>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    className={
+                                      product.isVisible !== false
+                                        ? "bg-green-100 text-green-800"
+                                        : "bg-red-100 text-red-800"
+                                    }
+                                  >
+                                    {product.isVisible !== false
+                                      ? "Hiển thị"
+                                      : "Ẩn"}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() =>
+                                        handleToggleProductVisibility(
+                                          product.id,
+                                          product.isVisible !== false
+                                        )
+                                      }
+                                      title={
+                                        product.isVisible !== false
+                                          ? "Ẩn sản phẩm"
+                                          : "Hiển thị sản phẩm"
+                                      }
+                                    >
+                                      {product.isVisible !== false ? (
+                                        <EyeOff className="h-4 w-4" />
+                                      ) : (
+                                        <Eye className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                    <ProductChangeCategoryDialog
+                                      product={product}
+                                      categories={categories}
+                                      onSave={handleChangeProductCategory}
+                                    />
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {/* Config Management */}
+          {activeTab === "config" && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-xl font-semibold">Quản Lý Cấu Hình</h3>
+                  <p className="text-gray-600">
+                    Cấu hình hoa hồng mặc định và hoa hồng theo shop
                   </p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+
+              {/* Default Commission */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Hoa Hồng Mặc Định</CardTitle>
+                  <CardDescription>
+                    Phần trăm hoa hồng mặc định áp dụng cho tất cả shop (trừ
+                    shop có cấu hình riêng)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <RefreshCw className="h-6 w-6 animate-spin text-[#C99F4D] mr-3" />
+                      <span className="text-gray-600">Đang tải...</span>
+                    </div>
+                  ) : (
+                    <DefaultCommissionForm
+                      defaultRate={commissionConfig.defaultCommissionRate || 0}
+                      onSave={handleSetDefaultCommission}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Shop Commissions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Hoa Hồng Theo Shop</CardTitle>
+                  <CardDescription>
+                    Cấu hình phần trăm hoa hồng riêng cho từng shop (nếu không
+                    có sẽ dùng mặc định)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <RefreshCw className="h-6 w-6 animate-spin text-[#C99F4D] mr-3" />
+                      <span className="text-gray-600">Đang tải...</span>
+                    </div>
+                  ) : (
+                    <ShopCommissionTable
+                      shops={shops}
+                      shopCommissionRates={
+                        commissionConfig.shopCommissionRates || {}
+                      }
+                      defaultRate={commissionConfig.defaultCommissionRate || 0}
+                      onSave={handleSetShopCommission}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Revenue Management */}
+          {activeTab === "revenue" && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-xl font-semibold">Báo Cáo Doanh Thu</h3>
+                  <p className="text-gray-600">
+                    Theo dõi doanh thu theo thời gian và shop
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant={revenuePeriod === "daily" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setRevenuePeriod("daily")}
+                  >
+                    Hôm Nay
+                  </Button>
+                  <Button
+                    variant={revenuePeriod === "weekly" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setRevenuePeriod("weekly")}
+                  >
+                    Tuần Này
+                  </Button>
+                  <Button
+                    variant={
+                      revenuePeriod === "monthly" ? "default" : "outline"
+                    }
+                    size="sm"
+                    onClick={() => setRevenuePeriod("monthly")}
+                  >
+                    Tháng Này
+                  </Button>
+                  <Button
+                    variant={revenuePeriod === "yearly" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setRevenuePeriod("yearly")}
+                  >
+                    Năm Này
+                  </Button>
+                </div>
+              </div>
+
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <RefreshCw className="h-8 w-8 animate-spin text-[#C99F4D] mr-3" />
+                  <span className="text-gray-600">Đang tải doanh thu...</span>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Revenue Summary */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-600">
+                              Tổng Doanh Thu
+                            </p>
+                            <p className="text-2xl font-bold text-[#C99F4D]">
+                              {revenueStats?.totalRevenue
+                                ? `${revenueStats.totalRevenue.toLocaleString(
+                                    "vi-VN"
+                                  )}đ`
+                                : "0đ"}
+                            </p>
+                          </div>
+                          <div className="h-8 w-8 bg-[#C99F4D] bg-opacity-10 rounded-full flex items-center justify-center">
+                            <DollarSign className="h-4 w-4 text-[#C99F4D]" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-600">
+                              Hoa Hồng
+                            </p>
+                            <p className="text-2xl font-bold text-green-600">
+                              {revenueStats?.totalCommission
+                                ? `${revenueStats.totalCommission.toLocaleString(
+                                    "vi-VN"
+                                  )}đ`
+                                : "0đ"}
+                            </p>
+                          </div>
+                          <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
+                            <TrendingUp className="h-4 w-4 text-green-600" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-600">
+                              Đơn Hàng
+                            </p>
+                            <p className="text-2xl font-bold text-blue-600">
+                              {revenueStats?.totalOrders || 0}
+                            </p>
+                          </div>
+                          <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <ShoppingBag className="h-4 w-4 text-blue-600" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-600">
+                              Shop Hoạt Động
+                            </p>
+                            <p className="text-2xl font-bold text-purple-600">
+                              {revenueStats?.activeShops || 0}
+                            </p>
+                          </div>
+                          <div className="h-8 w-8 bg-purple-100 rounded-full flex items-center justify-center">
+                            <Store className="h-4 w-4 text-purple-600" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Revenue by Shop */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Doanh Thu Theo Shop</CardTitle>
+                      <CardDescription>
+                        Chi tiết doanh thu và hoa hồng của từng shop
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Shop</TableHead>
+                              <TableHead>Doanh Thu</TableHead>
+                              <TableHead>Hoa Hồng</TableHead>
+                              <TableHead>Đơn Hàng</TableHead>
+                              <TableHead>Tỷ Lệ Hoa Hồng</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {revenueByShop && revenueByShop.length > 0 ? (
+                              revenueByShop.map((item) => (
+                                <TableRow key={item.shopId}>
+                                  <TableCell>
+                                    <div className="font-medium">
+                                      {item.shopName}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="font-medium text-[#C99F4D]">
+                                      {item.revenue.toLocaleString("vi-VN")}đ
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="font-medium text-green-600">
+                                      {item.commission.toLocaleString("vi-VN")}đ
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="text-gray-600">
+                                      {item.orderCount}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline">
+                                      {item.commissionRate}%
+                                    </Badge>
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            ) : (
+                              <TableRow>
+                                <TableCell
+                                  colSpan={5}
+                                  className="text-center py-8 text-gray-500"
+                                >
+                                  Chưa có dữ liệu doanh thu trong kỳ này
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* System Logs */}
+          {activeTab === "logs" && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-xl font-semibold">Nhật Ký Hệ Thống</h3>
+                  <p className="text-gray-600">
+                    Theo dõi hoạt động của admin và shop trong hệ thống
+                  </p>
+                </div>
+                <Button
+                  onClick={loadSystemLogs}
+                  disabled={loading}
+                  className="bg-[#C99F4D] hover:bg-[#B8944A]"
+                >
+                  {loading ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  Tải Lại
+                </Button>
+              </div>
+
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <RefreshCw className="h-8 w-8 animate-spin text-[#C99F4D] mr-3" />
+                  <span className="text-gray-600">Đang tải nhật ký...</span>
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Thời Gian</TableHead>
+                            <TableHead>Người Dùng</TableHead>
+                            <TableHead>Loại</TableHead>
+                            <TableHead>Hành Động</TableHead>
+                            <TableHead>Chi Tiết</TableHead>
+                            <TableHead>IP</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {systemLogs.length === 0 ? (
+                            <TableRow>
+                              <TableCell
+                                colSpan={6}
+                                className="text-center py-12 text-gray-500"
+                              >
+                                Chưa có nhật ký nào trong hệ thống
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            systemLogs.map((log) => (
+                              <TableRow
+                                key={log.id}
+                                className="hover:bg-gray-50"
+                              >
+                                <TableCell>
+                                  <div className="text-sm">
+                                    {new Date(log.timestamp).toLocaleString(
+                                      "vi-VN"
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="font-medium">
+                                    {log.userName}
+                                  </div>
+                                  <div className="text-sm text-gray-500">
+                                    {log.userEmail}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    className={
+                                      log.userType === "Admin"
+                                        ? "bg-red-100 text-red-800"
+                                        : "bg-blue-100 text-blue-800"
+                                    }
+                                  >
+                                    {log.userType}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="font-medium">
+                                    {log.action}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div
+                                    className="text-sm max-w-xs truncate"
+                                    title={log.details}
+                                  >
+                                    {log.details}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="text-sm text-gray-500">
+                                    {log.ipAddress}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -1678,6 +2183,320 @@ const ResetPasswordModal = ({
           </form>
         </CardContent>
       </Card>
+    </div>
+  );
+};
+
+// Product Change Category Dialog Component
+const ProductChangeCategoryDialog = ({
+  product,
+  categories,
+  onSave,
+}: {
+  product: AdminProductDto;
+  categories: AdminCategoryDto[];
+  onSave: (productId: number, categoryId: number) => Promise<boolean>;
+}) => {
+  const [open, setOpen] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number>(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCategoryId) {
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const success = await onSave(product.id, selectedCategoryId);
+      if (success) {
+        setOpen(false);
+        setSelectedCategoryId(0);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" title="Chuyển danh mục">
+          <Edit className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Chuyển Danh Mục Sản Phẩm</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="productName">Sản phẩm</Label>
+            <Input
+              id="productName"
+              value={product.name}
+              disabled
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label htmlFor="currentCategory">Danh mục hiện tại</Label>
+            <Input
+              id="currentCategory"
+              value={product.categoryName}
+              disabled
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label htmlFor="newCategory">Chọn danh mục mới *</Label>
+            <Select
+              value={selectedCategoryId.toString()}
+              onValueChange={(value) => setSelectedCategoryId(Number(value))}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Chọn danh mục mới" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories
+                  .filter((cat) => cat.isVisible !== false)
+                  .map((category) => (
+                    <SelectItem
+                      key={category.id}
+                      value={category.id.toString()}
+                    >
+                      {category.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={isSubmitting}
+            >
+              Hủy
+            </Button>
+            <Button
+              type="submit"
+              className="bg-[#C99F4D] hover:bg-[#B8904A]"
+              disabled={!selectedCategoryId || isSubmitting}
+            >
+              {isSubmitting ? "Đang xử lý..." : "Chuyển Danh Mục"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Default Commission Form Component
+const DefaultCommissionForm = ({
+  defaultRate,
+  onSave,
+}: {
+  defaultRate: number;
+  onSave: (rate: number) => Promise<void>;
+}) => {
+  const [rate, setRate] = useState<number>(defaultRate);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    setRate(defaultRate);
+  }, [defaultRate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (rate < 0 || rate > 100) {
+      alert("Phần trăm hoa hồng phải từ 0 đến 100");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await onSave(rate);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="flex items-end gap-4">
+        <div className="flex-1">
+          <Label htmlFor="defaultRate">Phần trăm hoa hồng mặc định (%)</Label>
+          <Input
+            id="defaultRate"
+            type="number"
+            min="0"
+            max="100"
+            step="0.1"
+            value={rate}
+            onChange={(e) => setRate(Number(e.target.value))}
+            className="mt-1"
+            placeholder="Nhập phần trăm (0-100)"
+          />
+          <p className="text-sm text-gray-500 mt-1">
+            Ví dụ: {rate}% = {((rate / 100) * 10000000).toLocaleString("vi-VN")}
+            đ từ đơn hàng 10 triệu
+          </p>
+        </div>
+        <Button
+          type="submit"
+          className="bg-[#C99F4D] hover:bg-[#B8904A]"
+          disabled={isSubmitting || rate === defaultRate}
+        >
+          {isSubmitting ? "Đang lưu..." : "Lưu"}
+        </Button>
+      </div>
+    </form>
+  );
+};
+
+// Shop Commission Table Component
+const ShopCommissionTable = ({
+  shops,
+  shopCommissionRates,
+  defaultRate,
+  onSave,
+}: {
+  shops: AdminShopDto[];
+  shopCommissionRates: Record<number, number>;
+  defaultRate: number;
+  onSave: (shopId: number, rate: number) => Promise<void>;
+}) => {
+  const [editingShopId, setEditingShopId] = useState<number | null>(null);
+  const [editRate, setEditRate] = useState<number>(0);
+
+  const handleEdit = (shop: AdminShopDto) => {
+    setEditRate(shopCommissionRates[shop.id] ?? defaultRate);
+    setEditingShopId(shop.id);
+  };
+
+  const handleSave = async (shopId: number) => {
+    if (editRate < 0 || editRate > 100) {
+      alert("Phần trăm hoa hồng phải từ 0 đến 100");
+      return;
+    }
+    try {
+      await onSave(shopId, editRate);
+      setEditingShopId(null);
+    } catch (error) {
+      // Error handled in parent
+    }
+  };
+
+  const handleCancel = () => {
+    setEditingShopId(null);
+    setEditRate(0);
+  };
+
+  if (shops.length === 0) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        Chưa có shop nào trong hệ thống
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Tên Shop</TableHead>
+            <TableHead>Email Chủ Shop</TableHead>
+            <TableHead>Hoa Hồng Hiện Tại</TableHead>
+            <TableHead>Loại</TableHead>
+            <TableHead className="w-64">Thao Tác</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {shops.map((shop) => {
+            const currentRate = shopCommissionRates[shop.id] ?? defaultRate;
+            const isCustom = shopCommissionRates[shop.id] !== undefined;
+            const isEditing = editingShopId === shop.id;
+
+            return (
+              <TableRow key={shop.id} className="hover:bg-gray-50">
+                <TableCell>
+                  <div className="font-medium">{shop.name}</div>
+                </TableCell>
+                <TableCell>
+                  <div className="text-sm text-gray-600">{shop.ownerEmail}</div>
+                </TableCell>
+                <TableCell>
+                  {isEditing ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={editRate}
+                        onChange={(e) => setEditRate(Number(e.target.value))}
+                        className="w-24"
+                      />
+                      <span className="text-sm">%</span>
+                    </div>
+                  ) : (
+                    <div className="font-medium">
+                      {currentRate.toFixed(1)}%
+                      {isCustom && (
+                        <Badge variant="outline" className="ml-2">
+                          Tùy chỉnh
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {isCustom ? (
+                    <Badge className="bg-blue-100 text-blue-800">
+                      Tùy chỉnh
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline">Mặc định</Badge>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {isEditing ? (
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleSave(shop.id)}
+                        className="text-green-600 hover:bg-green-50"
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleCancel}
+                        className="text-red-600 hover:bg-red-50"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleEdit(shop)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  )}
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
     </div>
   );
 };
