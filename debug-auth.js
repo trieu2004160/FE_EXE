@@ -51,7 +51,8 @@ console.log("Mock Token:", mockToken);
 console.log("");
 
 // Store token
-localStorage.setItem("userToken", mockToken);
+// localStorage.setItem("userToken", mockToken);
+localStorage.removeItem("userToken");
 
 // Test decodeJWT function (copy from tokenUtils.ts)
 const decodeJWT = (token) => {
