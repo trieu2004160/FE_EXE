@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import ProductCard from "./ProductCard";
 import { apiService, Product } from "@/services/apiService";
 import { Loader2 } from "lucide-react";
+import { getProductImageUrl } from "@/utils/imageUtils";
 
 const ProductGrid = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
@@ -74,29 +75,40 @@ const ProductGrid = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 p-4">
-            {featuredProducts.map((product, index) => (
-            <div
-              key={product.id}
-              className="transform hover:-translate-y-2 transition-all duration-500 ease-out animate-fade-in-up"
-              style={{
-                animationDelay: `${index * 100}ms`,
-              }}
-            >
-              <ProductCard
-                id={product.id}
-                name={product.name}
-                price={product.basePrice}
-                originalPrice={product.maxPrice}
-                image={product.imageUrl || ""}
-                rating={4.5}
-                reviews={0}
-                category=""
-                shopId={product.shop?.id || 1}
-                isBestSeller={product.isPopular}
-                isNew={false}
-              />
-            </div>
-          ))}
+            {featuredProducts.map((product, index) => {
+              // Get normalized image URL using utility function
+              const imageUrl = getProductImageUrl(product);
+              
+              // Convert API Product to ProductCard format
+              const productCardProps = {
+                id: product.id,
+                name: product.name,
+                price: product.basePrice,
+                originalPrice: product.maxPrice,
+                image: imageUrl || "",
+                imageUrl: product.imageUrl,
+                ImageUrls: product.ImageUrls,
+                imageUrls: product.imageUrls,
+                rating: 4.5,
+                reviews: product.reviews?.length || 0,
+                category: "",
+                shopId: product.shop?.id || 1,
+                isBestSeller: product.isPopular,
+                isNew: false,
+              };
+              
+              return (
+                <div
+                  key={product.id}
+                  className="transform hover:-translate-y-2 transition-all duration-500 ease-out animate-fade-in-up"
+                  style={{
+                    animationDelay: `${index * 100}ms`,
+                  }}
+                >
+                  <ProductCard {...productCardProps} />
+                </div>
+              );
+            })}
         </div>
         )}
 

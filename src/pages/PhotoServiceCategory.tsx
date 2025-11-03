@@ -1,14 +1,11 @@
 import { useState, useEffect } from "react";
 import {
   Camera,
-  Image,
   Sparkles,
   Award,
   Heart,
   Star,
   Gift,
-  Shield,
-  Clock,
   Users,
   CheckCircle,
 } from "lucide-react";
@@ -20,6 +17,7 @@ import { apiService, Product } from "@/services/apiService";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Loader2 } from "lucide-react";
+import { getProductImageUrl } from "@/utils/imageUtils";
 
 const PhotoServiceCategory = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -379,77 +377,6 @@ const PhotoServiceCategory = () => {
         </div>
       </section>
 
-      {/* Service Types Section */}
-      <section className="py-20 bg-gradient-to-br from-amber-50/50 via-yellow-50/30 to-orange-50/50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-8">
-            <Badge className="bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 border-amber-200 mb-4 px-4 py-2 font-semibold">
-              Dịch Vụ Nổi Bật
-            </Badge>
-            <h2 className="text-xl md:text-4xl font-bold text-[#C99F4D] mb-6">
-              Các Gói Dịch Vụ
-            </h2>
-            <p className="text-gray-600 text-lg max-w-2xl mx-auto leading-relaxed">
-              Đa dạng gói dịch vụ phù hợp với mọi nhu cầu và ngân sách của bạn
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
-            {serviceTypes.map((type, index) => (
-              <Card
-                key={index}
-                className="group hover:shadow-2xl transition-all duration-500 overflow-hidden border-0 bg-white/80 backdrop-blur-sm transform hover:-translate-y-3 h-full flex flex-col"
-              >
-                <div className="relative overflow-hidden flex-shrink-0">
-                  {type.popular && (
-                    <div className="absolute top-4 left-4 z-10 bg-gradient-to-r from-red-500 to-pink-500 text-white px-3 py-1 rounded-full text-sm font-semibold shadow-lg">
-                      Phổ biến
-                    </div>
-                  )}
-                  <img
-                    src={type.image}
-                    alt={type.name}
-                    className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent group-hover:from-black/30 transition-all duration-300"></div>
-                </div>
-
-                <CardContent className="p-8 flex-1 flex flex-col">
-                  <div className="flex justify-between items-start mb-4 flex-shrink-0">
-                    <h3 className="text-xl font-bold text-gray-800 group-hover:text-[#C99F4D] transition-colors flex-1 mr-2">
-                      {type.name}
-                    </h3>
-                    <Badge className="bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 font-semibold whitespace-nowrap flex-shrink-0">
-                      {type.price}
-                    </Badge>
-                  </div>
-
-                  <p className="text-gray-600 mb-6 leading-relaxed flex-shrink-0">
-                    {type.description}
-                  </p>
-
-                  <div className="space-y-3 mb-6 flex-1">
-                    {type.benefits.map((benefit, idx) => (
-                      <div key={idx} className="flex items-center gap-3">
-                        <div className="w-2 h-2 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full flex-shrink-0"></div>
-                        <span className="text-gray-700 font-medium">
-                          {benefit}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <Button className="w-full bg-gradient-to-r from-[#C99F4D] to-[#B8904A] hover:from-[#B8904A] hover:to-[#A67C42] text-white font-semibold py-3 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex-shrink-0 mt-auto">
-                    <Camera className="mr-2 h-4 w-4" />
-                    Đặt ngay
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Occasions Section */}
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
@@ -467,55 +394,52 @@ const PhotoServiceCategory = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-            {occasions.map((occasion, index) => {
-              const IconComponent = occasion.icon;
-              return (
-                <Card
-                  key={index}
-                  className="border-amber-200 bg-white shadow-md hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 rounded-2xl"
+            {occasions.map((occasion, index) => (
+              <Card
+                key={index}
+                className="border-amber-200 bg-white shadow-md hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 rounded-2xl"
+              >
+                <div
+                  className={`p-6 ${occasion.color} border-b ${occasion.borderColor}`}
                 >
-                  <div
-                    className={`p-6 ${occasion.color} border-b ${occasion.borderColor}`}
-                  >
-                    <Badge className="bg-[#FCE7A2] text-[#8B5E00] hover:bg-[#FCE7A2] hover:text-[#8B5E00] mb-3 py-1.5 px-3 font-medium text-xs uppercase tracking-wide">
-                      {occasion.title}
-                    </Badge>
-                    <h3 className="text-xl font-semibold text-[#C99F4D] mb-1">
-                      {occasion.description}
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Giá từ{" "}
-                      <span className="font-bold text-[#B7791F]">800.000₫</span>
-                    </p>
+                  <Badge className="bg-[#FCE7A2] text-[#8B5E00] hover:bg-[#FCE7A2] hover:text-[#8B5E00] mb-3 py-1.5 px-3 font-medium text-xs uppercase tracking-wide">
+                    {occasion.title}
+                  </Badge>
+                  <h3 className="text-xl font-semibold text-[#C99F4D] mb-1">
+                    {occasion.description}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Giá từ{" "}
+                    <span className="font-bold text-[#B7791F]">800.000₫</span>
+                  </p>
+                </div>
+
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    {occasion.services.map((service, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-3 p-3 rounded-lg bg-amber-50/50 hover:bg-amber-100 transition-colors"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-[#C99F4D] flex items-center justify-center flex-shrink-0 shadow-sm">
+                          <CheckCircle className="h-4 w-4 text-white" />
+                        </div>
+                        <span className="text-gray-700 font-medium">
+                          {service}
+                        </span>
+                      </div>
+                    ))}
                   </div>
 
-                  <CardContent className="p-6">
-                    <div className="space-y-4">
-                      {occasion.services.map((service, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center gap-3 p-3 rounded-lg bg-amber-50/50 hover:bg-amber-100 transition-colors"
-                        >
-                          <div className="w-8 h-8 rounded-full bg-[#C99F4D] flex items-center justify-center flex-shrink-0 shadow-sm">
-                            <CheckCircle className="h-4 w-4 text-white" />
-                          </div>
-                          <span className="text-gray-700 font-medium">
-                            {service}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <Button
-                      variant="outline"
-                      className="w-full mt-6 bg-[#C99F4D] text-white border-[#C99F4D] hover:bg-[#B88A3E] hover:border-[#B88A3E] font-semibold py-3 transition-all duration-300 rounded-xl"
-                    >
-                      Xem chi tiết
-                    </Button>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                  <Button
+                    variant="outline"
+                    className="w-full mt-6 bg-[#C99F4D] text-white border-[#C99F4D] hover:bg-[#B88A3E] hover:border-[#B88A3E] font-semibold py-3 transition-all duration-300 rounded-xl"
+                  >
+                    Xem chi tiết
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
@@ -614,26 +538,36 @@ const PhotoServiceCategory = () => {
 
           {products.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-              {products.map((product) => (
-                <div
-                  key={product.id}
-                  className="transform hover:scale-105 transition-transform duration-300"
-                >
-                  <ProductCard
-                    id={product.id}
-                    name={product.name}
-                    price={product.basePrice}
-                    originalPrice={product.maxPrice}
-                    image={product.imageUrl || ""}
-                    rating={4.5}
-                    reviews={0}
-                    category="Chụp Ảnh Lễ"
-                    shopId={product.shop?.id || 1}
-                    isBestSeller={product.isPopular}
-                    isNew={false}
-                  />
-                </div>
-              ))}
+              {products.map((product) => {
+                // Get normalized image URL using utility function
+                const imageUrl = getProductImageUrl(product);
+
+                // Convert API Product to ProductCard format
+                const productCardProps = {
+                  id: product.id,
+                  name: product.name,
+                  price: product.basePrice,
+                  originalPrice: product.maxPrice,
+                  image: imageUrl || "",
+                  imageUrl: product.imageUrl,
+                  ImageUrls: product.ImageUrls,
+                  imageUrls: product.imageUrls,
+                  rating: 4.5,
+                  reviews: product.reviews?.length || 0,
+                  category: "Chụp Ảnh Lễ",
+                  shopId: product.shop?.id || 1,
+                  isBestSeller: product.isPopular,
+                  isNew: false,
+                };
+                return (
+                  <div
+                    key={product.id}
+                    className="transform hover:scale-105 transition-transform duration-300"
+                  >
+                    <ProductCard {...productCardProps} />
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <Card className="max-w-md mx-auto bg-gradient-to-br from-amber-50 to-yellow-50 border-amber-200">
