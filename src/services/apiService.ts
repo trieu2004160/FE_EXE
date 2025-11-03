@@ -60,6 +60,7 @@ export interface UserProfile {
   phoneNumber?: string;
   address?: string;
   introduction?: string;
+  avatarUrl?: string;
 }
 
 export interface UpdateProfileRequest {
@@ -67,6 +68,7 @@ export interface UpdateProfileRequest {
   phoneNumber?: string;
   address?: string;
   introduction?: string;
+  avatarFile?: File;
 }
 
 // Category Types
@@ -540,11 +542,43 @@ class ApiService {
   /**
    * Update current user profile
    * PUT /api/profile/me
+   * Uses FormData for file upload support
    */
   async updateProfile(data: UpdateProfileRequest): Promise<ApiResponse> {
+    const formData = new FormData();
+    
+    // FullName là required, luôn phải có
+    const fullName = (data.fullName || '').trim();
+    if (!fullName) {
+      throw new Error('FullName is required');
+    }
+    formData.append('FullName', fullName);
+    
+    // Các trường optional - chỉ append nếu có giá trị
+    if (data.phoneNumber) {
+      formData.append('PhoneNumber', data.phoneNumber.trim());
+    }
+    
+    if (data.introduction) {
+      formData.append('Introduction', data.introduction.trim());
+    }
+    
+    // Chỉ append file nếu có
+    if (data.avatarFile) {
+      formData.append('AvatarFile', data.avatarFile);
+    }
+
+    // Log để debug
+    console.log('[updateProfile] Sending FormData:', {
+      FullName: fullName,
+      PhoneNumber: data.phoneNumber || '(empty)',
+      Introduction: data.introduction || '(empty)',
+      hasAvatarFile: !!data.avatarFile,
+    });
+
     return this.request<ApiResponse>('/profile/me', {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: formData,
     });
   }
 

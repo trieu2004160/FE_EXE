@@ -123,31 +123,96 @@ const Cart = () => {
     }
   };
 
-  const toggleShopSelection = (shopId: number) => {
+  const toggleShopSelection = async (shopId: number) => {
     const shopItems = groupedItems[shopId] || [];
-    const allSelected = shopItems.every((item) => item.selected);
+    const allSelected = shopItems.every((item) => item.selected || item.isSelected);
+    const newSelected = !allSelected;
 
-    setCartItems((items) =>
-      items.map((item) =>
-        item.shopId === shopId ? { ...item, selected: !allSelected } : item
-      )
-    );
+    try {
+      // Call API for each item in the shop
+      const promises = shopItems.map((item) =>
+        apiService.selectCartItem(item.id, newSelected)
+      );
+      
+      // Wait for all API calls to complete
+      const results = await Promise.all(promises);
+      
+      // Update cart data from the last response (they should all be the same)
+      if (results.length > 0) {
+        setCartData(results[results.length - 1]);
+      }
+
+      // Update local state
+      setCartItems((items) =>
+        items.map((item) =>
+          item.shopId === shopId
+            ? { ...item, selected: newSelected, isSelected: newSelected }
+            : item
+        )
+      );
+    } catch (err: any) {
+      console.error("Error updating shop selection:", err);
+    }
   };
 
-  const deselectAllFromShop = (shopId: number) => {
-    setCartItems((items) =>
-      items.map((item) =>
-        item.shopId === shopId ? { ...item, selected: false } : item
-      )
-    );
+  const deselectAllFromShop = async (shopId: number) => {
+    const shopItems = groupedItems[shopId] || [];
+
+    try {
+      // Call API for each item in the shop
+      const promises = shopItems.map((item) =>
+        apiService.selectCartItem(item.id, false)
+      );
+      
+      // Wait for all API calls to complete
+      const results = await Promise.all(promises);
+      
+      // Update cart data from the last response
+      if (results.length > 0) {
+        setCartData(results[results.length - 1]);
+      }
+
+      // Update local state
+      setCartItems((items) =>
+        items.map((item) =>
+          item.shopId === shopId
+            ? { ...item, selected: false, isSelected: false }
+            : item
+        )
+      );
+    } catch (err: any) {
+      console.error("Error deselecting shop items:", err);
+    }
   };
 
-  const selectAllFromShop = (shopId: number) => {
-    setCartItems((items) =>
-      items.map((item) =>
-        item.shopId === shopId ? { ...item, selected: true } : item
-      )
-    );
+  const selectAllFromShop = async (shopId: number) => {
+    const shopItems = groupedItems[shopId] || [];
+
+    try {
+      // Call API for each item in the shop
+      const promises = shopItems.map((item) =>
+        apiService.selectCartItem(item.id, true)
+      );
+      
+      // Wait for all API calls to complete
+      const results = await Promise.all(promises);
+      
+      // Update cart data from the last response
+      if (results.length > 0) {
+        setCartData(results[results.length - 1]);
+      }
+
+      // Update local state
+      setCartItems((items) =>
+        items.map((item) =>
+          item.shopId === shopId
+            ? { ...item, selected: true, isSelected: true }
+            : item
+        )
+      );
+    } catch (err: any) {
+      console.error("Error selecting shop items:", err);
+    }
   };
 
   const updateQuantity = async (id: number, newQuantity: number) => {
