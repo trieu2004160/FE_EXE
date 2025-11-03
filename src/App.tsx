@@ -23,6 +23,7 @@ import IncenseCategory from "./pages/IncenseCategory";
 import FruitsCategory from "./pages/FruitsCategory";
 import XoiCheCategory from "./pages/XoiCheCategory";
 import ComboCategory from "./pages/ComboCategory";
+import PhotoServiceCategory from "./pages/PhotoServiceCategory";
 import AdminDashboard from "./pages/AdminDashboard";
 import ShopDashboard from "./pages/ShopDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/category/hoa-qua" element={<FruitsCategory />} />
             <Route path="/category/xoi-che" element={<XoiCheCategory />} />
             <Route path="/category/combo" element={<ComboCategory />} />
+            <Route path="/category/chup-anh-le" element={<PhotoServiceCategory />} />
 
             {/* Auth Routes */}
             <Route path="/login" element={<Login />} />

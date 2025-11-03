@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Flower, Flame, Apple, Droplets, Gift } from "lucide-react";
+import { Flower, Flame, Apple, Droplets, Gift, Camera } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const categories = [
@@ -45,11 +45,11 @@ const categories = [
   },
   {
     id: 7,
-    name: "Chụp Ảnh Lễ ",
-    icon: Gift,
+    name: "Chụp Ảnh Lễ",
+    icon: Camera,
     count: 12,
-    color: "text-purple-600",
-    bgColor: "bg-purple-50 dark:bg-purple-900/20",
+    color: "text-amber-600",
+    bgColor: "bg-amber-50 dark:bg-amber-900/20",
   },
 ];
 
@@ -62,6 +62,7 @@ const Categories = () => {
       "Hoa Quả": "/category/hoa-qua",
       "Xôi – Chè": "/category/xoi-che",
       "Combo Tiết Kiệm": "/category/combo",
+      "Chụp Ảnh Lễ": "/category/chup-anh-le",
     };
 
     return (
