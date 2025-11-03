@@ -48,8 +48,10 @@ const Checkout = () => {
 
   // Address state
   const [addresses, setAddresses] = useState<AddressResponseDto[]>([]);
-  const [defaultAddress, setDefaultAddress] = useState<AddressResponseDto | null>(null);
-  const [selectedAddress, setSelectedAddress] = useState<AddressResponseDto | null>(null);
+  const [defaultAddress, setDefaultAddress] =
+    useState<AddressResponseDto | null>(null);
+  const [selectedAddress, setSelectedAddress] =
+    useState<AddressResponseDto | null>(null);
   const [showAddressDialog, setShowAddressDialog] = useState(false);
   const [showAddAddressDialog, setShowAddAddressDialog] = useState(false);
 
@@ -69,9 +71,9 @@ const Checkout = () => {
   const [promoApplied, setPromoApplied] = useState(false);
 
   // Payment method
-  const [paymentMethod, setPaymentMethod] = useState<"cash_on_delivery" | "payos">(
-    "cash_on_delivery"
-  );
+  const [paymentMethod, setPaymentMethod] = useState<
+    "cash_on_delivery" | "payos"
+  >("cash_on_delivery");
 
   // Fetch cart and addresses
   useEffect(() => {
@@ -167,9 +169,13 @@ const Checkout = () => {
     : [];
 
   // Calculate totals
-  const subtotal = selectedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const subtotal = selectedItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
   const shipping = subtotal > 500000 ? 0 : 30000;
-  const discount = promoCode === "TOTNGHIEP10" && promoApplied ? subtotal * 0.1 : 0;
+  const discount =
+    promoCode === "TOTNGHIEP10" && promoApplied ? subtotal * 0.1 : 0;
   const total = subtotal + shipping - discount;
 
   // Handle address selection
@@ -181,8 +187,14 @@ const Checkout = () => {
   // Handle add new address
   const handleAddAddress = async () => {
     try {
-      if (!addressForm.fullName || !addressForm.phoneNumber || !addressForm.street || 
-          !addressForm.ward || !addressForm.district || !addressForm.city) {
+      if (
+        !addressForm.fullName ||
+        !addressForm.phoneNumber ||
+        !addressForm.street ||
+        !addressForm.ward ||
+        !addressForm.district ||
+        !addressForm.city
+      ) {
         toast({
           title: "Vui lòng điền đầy đủ thông tin",
           variant: "destructive",
@@ -192,7 +204,7 @@ const Checkout = () => {
 
       const newAddress = await apiService.addUserAddress(addressForm);
       setAddresses([...addresses, newAddress]);
-      
+
       if (newAddress.isDefault || addresses.length === 0) {
         setSelectedAddress(newAddress);
         setDefaultAddress(newAddress);
@@ -244,8 +256,10 @@ const Checkout = () => {
   // Handle submit order
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("[Checkout] Form submitted");
 
     if (!selectedAddress) {
+      console.warn("[Checkout] No address selected");
       toast({
         title: "Vui lòng chọn địa chỉ",
         description: "Bạn cần chọn hoặc thêm địa chỉ giao hàng",
@@ -254,8 +268,24 @@ const Checkout = () => {
       return;
     }
 
+    if (selectedItems.length === 0) {
+      console.warn("[Checkout] No items selected");
+      toast({
+        title: "Không có sản phẩm",
+        description: "Vui lòng chọn sản phẩm để thanh toán",
+        variant: "destructive",
+      });
+      navigate("/cart");
+      return;
+    }
+
     try {
       setSubmitting(true);
+      console.log("[Checkout] Creating order...", {
+        addressId: selectedAddress.id,
+        paymentMethod,
+        itemsCount: selectedItems.length,
+      });
 
       // Convert selectedAddress to ShippingAddress format for order
       const shippingAddress = {
@@ -274,7 +304,9 @@ const Checkout = () => {
         paymentMethod,
       };
 
+      console.log("[Checkout] Order data prepared:", orderData);
       const order = await ordersApi.create(orderData);
+      console.log("[Checkout] Order created successfully:", order);
 
       toast({
         title: "Đặt hàng thành công!",
@@ -287,10 +319,11 @@ const Checkout = () => {
       // Navigate to order detail or orders list
       navigate(`/orders/${order.id}`);
     } catch (error: any) {
-      console.error("Error creating order:", error);
+      console.error("[Checkout] Error creating order:", error);
       toast({
         title: "Lỗi đặt hàng",
-        description: error?.message || "Không thể tạo đơn hàng. Vui lòng thử lại.",
+        description:
+          error?.message || "Không thể tạo đơn hàng. Vui lòng thử lại.",
         variant: "destructive",
       });
     } finally {
@@ -329,220 +362,304 @@ const Checkout = () => {
           <h1 className="text-3xl font-bold text-gray-800">Thanh toán</h1>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Column - Address and Payment */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Shipping Address Card */}
-              <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-gray-800">
-                    <MapPin className="h-5 w-5 text-[#A67C42]" />
-                    Địa chỉ giao hàng
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {selectedAddress ? (
-                    <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="font-semibold text-gray-800">
-                              {selectedAddress.fullName}
-                            </span>
-                            {selectedAddress.isDefault && (
-                              <span className="text-xs bg-[#A67C42] text-white px-2 py-1 rounded">
-                                Mặc định
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-600 mb-1">
-                            {selectedAddress.phoneNumber}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            {selectedAddress.street}, {selectedAddress.ward}, {selectedAddress.district}, {selectedAddress.city}
-                          </p>
-                        </div>
-                        <Dialog open={showAddressDialog} onOpenChange={setShowAddressDialog}>
-                          <DialogTrigger asChild>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="flex items-center gap-2"
-                            >
-                              <Edit2 className="h-4 w-4" />
-                              Thay đổi
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                            <DialogHeader>
-                              <DialogTitle>Chọn địa chỉ giao hàng</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-3 mt-4">
-                              {addresses.map((address) => (
-                                <div
-                                  key={address.id}
-                                  className={`border rounded-lg p-4 cursor-pointer transition-all ${
-                                    selectedAddress?.id === address.id
-                                      ? "border-[#A67C42] bg-[#A67C42]/5"
-                                      : "border-gray-200 hover:border-gray-300"
-                                  }`}
-                                  onClick={() => handleSelectAddress(address)}
-                                >
-                                  <div className="flex items-start justify-between">
-                                    <div className="flex-1">
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <span className="font-semibold">{address.fullName}</span>
-                                        {address.isDefault && (
-                                          <span className="text-xs bg-[#A67C42] text-white px-2 py-1 rounded">
-                                            Mặc định
-                                          </span>
-                                        )}
-                                      </div>
-                                      <p className="text-sm text-gray-600 mb-1">
-                                        {address.phoneNumber}
-                                      </p>
-                                      <p className="text-sm text-gray-600">
-                                        {address.street}, {address.ward}, {address.district}, {address.city}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                              <Button
-                                type="button"
-                                variant="outline"
-                                className="w-full flex items-center gap-2"
-                                onClick={() => {
-                                  setShowAddressDialog(false);
-                                  setShowAddAddressDialog(true);
-                                }}
-                              >
-                                <Plus className="h-4 w-4" />
-                                Thêm địa chỉ mới
-                              </Button>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
+        {/* Shipping Address Section - Above the form */}
+        {selectedAddress ? (
+          <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-gray-800">
+                <MapPin className="h-5 w-5 text-[#A67C42]" />
+                Địa chỉ giao hàng mặc định
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="border border-gray-200 rounded-lg p-4 bg-gradient-to-r from-gray-50 to-white">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-semibold text-gray-800 text-lg">
+                        {selectedAddress.fullName}
+                      </span>
+                      {selectedAddress.isDefault && (
+                        <span className="text-xs bg-[#A67C42] text-white px-2 py-1 rounded">
+                          Mặc định
+                        </span>
+                      )}
                     </div>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full flex items-center gap-2"
-                      onClick={() => setShowAddAddressDialog(true)}
-                    >
-                      <Plus className="h-4 w-4" />
-                      Thêm địa chỉ giao hàng
-                    </Button>
-                  )}
-
-                  {/* Add Address Dialog */}
-                  <Dialog open={showAddAddressDialog} onOpenChange={setShowAddAddressDialog}>
-                    <DialogContent className="max-w-lg">
+                    <p className="text-sm text-gray-600 mb-1">
+                      📞 {selectedAddress.phoneNumber}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      📍 {selectedAddress.street}, {selectedAddress.ward},{" "}
+                      {selectedAddress.district}, {selectedAddress.city}
+                    </p>
+                  </div>
+                  <Dialog
+                    open={showAddressDialog}
+                    onOpenChange={setShowAddressDialog}
+                  >
+                    <DialogTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2 ml-4"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                        Thay đổi
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                       <DialogHeader>
-                        <DialogTitle>Thêm địa chỉ giao hàng</DialogTitle>
+                        <DialogTitle>Chọn địa chỉ giao hàng</DialogTitle>
                       </DialogHeader>
-                      <div className="space-y-4 mt-4">
-                        <div className="space-y-2">
-                          <Label>Họ và tên *</Label>
-                          <Input
-                            value={addressForm.fullName}
-                            onChange={(e) =>
-                              setAddressForm({ ...addressForm, fullName: e.target.value })
-                            }
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Số điện thoại *</Label>
-                          <Input
-                            value={addressForm.phoneNumber}
-                            onChange={(e) =>
-                              setAddressForm({
-                                ...addressForm,
-                                phoneNumber: e.target.value,
-                              })
-                            }
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Số nhà, đường *</Label>
-                          <Input
-                            value={addressForm.street}
-                            onChange={(e) =>
-                              setAddressForm({ ...addressForm, street: e.target.value })
-                            }
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Phường/Xã *</Label>
-                          <Input
-                            value={addressForm.ward}
-                            onChange={(e) =>
-                              setAddressForm({ ...addressForm, ward: e.target.value })
-                            }
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Quận/Huyện *</Label>
-                          <Input
-                            value={addressForm.district}
-                            onChange={(e) =>
-                              setAddressForm({
-                                ...addressForm,
-                                district: e.target.value,
-                              })
-                            }
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Thành phố *</Label>
-                          <Input
-                            value={addressForm.city}
-                            onChange={(e) =>
-                              setAddressForm({ ...addressForm, city: e.target.value })
-                            }
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            id="isDefault"
-                            checked={addressForm.isDefault}
-                            onChange={(e) =>
-                              setAddressForm({
-                                ...addressForm,
-                                isDefault: e.target.checked,
-                              })
-                            }
-                            className="h-4 w-4"
-                          />
-                          <Label htmlFor="isDefault" className="cursor-pointer">
-                            Đặt làm địa chỉ mặc định
-                          </Label>
-                        </div>
-                        <div className="flex gap-3">
-                          <Button
-                            type="button"
-                            onClick={handleAddAddress}
-                            className="flex-1 bg-[#A67C42] hover:bg-[#8B6835]"
-                          >
-                            Thêm địa chỉ
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setShowAddAddressDialog(false)}
-                            className="flex-1"
-                          >
-                            Hủy
-                          </Button>
-                        </div>
+                      <div className="space-y-3 mt-4">
+                        {addresses.length > 0 ? (
+                          addresses.map((address) => (
+                            <div
+                              key={address.id}
+                              className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                                selectedAddress?.id === address.id
+                                  ? "border-[#A67C42] bg-[#A67C42]/5"
+                                  : "border-gray-200 hover:border-gray-300"
+                              }`}
+                              onClick={() => handleSelectAddress(address)}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <span className="font-semibold">
+                                      {address.fullName}
+                                    </span>
+                                    {address.isDefault && (
+                                      <span className="text-xs bg-[#A67C42] text-white px-2 py-1 rounded">
+                                        Mặc định
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-gray-600 mb-1">
+                                    {address.phoneNumber}
+                                  </p>
+                                  <p className="text-sm text-gray-600">
+                                    {address.street}, {address.ward},{" "}
+                                    {address.district}, {address.city}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-gray-500 text-center py-4">
+                            Chưa có địa chỉ nào
+                          </p>
+                        )}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full flex items-center gap-2"
+                          onClick={() => {
+                            setShowAddressDialog(false);
+                            setShowAddAddressDialog(true);
+                          }}
+                        >
+                          <Plus className="h-4 w-4" />
+                          Thêm địa chỉ mới
+                        </Button>
                       </div>
                     </DialogContent>
                   </Dialog>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-gray-800">
+                <MapPin className="h-5 w-5 text-[#A67C42]" />
+                Thêm địa chỉ giao hàng
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Họ và tên *</Label>
+                  <Input
+                    className=" focus-visible:ring-0 focus-visible:ring-offset-0"
+                    value={addressForm.fullName}
+                    onChange={(e) =>
+                      setAddressForm({
+                        ...addressForm,
+                        fullName: e.target.value,
+                      })
+                    }
+                    placeholder="Nhập họ và tên"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Số điện thoại *</Label>
+                  <Input
+                    className=" focus-visible:ring-0 focus-visible:ring-offset-0"
+                    value={addressForm.phoneNumber}
+                    onChange={(e) =>
+                      setAddressForm({
+                        ...addressForm,
+                        phoneNumber: e.target.value,
+                      })
+                    }
+                    placeholder="Nhập số điện thoại"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Số nhà, đường *</Label>
+                    <Input
+                      className=" focus-visible:ring-0 focus-visible:ring-offset-0"
+                      value={addressForm.street}
+                      onChange={(e) =>
+                        setAddressForm({
+                          ...addressForm,
+                          street: e.target.value,
+                        })
+                      }
+                      placeholder="Nhập số nhà, đường"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Phường/Xã *</Label>
+                    <Input
+                      className=" focus-visible:ring-0 focus-visible:ring-offset-0"
+                      value={addressForm.ward}
+                      onChange={(e) =>
+                        setAddressForm({ ...addressForm, ward: e.target.value })
+                      }
+                      placeholder="Nhập phường/xã"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Quận/Huyện *</Label>
+                    <Input
+                      className=" focus-visible:ring-0 focus-visible:ring-offset-0"
+                      value={addressForm.district}
+                      onChange={(e) =>
+                        setAddressForm({
+                          ...addressForm,
+                          district: e.target.value,
+                        })
+                      }
+                      placeholder="Nhập quận/huyện"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Thành phố *</Label>
+                    <Input
+                      className=" focus-visible:ring-0 focus-visible:ring-offset-0"
+                      value={addressForm.city}
+                      onChange={(e) =>
+                        setAddressForm({ ...addressForm, city: e.target.value })
+                      }
+                      placeholder="Nhập thành phố"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="isDefault"
+                    checked={addressForm.isDefault}
+                    onChange={(e) =>
+                      setAddressForm({
+                        ...addressForm,
+                        isDefault: e.target.checked,
+                      })
+                    }
+                    className="h-4 w-4"
+                  />
+                  <Label htmlFor="isDefault" className="cursor-pointer">
+                    Đặt làm địa chỉ mặc định
+                  </Label>
+                </div>
+                <Button
+                  type="button"
+                  onClick={handleAddAddress}
+                  className="w-full bg-[#A67C42] hover:bg-[#8B6835]"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Thêm địa chỉ
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Add Address Dialog - Popup for adding new address */}
+
+        <form onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left Column - Order Items */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Selected Items by Shop */}
+              <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-gray-800">
+                    <ShoppingBag className="h-5 w-5 text-[#A67C42]" />
+                    Sản phẩm đã chọn ({selectedItems.length} sản phẩm)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {groupedItems.length > 0 ? (
+                      groupedItems.map((shopGroup) => (
+                        <div key={shopGroup.shopId} className="space-y-3">
+                          <div className="flex items-center gap-2 text-base font-semibold text-gray-800 pb-2 border-b">
+                            <ShoppingBag className="h-4 w-4 text-[#A67C42]" />
+                            {shopGroup.shopName}
+                          </div>
+                          <div className="space-y-3">
+                            {shopGroup.items.map((item) => (
+                              <div
+                                key={item.id}
+                                className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                              >
+                                <img
+                                  src={
+                                    normalizeImageUrl(item.imageUrl) ||
+                                    "https://via.placeholder.com/200?text=No+Image"
+                                  }
+                                  alt={item.productName}
+                                  className="w-20 h-20 object-cover rounded-lg"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-gray-800 truncate">
+                                    {item.productName}
+                                  </p>
+                                  <p className="text-sm text-gray-600 mt-1">
+                                    Số lượng: {item.quantity}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-sm text-gray-500">
+                                    {item.price.toLocaleString("vi-VN")}đ/SP
+                                  </p>
+                                  <p className="font-semibold text-[#A67C42] text-lg">
+                                    {(
+                                      item.price * item.quantity
+                                    ).toLocaleString("vi-VN")}
+                                    đ
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-500 text-center py-8">
+                        Không có sản phẩm nào được chọn
+                      </p>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
 
@@ -555,18 +672,20 @@ const Checkout = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <label className="flex items-center space-x-3 cursor-pointer p-3 border rounded-lg hover:bg-gray-50">
+                  <label className="flex items-center space-x-3 cursor-pointer p-4 border-2 border-gray-200 rounded-lg hover:border-[#A67C42] transition-colors">
                     <input
                       type="radio"
                       name="paymentMethod"
                       value="cash_on_delivery"
                       checked={paymentMethod === "cash_on_delivery"}
                       onChange={(e) => setPaymentMethod(e.target.value as any)}
-                      className="h-4 w-4"
+                      className="h-4 w-4 text-[#A67C42]"
                     />
-                    <div>
-                      <div className="font-medium">Thanh toán khi nhận hàng (COD)</div>
-                      <div className="text-sm text-gray-600">
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-800">
+                        Thanh toán khi nhận hàng (COD)
+                      </div>
+                      <div className="text-sm text-gray-600 mt-1">
                         Bạn sẽ thanh toán khi nhận được hàng
                       </div>
                     </div>
@@ -579,52 +698,14 @@ const Checkout = () => {
             <div className="lg:col-span-1">
               <Card className="sticky top-4 border-none shadow-xl bg-white/80 backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle className="text-gray-800">Tóm tắt đơn hàng</CardTitle>
+                  <CardTitle className="text-gray-800">
+                    Tóm tắt thanh toán
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Selected Items by Shop */}
-                  <div className="space-y-4">
-                    {groupedItems.map((shopGroup) => (
-                      <div key={shopGroup.shopId} className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                          <ShoppingBag className="h-4 w-4 text-[#A67C42]" />
-                          {shopGroup.shopName}
-                        </div>
-                        {shopGroup.items.map((item) => (
-                          <div
-                            key={item.id}
-                            className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg"
-                          >
-                            <img
-                              src={
-                                normalizeImageUrl(item.imageUrl) ||
-                                "https://via.placeholder.com/200?text=No+Image"
-                              }
-                              alt={item.productName}
-                              className="w-16 h-16 object-cover rounded"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm text-gray-800 truncate">
-                                {item.productName}
-                              </p>
-                              <p className="text-xs text-gray-600">
-                                {item.quantity} × {item.price.toLocaleString("vi-VN")}đ
-                              </p>
-                            </div>
-                            <p className="font-semibold text-sm text-[#A67C42]">
-                              {(item.price * item.quantity).toLocaleString("vi-VN")}đ
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-
-                  <hr className="border-gray-200" />
-
                   {/* Promo Code */}
                   <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
+                    <Label className="flex items-center gap-2 text-gray-700">
                       <Tag className="h-4 w-4 text-[#A67C42]" />
                       Mã giảm giá
                     </Label>
@@ -634,20 +715,23 @@ const Checkout = () => {
                         value={promoCode}
                         onChange={(e) => setPromoCode(e.target.value)}
                         disabled={promoApplied}
+                        className="flex-1  focus-visible:ring-0 focus-visible:ring-offset-0"
                       />
                       <Button
                         type="button"
                         onClick={handleApplyPromo}
                         disabled={promoApplied}
-                        className="bg-[#A67C42] hover:bg-[#8B6835]"
+                        className="bg-[#A67C42] hover:bg-[#8B6835] whitespace-nowrap"
                       >
                         {promoApplied ? "Đã áp dụng" : "Áp dụng"}
                       </Button>
                     </div>
                     {promoApplied && promoCode === "TOTNGHIEP10" && (
-                      <p className="text-sm text-green-600 font-medium">
-                        ✓ Giảm 10% cho lễ tốt nghiệp
-                      </p>
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-2">
+                        <p className="text-sm text-green-700 font-medium">
+                          ✓ Đã áp dụng mã giảm giá 10%
+                        </p>
+                      </div>
                     )}
                   </div>
 
@@ -655,14 +739,15 @@ const Checkout = () => {
 
                   {/* Price Breakdown */}
                   <div className="space-y-3">
-                    <div className="flex justify-between text-gray-600">
-                      <span>Tạm tính ({selectedItems.length} sản phẩm)</span>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Tạm tính</span>
                       <span className="font-semibold text-gray-800">
                         {subtotal.toLocaleString("vi-VN")}đ
                       </span>
                     </div>
-                    <div className="flex justify-between text-gray-600">
-                      <span>Phí vận chuyển</span>
+
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Phí vận chuyển</span>
                       <span className="font-semibold text-gray-800">
                         {shipping === 0 ? (
                           <span className="text-green-600">Miễn phí</span>
@@ -671,6 +756,7 @@ const Checkout = () => {
                         )}
                       </span>
                     </div>
+
                     {discount > 0 && (
                       <div className="flex justify-between text-green-600">
                         <span>Giảm giá</span>
@@ -679,10 +765,11 @@ const Checkout = () => {
                         </span>
                       </div>
                     )}
+
                     {shipping === 0 && (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                        <p className="text-sm text-green-700 font-medium">
-                          Miễn phí vận chuyển cho đơn hàng trên 500,000đ
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-2">
+                        <p className="text-xs text-green-700">
+                          ✓ Miễn phí vận chuyển cho đơn hàng trên 500,000đ
                         </p>
                       </div>
                     )}

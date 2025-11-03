@@ -1137,6 +1137,31 @@ class ApiService {
   // Base URL: /api/orders
 
   /**
+   * Create order from cart (selected items only)
+   * POST /api/orders
+   * Requires authentication
+   */
+  async createOrder(data: {
+    shippingAddress?: {
+      fullName: string;
+      email: string;
+      phone: string;
+      address: string;
+      city: string;
+      postalCode: string;
+      district?: string;
+      ward?: string;
+    };
+    paymentMethod?: 'cash_on_delivery' | 'payos';
+  }): Promise<OrderResponseDto> {
+    console.log('[apiService] Creating order:', data);
+    return this.request<OrderResponseDto>('/orders', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
    * Get order by ID
    * GET /api/orders/{id}
    * Requires authentication

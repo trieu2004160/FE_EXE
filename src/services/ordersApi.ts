@@ -58,14 +58,12 @@ class OrdersApi {
   // Create order from cart (selected items only)
   async create(orderData: CreateOrderRequest): Promise<OrderResponseDto> {
     try {
-      const response = await apiService.request<OrderResponseDto>('/orders', {
-        method: 'POST',
-        body: JSON.stringify(orderData),
-      });
-      
+      console.log('[OrdersApi] Creating order with data:', orderData);
+      const response = await apiService.createOrder(orderData);
+      console.log('[OrdersApi] Order created successfully:', response);
       return response;
     } catch (error: any) {
-      console.error('Error creating order:', error);
+      console.error('[OrdersApi] Error creating order:', error);
       throw new Error(error.message || 'Không thể tạo đơn hàng. Vui lòng thử lại.');
     }
   }
