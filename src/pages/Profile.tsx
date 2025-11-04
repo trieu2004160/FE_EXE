@@ -60,12 +60,20 @@ const Profile = () => {
         const profileData = await apiService.getProfile();
         setUserInfo(profileData);
         
-        // Load avatar từ backend
+        // Load avatar từ backend (có thể là base64 data URL hoặc URL từ database)
         if (profileData.avatarUrl) {
+          // normalizeImageUrl sẽ xử lý:
+          // - Base64 data URL (data:image/...) -> trả về trực tiếp
+          // - Absolute URL (http://...) -> trả về trực tiếp
+          // - Relative path (/images/...) -> xử lý proxy/URL
           const normalizedUrl = normalizeImageUrl(profileData.avatarUrl);
           const avatarUrl = normalizedUrl || profileData.avatarUrl;
           setAvatarPreview(avatarUrl);
           setOriginalAvatarPreview(avatarUrl);
+        } else {
+          // Clear preview nếu không có avatar
+          setAvatarPreview("");
+          setOriginalAvatarPreview("");
         }
       } catch (apiError) {
         console.warn("API not available, using fallback data:", apiError);
@@ -86,10 +94,16 @@ const Profile = () => {
               avatarUrl: parsedUserData.avatarUrl || "",
             });
             
-            // Load avatar từ parsed data
+            // Load avatar từ parsed data (fallback từ localStorage)
             if (parsedUserData.avatarUrl) {
-              setAvatarPreview(parsedUserData.avatarUrl);
-              setOriginalAvatarPreview(parsedUserData.avatarUrl);
+              // Normalize URL để đảm bảo consistency (hỗ trợ base64, URL, relative path)
+              const normalizedUrl = normalizeImageUrl(parsedUserData.avatarUrl);
+              const avatarUrl = normalizedUrl || parsedUserData.avatarUrl;
+              setAvatarPreview(avatarUrl);
+              setOriginalAvatarPreview(avatarUrl);
+            } else {
+              setAvatarPreview("");
+              setOriginalAvatarPreview("");
             }
           } catch (error) {
             console.error("Error parsing user data:", error);
@@ -202,12 +216,15 @@ const Profile = () => {
       // Cập nhật state với dữ liệu từ backend
       setUserInfo(updatedProfile);
 
-      // Cập nhật avatar preview từ backend
+      // Cập nhật avatar preview từ backend (có thể là base64 data URL hoặc URL từ database)
       if (updatedProfile.avatarUrl) {
+        // normalizeImageUrl xử lý base64 data URL, absolute URL, và relative path
         const normalizedUrl = normalizeImageUrl(updatedProfile.avatarUrl);
         setAvatarPreview(normalizedUrl || updatedProfile.avatarUrl);
+        setOriginalAvatarPreview(normalizedUrl || updatedProfile.avatarUrl);
       } else {
         setAvatarPreview('');
+        setOriginalAvatarPreview('');
       }
 
       // Clear file selection sau khi upload thành công
@@ -526,7 +543,7 @@ const Profile = () => {
                           Định dạng: JPG, PNG (tối đa 5MB)
                         </p>
                         <p className="text-xs text-green-600 mt-1 font-medium">
-                          ✓ Ảnh sẽ được lưu vào database và hiển thị mỗi khi bạn đăng nhập
+                          ✓ Ảnh sẽ được lưu vào database (dạng base64 hoặc URL) và hiển thị mỗi khi bạn đăng nhập
                         </p>
                       </div>
                     </div>

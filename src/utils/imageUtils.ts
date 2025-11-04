@@ -1,8 +1,11 @@
 // Image Utilities - Handle image URLs from backend
 
 /**
- * Normalize image URL - handle relative paths from backend
- * Backend returns paths like /images/products/xxx.jpg or full URLs
+ * Normalize image URL - handle relative paths, absolute URLs, and base64 data URLs from backend
+ * Backend returns:
+ * - Base64 data URLs: data:image/jpeg;base64,/9j/4AAQSkZJRg... (stored in database)
+ * - Absolute URLs: http:// or https://
+ * - Relative paths: /images/products/xxx.jpg (if still using file system)
  * Use proxy in development, or full URL in production
  */
 export function normalizeImageUrl(url: string | undefined | null): string | undefined {
@@ -13,17 +16,53 @@ export function normalizeImageUrl(url: string | undefined | null): string | unde
 
     const trimmedUrl = url.trim();
 
+    // If base64 data URL (stored in database), return as is
+    // Format: data:image/[type];base64,[base64string]
+    if (trimmedUrl.startsWith('data:image/')) {
+      return trimmedUrl;
+    }
+
     // If already absolute URL (http:// or https://), return as is
     if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')) {
       return trimmedUrl;
     }
 
-    // Ensure URL starts with / for relative paths
-    const cleanUrl = trimmedUrl.startsWith('/') ? trimmedUrl : `/${trimmedUrl}`;
+    // If relative path starting with /images/, handle it (for backward compatibility)
+    // Note: This assumes BE might still return relative paths temporarily
+    if (trimmedUrl.startsWith('/images/')) {
+      const cleanUrl = trimmedUrl;
 
-    // In development, use proxy (vite.config.ts proxies /images to backend)
+      // In development, use proxy (vite.config.ts proxies /images to backend)
+      if (import.meta.env.DEV) {
+        // Development: use proxy - vite will proxy /images/* to https://localhost:5001/images/*
+        return cleanUrl;
+      }
+
+      // Production: construct full URL
+      let backendBaseUrl = 'https://localhost:5001';
+      
+      if (import.meta.env.VITE_API_BASE_URL) {
+        const apiUrl = import.meta.env.VITE_API_BASE_URL;
+        if (apiUrl.startsWith('http://') || apiUrl.startsWith('https://')) {
+          // Full URL like https://localhost:5001/api
+          backendBaseUrl = apiUrl.replace('/api', '').replace(/\/$/, '');
+        } else if (apiUrl.startsWith('/api')) {
+          // Relative path like /api, use default backend
+          backendBaseUrl = 'https://localhost:5001';
+        }
+      } else if (import.meta.env.VITE_BACKEND_URL) {
+        backendBaseUrl = import.meta.env.VITE_BACKEND_URL.replace(/\/$/, '');
+      }
+      
+      // Construct full URL: https://localhost:5001/images/products/xxx.jpg
+      return `${backendBaseUrl}${cleanUrl}`;
+    }
+
+    // For other relative paths, ensure they start with /
+    const cleanUrl = trimmedUrl.startsWith('/') ? trimmedUrl : `/${trimmedUrl}`;
+    
+    // In development, use proxy
     if (import.meta.env.DEV) {
-      // Development: use proxy - vite will proxy /images/* to https://localhost:5001/images/*
       return cleanUrl;
     }
 
@@ -33,17 +72,12 @@ export function normalizeImageUrl(url: string | undefined | null): string | unde
     if (import.meta.env.VITE_API_BASE_URL) {
       const apiUrl = import.meta.env.VITE_API_BASE_URL;
       if (apiUrl.startsWith('http://') || apiUrl.startsWith('https://')) {
-        // Full URL like https://localhost:5001/api
         backendBaseUrl = apiUrl.replace('/api', '').replace(/\/$/, '');
-      } else if (apiUrl.startsWith('/api')) {
-        // Relative path like /api, use default backend
-        backendBaseUrl = 'https://localhost:5001';
       }
     } else if (import.meta.env.VITE_BACKEND_URL) {
       backendBaseUrl = import.meta.env.VITE_BACKEND_URL.replace(/\/$/, '');
     }
     
-    // Construct full URL: https://localhost:5001/images/products/xxx.jpg
     return `${backendBaseUrl}${cleanUrl}`;
   } catch (error) {
     console.error('Error normalizing image URL:', error, url);
