@@ -1193,9 +1193,12 @@ class ApiService {
    * Requires authentication
    */
   async getUserOrders(): Promise<OrderResponseDto[]> {
-    return this.request<OrderResponseDto[]>('/orders', {
+    console.log('[apiService] Fetching user orders...');
+    const result = await this.request<OrderResponseDto[]>('/orders', {
       method: 'GET',
     });
+    console.log('[apiService] User orders response:', result);
+    return result;
   }
 
   async getAdminCategories(): Promise<AdminCategoryDto[]> {

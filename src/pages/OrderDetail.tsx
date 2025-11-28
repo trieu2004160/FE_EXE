@@ -33,6 +33,65 @@ const OrderDetail = () => {
                 setOrder(data);
             } catch (error) {
                 console.error("Failed to fetch order:", error);
+
+                // MOCK DATA FALLBACK
+                const mockId = parseInt(id);
+                if (mockId === 101) {
+                    setOrder({
+                        id: 101,
+                        status: 'delivered',
+                        total: 1500000,
+                        subtotal: 1500000,
+                        createdAt: new Date('2023-11-20').toISOString(),
+                        shippingAddress: {
+                            fullName: "Nguyễn Văn A",
+                            phoneNumber: "0901234567",
+                            street: "123 Đường ABC",
+                            ward: "Phường 1",
+                            district: "Quận 1",
+                            city: "TP.HCM"
+                        },
+                        items: [
+                            {
+                                productId: 101,
+                                productName: "Mâm Cúng Thôi Nôi Bé Trai",
+                                price: 1500000,
+                                quantity: 1,
+                                imageUrl: "https://docungviet.vn/wp-content/uploads/2023/06/mam-cung-thoi-noi-be-trai-goi-vip-1.jpg",
+                                shopName: "Đồ Cúng Việt"
+                            }
+                        ]
+                    });
+                    return;
+                } else if (mockId === 102) {
+                    setOrder({
+                        id: 102,
+                        status: 'processing',
+                        total: 850000,
+                        subtotal: 850000,
+                        createdAt: new Date('2023-11-25').toISOString(),
+                        shippingAddress: {
+                            fullName: "Nguyễn Văn A",
+                            phoneNumber: "0901234567",
+                            street: "123 Đường ABC",
+                            ward: "Phường 1",
+                            district: "Quận 1",
+                            city: "TP.HCM"
+                        },
+                        items: [
+                            {
+                                productId: 102,
+                                productName: "Heo Quay Sữa",
+                                price: 850000,
+                                quantity: 1,
+                                imageUrl: "https://heoquay.com/wp-content/uploads/2019/07/heo-quay-sua-nguyen-con.jpg",
+                                shopName: "Heo Quay Ngon"
+                            }
+                        ]
+                    });
+                    return;
+                }
+
                 toast({
                     title: "Lỗi",
                     description: "Không thể tải thông tin đơn hàng.",
@@ -105,10 +164,10 @@ const OrderDetail = () => {
                 <Button
                     variant="ghost"
                     className="mb-6 pl-0 hover:bg-transparent hover:text-primary"
-                    onClick={() => navigate(-1)}
+                    onClick={() => navigate('/cart?tab=history')}
                 >
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    Quay lại
+                    Quay lại lịch sử đơn hàng
                 </Button>
 
                 <div className="grid gap-6 md:grid-cols-3">
