@@ -45,7 +45,7 @@ const Cart = () => {
   const [searchParams] = useSearchParams();
 
   // Initialize activeTab based on URL parameter
-  const initialTab = searchParams.get('tab') === 'history' ? 'history' : 'cart';
+  const initialTab = searchParams.get("tab") === "history" ? "history" : "cart";
 
   const [cartData, setCartData] = useState<CartResponseDto | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -58,9 +58,9 @@ const Cart = () => {
 
   // Check for tab parameter in URL and load orders if needed
   useEffect(() => {
-    const tab = searchParams.get('tab');
-    if (tab === 'history') {
-      setActiveTab('history');
+    const tab = searchParams.get("tab");
+    if (tab === "history") {
+      setActiveTab("history");
       fetchOrders();
     }
   }, [searchParams]);
@@ -71,15 +71,19 @@ const Cart = () => {
       setLoading(true);
       setError("");
       try {
-        console.log('[Cart] Fetching cart data...');
+        console.log("[Cart] Fetching cart data...");
         const cartResponse = await apiService.getCart();
-        console.log('[Cart] Cart data received:', cartResponse);
+        console.log("[Cart] Cart data received:", cartResponse);
 
         setCartData(cartResponse);
 
         // Flatten cart items from shops structure
         const flattenedItems: CartItem[] = [];
-        if (cartResponse && cartResponse.shops && Array.isArray(cartResponse.shops)) {
+        if (
+          cartResponse &&
+          cartResponse.shops &&
+          Array.isArray(cartResponse.shops)
+        ) {
           cartResponse.shops.forEach((shop: ShopInCartDto) => {
             if (shop.items && Array.isArray(shop.items)) {
               shop.items.forEach((item: CartItemDto) => {
@@ -100,25 +104,35 @@ const Cart = () => {
           });
         }
         setCartItems(flattenedItems);
-        console.log('[Cart] Flattened items:', flattenedItems);
+        console.log("[Cart] Flattened items:", flattenedItems);
       } catch (err: any) {
-        console.error('[Cart] Error fetching cart:', {
+        console.error("[Cart] Error fetching cart:", {
           error: err,
           message: err?.message,
           stack: err?.stack,
-          name: err?.name
+          name: err?.name,
         });
 
         // Check if it's an authentication error
-        if (err?.message?.includes('401') || err?.message?.includes('Unauthorized')) {
+        if (
+          err?.message?.includes("401") ||
+          err?.message?.includes("Unauthorized")
+        ) {
           setError("Vui lòng đăng nhập để xem giỏ hàng");
-        } else if (err?.message?.includes('Failed to fetch') || err?.message?.includes('kết nối')) {
-          setError("Không thể kết nối đến server. Vui lòng kiểm tra:\n1. Backend server đang chạy không?\n2. URL: https://localhost:5001/api/cart\n3. CORS configuration");
+        } else if (
+          err?.message?.includes("Failed to fetch") ||
+          err?.message?.includes("kết nối")
+        ) {
+          setError(
+            "Không thể kết nối đến server. Vui lòng kiểm tra:\n1. Backend server đang chạy không?\n2. URL: https://localhost:5001/api/cart\n3. CORS configuration"
+          );
         } else {
-          setError(err.message || "Không thể tải giỏ hàng. Vui lòng thử lại sau.");
+          setError(
+            err.message || "Không thể tải giỏ hàng. Vui lòng thử lại sau."
+          );
         }
         // MOCK DATA FOR VERIFICATION/DEMO if backend is down
-        console.log('[Cart] Using mock data due to error');
+        console.log("[Cart] Using mock data due to error");
         const mockItems: CartItem[] = [
           {
             id: 1,
@@ -129,18 +143,21 @@ const Cart = () => {
             shopId: 1,
             selected: true,
             isSelected: true,
-            imageUrl: "https://docungviet.vn/wp-content/uploads/2023/06/mam-cung-thoi-noi-be-trai-goi-vip-1.jpg"
-          }
+            imageUrl:
+              "https://docungviet.vn/wp-content/uploads/2023/06/mam-cung-thoi-noi-be-trai-goi-vip-1.jpg",
+          },
         ];
         setCartItems(mockItems);
         setCartData({
           id: 1,
           totalPrice: 1500000,
-          shops: [{
-            shopId: 1,
-            shopName: "Đồ Cúng Việt (Mock)",
-            items: [] // items are flattened into cartItems state
-          }]
+          shops: [
+            {
+              shopId: 1,
+              shopName: "Đồ Cúng Việt (Mock)",
+              items: [], // items are flattened into cartItems state
+            },
+          ],
         });
         setError(""); // Clear error to allow UI to render
       } finally {
@@ -154,42 +171,43 @@ const Cart = () => {
   const fetchOrders = async () => {
     setLoadingHistory(true);
     try {
-      console.log('[Cart] Fetching orders...');
+      console.log("[Cart] Fetching orders...");
       const data = await apiService.getUserOrders();
-      console.log('[Cart] Orders fetched:', data);
+      console.log("[Cart] Orders fetched:", data);
 
       // Ensure data is an array before accessing or processing
       if (!Array.isArray(data)) {
-        console.warn('[Cart] Orders data is not an array:', data);
+        console.warn("[Cart] Orders data is not an array:", data);
         setOrders([]);
         return;
       }
 
-      console.log('[Cart] First order structure:', data[0]);
+      console.log("[Cart] First order structure:", data[0]);
 
       // Sort by date descending
-      const sortedOrders = data.sort((a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      const sortedOrders = data.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
       setOrders(sortedOrders);
     } catch (err) {
       console.error("[Cart] Failed to fetch orders:", err);
       // Fallback to mock data if backend is unavailable
-      console.log('[Cart] Using mock data for orders due to error');
+      console.log("[Cart] Using mock data for orders due to error");
       setOrders([
         {
           id: 101,
-          status: 'delivered',
+          status: "delivered",
           total: 1500000,
           subtotal: 1500000,
-          createdAt: new Date('2023-11-20').toISOString(),
+          createdAt: new Date("2023-11-20").toISOString(),
           shippingAddress: {
             fullName: "Nguyễn Văn A",
             phoneNumber: "0901234567",
             street: "123 Đường ABC",
             ward: "Phường 1",
             district: "Quận 1",
-            city: "TP.HCM"
+            city: "TP.HCM",
           },
           items: [
             {
@@ -197,24 +215,25 @@ const Cart = () => {
               productName: "Mâm Cúng Thôi Nôi Bé Trai",
               price: 1500000,
               quantity: 1,
-              imageUrl: "https://docungviet.vn/wp-content/uploads/2023/06/mam-cung-thoi-noi-be-trai-goi-vip-1.jpg",
-              shopName: "Đồ Cúng Việt"
-            }
-          ]
+              imageUrl:
+                "https://docungviet.vn/wp-content/uploads/2023/06/mam-cung-thoi-noi-be-trai-goi-vip-1.jpg",
+              shopName: "Đồ Cúng Việt",
+            },
+          ],
         },
         {
           id: 102,
-          status: 'processing',
+          status: "processing",
           total: 850000,
           subtotal: 850000,
-          createdAt: new Date('2023-11-25').toISOString(),
+          createdAt: new Date("2023-11-25").toISOString(),
           shippingAddress: {
             fullName: "Nguyễn Văn A",
             phoneNumber: "0901234567",
             street: "123 Đường ABC",
             ward: "Phường 1",
             district: "Quận 1",
-            city: "TP.HCM"
+            city: "TP.HCM",
           },
           items: [
             {
@@ -222,11 +241,12 @@ const Cart = () => {
               productName: "Heo Quay Sữa",
               price: 850000,
               quantity: 1,
-              imageUrl: "https://heoquay.com/wp-content/uploads/2019/07/heo-quay-sua-nguyen-con.jpg",
-              shopName: "Heo Quay Ngon"
-            }
-          ]
-        }
+              imageUrl:
+                "https://heoquay.com/wp-content/uploads/2019/07/heo-quay-sua-nguyen-con.jpg",
+              shopName: "Heo Quay Ngon",
+            },
+          ],
+        },
       ]);
     } finally {
       setLoadingHistory(false);
@@ -274,7 +294,9 @@ const Cart = () => {
 
   const toggleShopSelection = async (shopId: number) => {
     const shopItems = groupedItems[shopId] || [];
-    const allSelected = shopItems.every((item) => item.selected || item.isSelected);
+    const allSelected = shopItems.every(
+      (item) => item.selected || item.isSelected
+    );
     const newSelected = !allSelected;
 
     try {
@@ -463,7 +485,9 @@ const Cart = () => {
         <section className="py-16">
           <div className="container mx-auto px-4 text-center">
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-12 max-w-2xl mx-auto">
-              <p className="text-red-500 mb-4 text-lg font-semibold">Không thể tải giỏ hàng</p>
+              <p className="text-red-500 mb-4 text-lg font-semibold">
+                Không thể tải giỏ hàng
+              </p>
               <p className="text-gray-600 mb-4 whitespace-pre-line">{error}</p>
               <div className="flex gap-2 justify-center mt-6">
                 <Button
@@ -475,7 +499,11 @@ const Cart = () => {
                         const cartResponse = await apiService.getCart();
                         setCartData(cartResponse);
                         const flattenedItems: CartItem[] = [];
-                        if (cartResponse && cartResponse.shops && Array.isArray(cartResponse.shops)) {
+                        if (
+                          cartResponse &&
+                          cartResponse.shops &&
+                          Array.isArray(cartResponse.shops)
+                        ) {
                           cartResponse.shops.forEach((shop: ShopInCartDto) => {
                             if (shop.items && Array.isArray(shop.items)) {
                               shop.items.forEach((item: CartItemDto) => {
@@ -498,7 +526,9 @@ const Cart = () => {
                         setError("");
                       } catch (err: any) {
                         // MOCK DATA FOR VERIFICATION/DEMO if backend is down
-                        console.log('[Cart] Using mock data due to error (Retry)');
+                        console.log(
+                          "[Cart] Using mock data due to error (Retry)"
+                        );
                         const mockItems: CartItem[] = [
                           {
                             id: 1,
@@ -509,18 +539,21 @@ const Cart = () => {
                             shopId: 1,
                             selected: true,
                             isSelected: true,
-                            imageUrl: "https://docungviet.vn/wp-content/uploads/2023/06/mam-cung-thoi-noi-be-trai-goi-vip-1.jpg"
-                          }
+                            imageUrl:
+                              "https://docungviet.vn/wp-content/uploads/2023/06/mam-cung-thoi-noi-be-trai-goi-vip-1.jpg",
+                          },
                         ];
                         setCartItems(mockItems);
                         setCartData({
                           id: 1,
                           totalPrice: 1500000,
-                          shops: [{
-                            shopId: 1,
-                            shopName: "Đồ Cúng Việt (Mock)",
-                            items: []
-                          }]
+                          shops: [
+                            {
+                              shopId: 1,
+                              shopName: "Đồ Cúng Việt (Mock)",
+                              items: [],
+                            },
+                          ],
                         });
                         setError("");
                       } finally {
@@ -558,15 +591,29 @@ const Cart = () => {
 
       <section className="py-12">
         <div className="container mx-auto px-4">
-          <Tabs value={activeTab} onValueChange={(value) => {
-            setActiveTab(value);
-            if (value === 'history') {
-              fetchOrders();
-            }
-          }} className="w-full">
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) => {
+              setActiveTab(value);
+              if (value === "history") {
+                fetchOrders();
+              }
+            }}
+            className="w-full"
+          >
             <TabsList className="grid w-full max-w-md grid-cols-2 mb-8 mx-auto bg-white/50 p-1 rounded-xl">
-              <TabsTrigger value="cart" className="rounded-lg data-[state=active]:bg-[#A67C42] data-[state=active]:text-white transition-all">Giỏ hàng</TabsTrigger>
-              <TabsTrigger value="history" className="rounded-lg data-[state=active]:bg-[#A67C42] data-[state=active]:text-white transition-all">Lịch sử đơn hàng</TabsTrigger>
+              <TabsTrigger
+                value="cart"
+                className="rounded-lg data-[state=active]:bg-[#A67C42] data-[state=active]:text-white transition-all"
+              >
+                Giỏ hàng
+              </TabsTrigger>
+              <TabsTrigger
+                value="history"
+                className="rounded-lg data-[state=active]:bg-[#A67C42] data-[state=active]:text-white transition-all"
+              >
+                Lịch sử đơn hàng
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="cart">
@@ -619,14 +666,16 @@ const Cart = () => {
                                       }
                                     }}
                                     checked={allSelected}
-                                    onChange={() => toggleShopSelection(shopIdNum)}
+                                    onChange={() =>
+                                      toggleShopSelection(shopIdNum)
+                                    }
                                     className="mr-2 h-4 w-4 text-[#A67C42] rounded border-gray-300 focus:ring-2 focus:ring-[#A67C42]"
                                     aria-label={`Chọn sản phẩm từ ${shopName}`}
                                   />
                                   <ShoppingBag className="h-5 w-5 mr-2 text-[#A67C42]" />
                                   <span>
-                                    {shopName} ({selectedCount}/{items.length} sản
-                                    phẩm được chọn)
+                                    {shopName} ({selectedCount}/{items.length}{" "}
+                                    sản phẩm được chọn)
                                   </span>
                                 </label>
                               </div>
@@ -648,14 +697,17 @@ const Cart = () => {
                             {items.map((item) => (
                               <div
                                 key={item.id}
-                                className={`flex items-center gap-4 p-4 border rounded-xl bg-white hover:shadow-lg transition-all duration-300 ${item.selected || item.isSelected
-                                  ? "border-[#A67C42] bg-[#A67C42]/5"
-                                  : "border-gray-200"
-                                  }`}
+                                className={`flex items-center gap-4 p-4 border rounded-xl bg-white hover:shadow-lg transition-all duration-300 ${
+                                  item.selected || item.isSelected
+                                    ? "border-[#A67C42] bg-[#A67C42]/5"
+                                    : "border-gray-200"
+                                }`}
                               >
                                 <input
                                   type="checkbox"
-                                  checked={item.selected || item.isSelected || false}
+                                  checked={
+                                    item.selected || item.isSelected || false
+                                  }
                                   onChange={() => toggleItemSelection(item.id)}
                                   className="h-4 w-4 text-[#A67C42] rounded border-gray-300 focus:ring-2 focus:ring-[#A67C42]"
                                   aria-label={`Chọn ${item.name}`}
@@ -770,7 +822,9 @@ const Cart = () => {
                         {/* Price Breakdown */}
                         <div className="space-y-3">
                           <div className="flex justify-between text-gray-600">
-                            <span>Tạm tính ({selectedItems.length} sản phẩm)</span>
+                            <span>
+                              Tạm tính ({selectedItems.length} sản phẩm)
+                            </span>
                             <span className="font-semibold text-gray-800">
                               {subtotal.toLocaleString("vi-VN")}đ
                             </span>
@@ -852,7 +906,10 @@ const Cart = () => {
                   </div>
                 ) : (
                   orders.map((order) => (
-                    <Card key={order.id} className="overflow-hidden border-none shadow-md hover:shadow-lg transition-all">
+                    <Card
+                      key={order.id}
+                      className="overflow-hidden border-none shadow-md hover:shadow-lg transition-all"
+                    >
                       <CardHeader className="bg-white border-b border-gray-100 py-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-4">
@@ -860,25 +917,43 @@ const Cart = () => {
                               <Package className="h-5 w-5 text-[#A67C42]" />
                             </div>
                             <div>
-                              <CardTitle className="text-lg">Đơn hàng #{order.id}</CardTitle>
+                              <CardTitle className="text-lg">
+                                Đơn hàng #{order.id}
+                              </CardTitle>
                               <div className="flex items-center text-sm text-gray-500 mt-1">
                                 <Clock className="h-3 w-3 mr-1" />
-                                {order.createdAt && !isNaN(new Date(order.createdAt).getTime())
-                                  ? new Date(order.createdAt).toLocaleDateString('vi-VN')
-                                  : 'Chưa có thông tin'}
+                                {order.createdAt &&
+                                !isNaN(new Date(order.createdAt).getTime())
+                                  ? new Date(
+                                      order.createdAt
+                                    ).toLocaleDateString("vi-VN")
+                                  : "Chưa có thông tin"}
                               </div>
                             </div>
                           </div>
-                          <Badge variant="outline" className={`${order.status === 'pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                            order.status === 'processing' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                              order.status === 'shipped' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                                order.status === 'delivered' ? 'bg-green-50 text-green-700 border-green-200' :
-                                  'bg-gray-50 text-gray-700 border-gray-200'
-                            }`}>
-                            {order.status === 'pending' ? 'Chờ xử lý' :
-                              order.status === 'processing' ? 'Đang xử lý' :
-                                order.status === 'shipped' ? 'Đang giao' :
-                                  order.status === 'delivered' ? 'Đã giao' : order.status}
+                          <Badge
+                            variant="outline"
+                            className={`${
+                              order.status === "pending"
+                                ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                                : order.status === "processing"
+                                ? "bg-blue-50 text-blue-700 border-blue-200"
+                                : order.status === "shipped"
+                                ? "bg-purple-50 text-purple-700 border-purple-200"
+                                : order.status === "delivered"
+                                ? "bg-green-50 text-green-700 border-green-200"
+                                : "bg-gray-50 text-gray-700 border-gray-200"
+                            }`}
+                          >
+                            {order.status === "pending"
+                              ? "Chờ xử lý"
+                              : order.status === "processing"
+                              ? "Đang xử lý"
+                              : order.status === "shipped"
+                              ? "Đang giao"
+                              : order.status === "delivered"
+                              ? "Đã giao"
+                              : order.status}
                           </Badge>
                         </div>
                       </CardHeader>
@@ -886,11 +961,15 @@ const Cart = () => {
                         <div className="flex items-center justify-between">
                           <div className="space-y-1">
                             <p className="text-sm text-gray-500">Tổng tiền</p>
-                            <p className="text-xl font-bold text-[#A67C42]">{order.total?.toLocaleString('vi-VN') || '0'}đ</p>
+                            <p className="text-xl font-bold text-[#A67C42]">
+                              {order.total?.toLocaleString("vi-VN") || "0"}đ
+                            </p>
                           </div>
                           <div className="text-right">
                             {order.items && order.items.length > 0 && (
-                              <p className="text-sm text-gray-500 mb-2">{order.items.length} sản phẩm</p>
+                              <p className="text-sm text-gray-500 mb-2">
+                                {order.items.length} sản phẩm
+                              </p>
                             )}
                             <Button
                               variant="outline"
