@@ -4,6 +4,7 @@ import ProductCard from "./ProductCard";
 import { apiService, Product } from "@/services/apiService";
 import { Loader2 } from "lucide-react";
 
+
 const ProductGrid = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -13,15 +14,43 @@ const ProductGrid = () => {
       try {
         setLoading(true);
         const allProducts = await apiService.getProducts();
+
+        // Normalize products (Handle images)
+        const rawList = Array.isArray(allProducts) ? allProducts : (allProducts as any).products || [];
+        const normalizedList = rawList.map((product: any) => {
+          const imagesList = product.images || product.Images || [];
+          let displayImage = "https://placehold.co/400x300?text=No+Image";
+
+          if (imagesList.length > 0) {
+            const firstImgUrl = imagesList[0].url || imagesList[0].Url;
+            if (firstImgUrl) {
+              displayImage = firstImgUrl;
+            }
+          } else if (product.imageUrl) {
+            displayImage = product.imageUrl;
+          }
+
+          return {
+            ...product,
+            imageUrl: displayImage,
+            id: product.id || product.Id,
+            name: product.name || product.Name,
+            basePrice: product.basePrice || product.BasePrice,
+            maxPrice: product.maxPrice || product.MaxPrice,
+            isPopular: product.isPopular || product.IsPopular,
+            shopId: product.shopId || product.ShopId || 1,
+          };
+        });
+
         // Get popular/featured products (isPopular = true) or first 8 products
-        const featured = allProducts
-          .filter((p) => p.isPopular)
+        const featured = normalizedList
+          .filter((p: any) => p.isPopular)
           .slice(0, 8);
-        
+
         // If not enough popular products, add more
         if (featured.length < 8) {
-          const remaining = allProducts
-            .filter((p) => !featured.includes(p))
+          const remaining = normalizedList
+            .filter((p: any) => !featured.includes(p))
             .slice(0, 8 - featured.length);
           setFeaturedProducts([...featured, ...remaining]);
         } else {
@@ -75,29 +104,29 @@ const ProductGrid = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 p-4">
             {featuredProducts.map((product, index) => (
-            <div
-              key={product.id}
-              className="transform hover:-translate-y-2 transition-all duration-500 ease-out animate-fade-in-up"
-              style={{
-                animationDelay: `${index * 100}ms`,
-              }}
-            >
-              <ProductCard
-                id={product.id}
-                name={product.name}
-                price={product.basePrice}
-                originalPrice={product.maxPrice}
-                image={product.imageUrl || ""}
-                rating={4.5}
-                reviews={0}
-                category=""
-                shopId={product.shop?.id || 1}
-                isBestSeller={product.isPopular}
-                isNew={false}
-              />
-            </div>
-          ))}
-        </div>
+              <div
+                key={product.id}
+                className="transform hover:-translate-y-2 transition-all duration-500 ease-out animate-fade-in-up"
+                style={{
+                  animationDelay: `${index * 100}ms`,
+                }}
+              >
+                <ProductCard
+                  id={product.id}
+                  name={product.name}
+                  price={product.basePrice}
+                  originalPrice={product.maxPrice}
+                  image={product.imageUrl || ""}
+                  rating={4.5}
+                  reviews={0}
+                  category=""
+                  shopId={product.shopId || 1}
+                  isBestSeller={product.isPopular}
+                  isNew={false}
+                />
+              </div>
+            ))}
+          </div>
         )}
 
         {/* Call to Action Section */}

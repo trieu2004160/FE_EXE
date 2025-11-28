@@ -14,7 +14,7 @@ import ProductCard from "@/components/ProductCard";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { apiService, Product, Category } from "@/services/apiService";
-import { getProductImageUrl } from "@/utils/imageUtils";
+
 
 const Products = () => {
   // State management
@@ -33,31 +33,47 @@ const Products = () => {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+      setError(null);
       try {
-        // Lúc này apiService.getProducts() sẽ trả về mảng [] từ API /Products
-        const [productsArray, categoriesData] = await Promise.all([
+        // Gọi API lấy tất cả sản phẩm và danh mục
+        const [productsData, categoriesData] = await Promise.all([
           apiService.getProducts(),
           apiService.getCategories(),
         ]);
 
-        const rawProducts = Array.isArray(productsArray) ? productsArray : (productsArray.products || []);
+        // Xử lý dữ liệu sản phẩm (Map ảnh base64)
+        const rawList = Array.isArray(productsData) ? productsData : (productsData as any).products || [];
 
-        const normalizedProducts = rawProducts.map((product) => {
-          // ... (Logic map ảnh như tôi đã gửi ở câu trả lời trước) ...
+        const normalizedProducts = rawList.map((product: any) => {
           const imagesList = product.images || product.Images || [];
-          let img = (imagesList.length > 0) ? (imagesList[0].url || imagesList[0].Url) : "https://placehold.co/400x300?text=No+Image";
+          let displayImage = "https://placehold.co/400x300?text=No+Image";
+
+          if (imagesList.length > 0) {
+            const firstImgUrl = imagesList[0].url || imagesList[0].Url;
+            if (firstImgUrl) {
+              displayImage = firstImgUrl;
+            }
+          } else if (product.imageUrl) {
+            displayImage = product.imageUrl;
+          }
 
           return {
             ...product,
-            imageUrl: img,
-            // Map các trường khác...
+            id: product.id || product.Id,
+            name: product.name || product.Name,
+            basePrice: product.basePrice || product.BasePrice,
+            maxPrice: product.maxPrice || product.MaxPrice,
+            isPopular: product.isPopular || product.IsPopular,
+            productCategoryId: product.productCategoryId || product.ProductCategoryId,
+            shopId: product.shopId || product.ShopId || 1,
+            imageUrl: displayImage,
           };
         });
 
         setProducts(normalizedProducts);
         setCategories(categoriesData);
       } catch (err) {
-        console.error(err);
+        console.error("Lỗi tải sản phẩm:", err);
       } finally {
         setLoading(false);
       }
@@ -65,53 +81,38 @@ const Products = () => {
     fetchData();
   }, []);
 
-  // Filter and sort products
+  // Filter and sort products (Client-side filtering)
   const filteredProducts = products.filter((product) => {
     const matchesSearch = product.name
-      .toLowerCase()
+      ?.toLowerCase()
       .includes(searchTerm.toLowerCase());
-    const matchesCategory =
-      selectedCategory === "Tất cả" ||
-      categories.find((c) => c.name === selectedCategory)?.id ===
-      product.productCategoryId;
+
+    // Lọc theo danh mục
+    let matchesCategory = true;
+    if (selectedCategory !== "Tất cả") {
+      const catObj = categories.find(c => c.name === selectedCategory);
+      if (catObj) {
+        matchesCategory = product.productCategoryId === catObj.id;
+      }
+    }
+
     return matchesSearch && matchesCategory;
   });
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     switch (sortBy) {
-      case "price-low":
-        return a.basePrice - b.basePrice;
-      case "price-high":
-        return b.basePrice - a.basePrice;
-      case "rating":
-        return 0; // API doesn't provide rating
-      case "name":
-        return a.name.localeCompare(b.name);
-      default:
-        return 0;
+      case "price-low": return a.basePrice - b.basePrice;
+      case "price-high": return b.basePrice - a.basePrice;
+      case "name": return a.name.localeCompare(b.name);
+      default: return 0;
     }
   });
 
-  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Đang tải sản phẩm...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-500 mb-4">Không thể tải sản phẩm</p>
-          <Button onClick={() => window.location.reload()}>Thử lại</Button>
-        </div>
+        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+        <p className="text-muted-foreground">Đang tải sản phẩm...</p>
       </div>
     );
   }
@@ -121,10 +122,7 @@ const Products = () => {
       <Header />
 
       {/* Page Header */}
-      <section
-        className="relative py-16 overflow-hidden"
-        style={{ height: "30vh" }}
-      >
+      <section className="relative py-16 overflow-hidden" style={{ height: "30vh" }}>
         {/* Background Image */}
         <div className="absolute inset-0">
           <img
@@ -135,18 +133,13 @@ const Products = () => {
           <div className="absolute inset-0 bg-black/50" />
         </div>
 
-        {/* Content */}
         <div className="container mx-auto px-4 text-center relative z-10">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 drop-shadow-lg">
-            Tất Cả Sản Phẩm
-          </h1>
-          <p className="text-xl text-white/90 max-w-2xl mx-auto drop-shadow-md">
-            Khám phá bộ sưu tập đầy đủ các sản phẩm đồ cúng chất lượng cao
-          </p>
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 drop-shadow-lg">Tất Cả Sản Phẩm</h1>
+          <p className="text-xl text-white/90 max-w-2xl mx-auto drop-shadow-md">Khám phá các sản phẩm chất lượng</p>
         </div>
       </section>
 
-      {/* Filters & Search */}
+      {/* Filters */}
       <section className="py-8 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
@@ -154,81 +147,46 @@ const Products = () => {
             <div className="relative w-full lg:w-auto">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Tìm kiếm sản phẩm..."
+                placeholder="Tìm kiếm..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full lg:w-80 border-gray-300 focus:border-gray-300 focus:ring-0 focus:ring-offset-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 !ring-0 !ring-offset-0 !outline-none"
-                style={{ boxShadow: "none !important" }}
+                className="pl-10 w-full lg:w-80"
               />
             </div>
-
-            {/* Category Filter */}
+            {/* Categories */}
             <div className="flex flex-wrap gap-2">
-              {categories.map((category) => (
+              <Badge
+                variant={selectedCategory === "Tất cả" ? "default" : "secondary"}
+                className="cursor-pointer"
+                onClick={() => setSelectedCategory("Tất cả")}
+              >Tất cả</Badge>
+              {categories.map((cat) => (
                 <Badge
-                  key={typeof category === "string" ? category : category.name}
-                  variant={
-                    selectedCategory ===
-                      (typeof category === "string" ? category : category.name)
-                      ? "default"
-                      : "secondary"
-                  }
-                  className={`cursor-pointer transition-all duration-200 rounded-md text-sm font-medium shadow-sm
-        ${selectedCategory ===
-                      (typeof category === "string" ? category : category.name)
-                      ? "bg-gray-700 hover:bg-gray-800 text-white"
-                      : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                    }`}
-                  onClick={() =>
-                    setSelectedCategory(
-                      typeof category === "string" ? category : category.name
-                    )
-                  }
-                >
-                  {typeof category === "string" ? category : category.name}
-                </Badge>
+                  key={cat.id}
+                  variant={selectedCategory === cat.name ? "default" : "secondary"}
+                  className="cursor-pointer"
+                  onClick={() => setSelectedCategory(cat.name)}
+                >{cat.name}</Badge>
               ))}
             </div>
-
-            {/* Sort & View */}
-            <div className="flex items-center gap-4">
+            {/* Sort View */}
+            <div className="flex items-center gap-2">
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Sắp xếp theo" />
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Sắp xếp" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="featured">Nổi bật</SelectItem>
-                  <SelectItem value="price-low">Giá thấp đến cao</SelectItem>
-                  <SelectItem value="price-high">Giá cao đến thấp</SelectItem>
-                  <SelectItem value="rating">Đánh giá cao nhất</SelectItem>
+                  <SelectItem value="price-low">Giá thấp - cao</SelectItem>
+                  <SelectItem value="price-high">Giá cao - thấp</SelectItem>
                   <SelectItem value="name">Tên A-Z</SelectItem>
                 </SelectContent>
               </Select>
-
-              <div className="flex border border-gray-300 rounded-lg overflow-hidden">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setViewMode("grid")}
-                  className={`rounded-none transition-all duration-200 hover:bg-gray-100
-      ${viewMode === "grid"
-                      ? "bg-gray-200 text-gray-800 hover:bg-gray-400"
-                      : "bg-white text-gray-600 hover:bg-gray-400"
-                    }`}
-                >
+              <div className="flex border rounded-md bg-white">
+                <Button variant="ghost" size="icon" onClick={() => setViewMode("grid")} className={viewMode === "grid" ? "bg-gray-200" : ""}>
                   <Grid className="h-4 w-4" />
                 </Button>
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setViewMode("list")}
-                  className={`rounded-none transition-all duration-200 hover:bg-gray-100
-      ${viewMode === "list"
-                      ? "bg-gray-200 text-gray-800 hover:bg-gray-400"
-                      : "bg-white text-gray-600 hover:bg-gray-400"
-                    }`}
-                >
+                <Button variant="ghost" size="icon" onClick={() => setViewMode("list")} className={viewMode === "list" ? "bg-gray-200" : ""}>
                   <List className="h-4 w-4" />
                 </Button>
               </div>
@@ -237,36 +195,30 @@ const Products = () => {
         </div>
       </section>
 
-      {/* Products Grid */}
+      {/* Grid */}
       <section className="py-12">
         <div className="container mx-auto px-4">
           {sortedProducts.length === 0 ? (
             <div className="text-center py-16">
-              <p className="text-xl text-muted-foreground mb-4">
-                Không tìm thấy sản phẩm nào
-              </p>
-              <Button
-                onClick={() => {
-                  setSearchTerm("");
-                  setSelectedCategory("Tất cả");
-                }}
-              >
-                Xóa bộ lọc
-              </Button>
+              <p>Không tìm thấy sản phẩm nào</p>
+              <Button onClick={() => { setSearchTerm(""); setSelectedCategory("Tất cả"); }}>Xóa bộ lọc</Button>
             </div>
           ) : (
-            <div
-              className={
-                viewMode === "grid"
-                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                  : "space-y-4"
-              }
-            >
+            <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6" : "space-y-4"}>
               {sortedProducts.map((product) => (
                 <ProductCard
                   key={product.id}
-                  {...product}
-                  reviews={product.reviews || []}
+                  id={product.id}
+                  name={product.name}
+                  price={product.basePrice}
+                  originalPrice={product.maxPrice}
+                  image={product.imageUrl || ""} // Quan trọng: Dùng field đã map
+                  rating={4.5}
+                  reviews={0}
+                  category={categories.find((c) => c.id === product.productCategoryId)?.name || "Sản phẩm"}
+                  shopId={product.shopId || 1}
+                  isBestSeller={product.isPopular}
+                  isNew={false}
                 />
               ))}
             </div>
@@ -275,7 +227,6 @@ const Products = () => {
       </section>
 
       <Footer />
-      {/* <AIAssistant /> */}
     </div>
   );
 };

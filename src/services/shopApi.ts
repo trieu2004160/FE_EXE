@@ -1,4 +1,14 @@
-import { apiService, ShopDashboardDto, ShopProfile, ShopProduct, ShopOrder, ShopReview, ShopStatistics } from './apiService';
+import {
+  apiService,
+  ShopDashboardDto,
+  ShopProfile,
+  ShopProduct,
+  ShopOrder,
+  ShopReview,
+  ShopStatistics,
+  CreateProductRequest,
+  UpdateProductRequest
+} from './apiService';
 
 // Re-export types for convenience
 export type { ShopDashboardDto, ShopProfile, ShopProduct, ShopOrder, ShopReview, ShopStatistics };
@@ -33,17 +43,17 @@ export const shopApi = {
 
   // Products management
   // GET /api/shop/products
-  getShopProducts: async (): Promise<ShopProduct[]> => {
-    return await apiService.getShopProducts();
+  getShopProducts: async (params?: any): Promise<{ products: ShopProduct[]; total: number }> => {
+    return await apiService.getShopProducts(params);
   },
 
   // POST /api/shop/products
-  createProduct: async (productData: any): Promise<ShopProduct> => {
+  createProduct: async (productData: CreateProductRequest): Promise<ShopProduct> => {
     return await apiService.createShopProduct(productData);
   },
 
   // PUT /api/shop/products/{id}
-  updateProduct: async (id: number, productData: any): Promise<ShopProduct> => {
+  updateProduct: async (id: number, productData: UpdateProductRequest): Promise<ShopProduct> => {
     return await apiService.updateShopProduct(id, productData);
   },
 
@@ -54,8 +64,8 @@ export const shopApi = {
 
   // Orders management
   // GET /api/shop/orders
-  getShopOrders: async (): Promise<ShopOrder[]> => {
-    return await apiService.getShopOrders();
+  getShopOrders: async (params?: any): Promise<{ orders: ShopOrder[]; total: number }> => {
+    return await apiService.getShopOrders(params);
   },
 
   // PUT /api/shop/orders/items/{orderItemId}/status

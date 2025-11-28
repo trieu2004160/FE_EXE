@@ -94,10 +94,14 @@ export function getProductImageUrl(product: any): string {
     if (Array.isArray(product.images) && product.images.length > 0) {
       const firstImage = product.images[0];
       if (firstImage && firstImage.url) {
-        // If it's a Base64 string, it might need the data URI prefix if not present
-        // But usually backend sends full data URI or just base64 string
-        // Let's use normalizeImageUrl to be safe, or return as is if it looks like a data URI
-        return normalizeImageUrl(firstImage.url) || placeholder;
+        // Fix: Check if it's a raw Base64 string (no prefix, long string, not a path)
+        const url = firstImage.url;
+        if (!url.startsWith('http') && !url.startsWith('/') && !url.startsWith('data:') && url.length > 100) {
+          // Assume it's a base64 string (defaulting to png or jpeg, browser usually handles it if we give a hint, but better to guess)
+          // If we don't know the type, we can try png.
+          return `data:image/png;base64,${url}`;
+        }
+        return normalizeImageUrl(url) || placeholder;
       }
     }
 

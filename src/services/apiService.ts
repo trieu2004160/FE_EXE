@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosResponse, AxiosError, AxiosRequestConfig } from 'axios';
+import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios';
 
 // Configuration
 const API_BASE_URL = "https://localhost:5001/api";
@@ -49,7 +49,7 @@ export interface Category {
   id: number;
   name: string;
   description?: string;
-  imageUrl?: string;
+  imageUrl?: string; // Base64
   isVisible?: boolean;
 }
 
@@ -68,7 +68,7 @@ export interface UpdateCategoryRequest {
 // Product
 export interface ImageDto {
   id: number;
-  url: string; // Base64 string or URL
+  url: string; // Base64 string
 }
 
 export interface Product {
@@ -76,7 +76,8 @@ export interface Product {
   name: string;
   description?: string;
   features?: string;
-  images: ImageDto[];
+  images?: ImageDto[];
+  imageUrl?: string;   // Fallback if needed, though images[] is primary
   isPopular: boolean;
   basePrice: number;
   maxPrice?: number;
@@ -86,7 +87,7 @@ export interface Product {
   productCategoryName?: string;
   shopId: number;
   shopName?: string;
-  imageUrl?: string; // Helper for frontend display (first image)
+  reviews?: ProductReview[];
 }
 
 export interface CreateProductRequest {
@@ -97,7 +98,7 @@ export interface CreateProductRequest {
   basePrice: number;
   maxPrice?: number;
   stockQuantity: number;
-  specifications?: string; // JSON string
+  specifications?: string; // JSON string or plain text
   productCategoryId: number;
   imageFiles?: File[];
   imageUrls?: string[];
@@ -111,7 +112,7 @@ export interface UpdateProductRequest {
   basePrice?: number;
   maxPrice?: number;
   stockQuantity?: number;
-  specifications?: string; // JSON string
+  specifications?: string;
   productCategoryId?: number;
   imageFiles?: File[];
   imageUrls?: string[];
@@ -169,9 +170,15 @@ export interface CartItemDto {
   shopName?: string;
 }
 
+export interface ShopInCartDto {
+  shopId: number;
+  shopName: string;
+  items: CartItemDto[];
+}
+
 export interface CartResponseDto {
   id: number;
-  items: CartItemDto[];
+  shops: ShopInCartDto[];
   totalPrice: number;
 }
 
@@ -255,22 +262,10 @@ export interface ShopDashboardDto {
   pendingOrderItems: number;
 }
 
-export interface ShopProduct {
-  id: number;
-  name: string;
-  basePrice: number;
-  stockQuantity: number;
+export interface ShopProduct extends Product {
   soldCount: number;
   rating: number;
   status: string;
-  images?: { id: number; url: string }[];
-  description?: string;
-  features?: string;
-  isPopular?: boolean;
-  maxPrice?: number;
-  productCategoryId?: number;
-  specifications?: string | Record<string, string>;
-  imageUrl?: string;
 }
 
 export interface ShopOrder {
@@ -330,6 +325,24 @@ export interface AdminRevenueStats {
   monthlyRevenue: number;
 }
 
+export interface SearchParams {
+  query?: string;
+  category?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  sortBy?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface SearchResponse {
+  products: Product[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
 // --- ApiService Class ---
 
 class ApiService {
@@ -339,6 +352,7 @@ class ApiService {
 
   private constructor() {
     this.baseURL = API_BASE_URL;
+    // Initialize Axios Instance
     this.axiosInstance = axios.create({
       baseURL: this.baseURL,
       headers: { 'Content-Type': 'application/json' },
@@ -348,8 +362,8 @@ class ApiService {
     this.axiosInstance.interceptors.request.use(
       (config) => {
         const token = localStorage.getItem('token') || localStorage.getItem('userToken');
-        if (token) {
-          const cleanToken = token.replace(/"/g, '');
+        if (token && token !== 'undefined' && token !== 'null') {
+          const cleanToken = token.replace(/^"|"$/g, ''); // Remove extra quotes
           config.headers.Authorization = `Bearer ${cleanToken}`;
         }
         return config;
@@ -361,7 +375,7 @@ class ApiService {
     this.axiosInstance.interceptors.response.use(
       (response) => response.data,
       (error: AxiosError) => {
-        console.error("API Error:", error.response?.status, error.config?.url, error.message);
+        console.error(`API Error [${error.config?.url}]:`, error.response?.status, error.message);
         return Promise.reject(error);
       }
     );
@@ -375,60 +389,80 @@ class ApiService {
   }
 
   // Helper to handle axios requests and return Promise<T>
-  private async request<T>(config: AxiosRequestConfig): Promise<T> {
-    return this.axiosInstance.request(config) as Promise<T>;
+  public async request<T>(endpoint: string, options: AxiosRequestConfig = {}): Promise<T> {
+    return this.axiosInstance.request<any, T>({
+      url: endpoint,
+      ...options
+    });
   }
 
-  // --- 1. Auth & Account ---
+  // ==========================================
+  // 1. AUTH & ACCOUNT
+  // ==========================================
   public async register(data: RegisterRequest) {
-    return this.request<ApiResponse>({ method: 'POST', url: '/Accounts/register', data });
+    return this.axiosInstance.post<any, ApiResponse>('/Accounts/register', data);
   }
 
   public async login(data: LoginRequest) {
-    return this.request<LoginResponse>({ method: 'POST', url: '/Accounts/login', data });
+    return this.axiosInstance.post<any, LoginResponse>('/Accounts/login', data);
   }
 
   public async changePassword(data: ChangePasswordRequest) {
-    return this.request<ApiResponse>({ method: 'POST', url: '/Accounts/changepassword', data });
+    return this.axiosInstance.post<any, ApiResponse>('/Accounts/changepassword', data);
   }
 
   public async deleteAccount(data: DeleteAccountRequest) {
-    return this.request<ApiResponse>({ method: 'DELETE', url: '/Accounts/deleteme', data });
+    // DELETE with body requires specific config in axios
+    return this.axiosInstance.delete<any, ApiResponse>('/Accounts/deleteme', { data });
   }
 
-  // --- 2. Public Data ---
+  // ==========================================
+  // 2. PUBLIC DATA
+  // ==========================================
   public async getCategories() {
-    return this.request<Category[]>({ method: 'GET', url: '/Categories' });
+    return this.axiosInstance.get<any, Category[]>('/Categories');
   }
 
   public async getCategory(id: number) {
-    return this.request<Category>({ method: 'GET', url: `/Categories/${id}` });
+    return this.axiosInstance.get<any, Category>(`/Categories/${id}`);
   }
 
   public async getCategoryProducts(categoryId: number) {
-    return this.request<Product[]>({ method: 'GET', url: `/Categories/${categoryId}/products` });
+    return this.axiosInstance.get<any, Product[]>(`/Categories/${categoryId}/products`);
   }
 
-  public async getProducts() {
-    return this.request<Product[]>({ method: 'GET', url: '/Products' });
-  }
-
-  public async getProduct(id: number) {
-    return this.request<Product>({ method: 'GET', url: `/Products/${id}` });
-  }
-
-  public async getProductReviews(productId: number) {
-    return this.request<ProductReview[]>({ method: 'GET', url: `/products/${productId}/reviews` });
+  public async getProducts(params?: SearchParams) {
+    // If no search params, call GET All
+    if (!params || !params.query) {
+      return this.axiosInstance.get<any, Product[]>('/Products');
+    }
+    // If search, call search function
+    return this.searchProducts(params.query);
   }
 
   public async searchProducts(keyword: string) {
+    // Fix 400 error: If keyword is empty, return empty array immediately
     if (!keyword || keyword.trim() === '') return [];
-    return this.request<Product[]>({ method: 'GET', url: `/Search?q=${encodeURIComponent(keyword)}` });
+    return this.axiosInstance.get<any, Product[]>(`/Search?q=${encodeURIComponent(keyword)}`);
   }
 
-  // --- 3. User Features ---
+  public async getProduct(id: number) {
+    return this.axiosInstance.get<any, Product>(`/Products/${id}`);
+  }
+
+  public async getProductById(id: number | string) {
+    return this.getProduct(Number(id));
+  }
+
+  public async getProductReviews(productId: number) {
+    return this.axiosInstance.get<any, ProductReview[]>(`/products/${productId}/reviews`);
+  }
+
+  // ==========================================
+  // 3. USER FEATURES
+  // ==========================================
   public async getProfile() {
-    return this.request<UserProfile>({ method: 'GET', url: '/Profile/me' });
+    return this.axiosInstance.get<any, UserProfile>('/Profile/me');
   }
 
   public async updateProfile(data: UpdateProfileRequest) {
@@ -437,84 +471,92 @@ class ApiService {
     if (data.phoneNumber) formData.append('phoneNumber', data.phoneNumber);
     if (data.address) formData.append('address', data.address);
     if (data.introduction) formData.append('introduction', data.introduction);
+
+    // Upload avatar
     if (data.avatarFile) formData.append('avatarFile', data.avatarFile);
 
-    return this.request<UserProfile>({
-      method: 'PUT',
-      url: '/Profile/me',
-      data: formData,
+    return this.axiosInstance.put<any, UserProfile>('/Profile/me', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   }
 
   public async createProductReview(productId: number, data: CreateReviewRequest) {
-    return this.request<ProductReview>({ method: 'POST', url: `/products/${productId}/reviews`, data });
+    return this.axiosInstance.post<any, ProductReview>(`/products/${productId}/reviews`, data);
   }
 
   public async getCart() {
-    return this.request<CartResponseDto>({ method: 'GET', url: '/Cart' });
+    return this.axiosInstance.get<any, CartResponseDto>('/Cart');
   }
 
   public async addToCart(productId: number, quantity: number) {
-    return this.request<CartResponseDto>({ method: 'POST', url: '/Cart/items', data: { productId, quantity } });
+    return this.axiosInstance.post<any, CartResponseDto>('/Cart/items', { productId, quantity });
+  }
+
+  // Alias to fix "addItemToCart is not a function" if used elsewhere
+  public async addItemToCart(param: { productId: number, quantity: number }) {
+    return this.addToCart(param.productId, param.quantity);
   }
 
   public async updateCartItem(cartItemId: number, quantity: number) {
-    return this.request<CartResponseDto>({ method: 'PUT', url: `/Cart/items/${cartItemId}/quantity`, data: { quantity } });
+    return this.axiosInstance.put<any, CartResponseDto>(`/Cart/items/${cartItemId}/quantity`, { quantity });
   }
 
   public async selectCartItem(cartItemId: number, isSelected: boolean) {
-    return this.request<CartResponseDto>({ method: 'PUT', url: `/Cart/items/${cartItemId}/select`, data: { isSelected } });
+    return this.axiosInstance.put<any, CartResponseDto>(`/Cart/items/${cartItemId}/select`, { isSelected });
   }
 
   public async removeCartItem(cartItemId: number) {
-    return this.request<CartResponseDto>({ method: 'DELETE', url: `/Cart/items/${cartItemId}` });
+    return this.axiosInstance.delete<any, CartResponseDto>(`/Cart/items/${cartItemId}`);
   }
 
   public async getOrders() {
-    return this.request<OrderResponseDto[]>({ method: 'GET', url: '/Orders' });
+    return this.axiosInstance.get<any, OrderResponseDto[]>('/Orders');
   }
 
   public async getOrder(id: number) {
-    return this.request<OrderResponseDto>({ method: 'GET', url: `/Orders/${id}` });
+    return this.axiosInstance.get<any, OrderResponseDto>(`/Orders/${id}`);
   }
 
   public async createOrder(data: CreateOrderRequest) {
-    return this.request<OrderResponseDto>({ method: 'POST', url: '/Orders', data });
+    return this.axiosInstance.post<any, OrderResponseDto>('/Orders', data);
   }
 
-  // --- 4. User Address Book ---
+  // ==========================================
+  // 4. USER ADDRESS BOOK
+  // ==========================================
   public async getAddresses() {
-    return this.request<AddressResponseDto[]>({ method: 'GET', url: '/useraddresses' });
+    return this.axiosInstance.get<any, AddressResponseDto[]>('/useraddresses');
   }
 
   public async getAddress(id: number) {
-    return this.request<AddressResponseDto>({ method: 'GET', url: `/useraddresses/${id}` });
+    return this.axiosInstance.get<any, AddressResponseDto>(`/useraddresses/${id}`);
   }
 
   public async addAddress(data: UpsertAddressDto) {
-    return this.request<AddressResponseDto>({ method: 'POST', url: '/useraddresses', data });
+    return this.axiosInstance.post<any, AddressResponseDto>('/useraddresses', data);
   }
 
   public async updateAddress(id: number, data: UpsertAddressDto) {
-    return this.request<void>({ method: 'PUT', url: `/useraddresses/${id}`, data });
+    return this.axiosInstance.put<any, void>(`/useraddresses/${id}`, data);
   }
 
   public async deleteAddress(id: number) {
-    return this.request<void>({ method: 'DELETE', url: `/useraddresses/${id}` });
+    return this.axiosInstance.delete<any, void>(`/useraddresses/${id}`);
   }
 
   public async setDefaultAddress(id: number) {
-    return this.request<void>({ method: 'POST', url: `/useraddresses/${id}/set-default` });
+    return this.axiosInstance.post<any, void>(`/useraddresses/${id}/set-default`);
   }
 
-  // --- 5. Shop Management ---
+  // ==========================================
+  // 5. SHOP MANAGEMENT
+  // ==========================================
   public async getShopDashboard() {
-    return this.request<ShopDashboardDto>({ method: 'GET', url: '/shop/dashboard' });
+    return this.axiosInstance.get<any, ShopDashboardDto>('/shop/dashboard');
   }
 
   public async getShopProfile() {
-    return this.request<ShopProfile>({ method: 'GET', url: '/shop/profile' });
+    return this.axiosInstance.get<any, ShopProfile>('/shop/profile');
   }
 
   public async updateShopProfile(data: UpdateShopProfileRequest) {
@@ -525,20 +567,18 @@ class ApiService {
     if (data.avatarFile) formData.append('avatarFile', data.avatarFile);
     if (data.avatarUrl) formData.append('avatarUrl', data.avatarUrl);
 
-    return this.request<ShopProfile>({
-      method: 'PUT',
-      url: '/shop/profile',
-      data: formData,
+    return this.axiosInstance.put<any, ShopProfile>('/shop/profile', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   }
 
-  public async getShopProducts() {
-    return this.request<ShopProduct[]>({ method: 'GET', url: '/shop/products' });
+  public async getShopProducts(params?: any) {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : '';
+    return this.axiosInstance.get<any, { products: ShopProduct[]; total: number }>(`/shop/products${queryString}`);
   }
 
   public async getShopProduct(id: number) {
-    return this.request<ShopProduct>({ method: 'GET', url: `/shop/products/${id}` });
+    return this.axiosInstance.get<any, ShopProduct>(`/shop/products/${id}`);
   }
 
   public async createShopProduct(data: CreateProductRequest) {
@@ -546,11 +586,11 @@ class ApiService {
     formData.append('name', data.name);
     if (data.description) formData.append('description', data.description);
     if (data.features) formData.append('features', data.features);
+    formData.append('basePrice', data.basePrice.toString());
+    formData.append('stockQuantity', data.stockQuantity.toString());
+    formData.append('productCategoryId', data.productCategoryId.toString());
     formData.append('isPopular', String(data.isPopular));
-    formData.append('basePrice', String(data.basePrice));
-    if (data.maxPrice) formData.append('maxPrice', String(data.maxPrice));
-    formData.append('stockQuantity', String(data.stockQuantity));
-    formData.append('productCategoryId', String(data.productCategoryId));
+    if (data.maxPrice) formData.append('maxPrice', data.maxPrice.toString());
     if (data.specifications) formData.append('specifications', data.specifications);
 
     if (data.imageFiles) {
@@ -560,67 +600,82 @@ class ApiService {
       data.imageUrls.forEach(url => formData.append('imageUrls', url));
     }
 
-    return this.request<ShopProduct>({
-      method: 'POST',
-      url: '/shop/products',
-      data: formData,
+    return this.axiosInstance.post<any, ShopProduct>('/shop/products', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   }
 
   public async updateShopProduct(id: number, data: UpdateProductRequest) {
     const formData = new FormData();
+
     if (data.name) formData.append('name', data.name);
     if (data.description) formData.append('description', data.description);
     if (data.features) formData.append('features', data.features);
+
     if (data.isPopular !== undefined) formData.append('isPopular', String(data.isPopular));
     if (data.basePrice !== undefined) formData.append('basePrice', String(data.basePrice));
     if (data.maxPrice !== undefined) formData.append('maxPrice', String(data.maxPrice));
     if (data.stockQuantity !== undefined) formData.append('stockQuantity', String(data.stockQuantity));
     if (data.productCategoryId !== undefined) formData.append('productCategoryId', String(data.productCategoryId));
-    if (data.specifications) formData.append('specifications', data.specifications);
 
-    if (data.imageFiles) {
-      data.imageFiles.forEach(file => formData.append('imageFiles', file));
-    }
-    if (data.imageUrls) {
-      data.imageUrls.forEach(url => formData.append('imageUrls', url));
-    }
-    if (data.keepImageIds) {
-      data.keepImageIds.forEach(id => formData.append('keepImageIds', String(id)));
+    if (data.specifications) {
+      const specsToSend = typeof data.specifications === 'object'
+        ? JSON.stringify(data.specifications)
+        : data.specifications;
+      formData.append('specifications', specsToSend);
     }
 
-    return this.request<ShopProduct>({
-      method: 'PUT',
-      url: `/shop/products/${id}`,
-      data: formData,
+    if (data.imageFiles && data.imageFiles.length > 0) {
+      data.imageFiles.forEach((file) => {
+        formData.append('imageFiles', file);
+      });
+    }
+
+    if (data.imageUrls && data.imageUrls.length > 0) {
+      data.imageUrls.forEach((url) => {
+        formData.append('imageUrls', url);
+      });
+    }
+
+    if (data.keepImageIds && data.keepImageIds.length > 0) {
+      data.keepImageIds.forEach((imgId) => {
+        formData.append('keepImageIds', String(imgId));
+      });
+    }
+
+    return this.axiosInstance.put<any, ShopProduct>(`/shop/products/${id}`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   }
 
   public async deleteShopProduct(id: number) {
-    return this.request<void>({ method: 'DELETE', url: `/shop/products/${id}` });
+    return this.axiosInstance.delete<any, void>(`/shop/products/${id}`);
   }
 
-  public async getShopOrders() {
-    return this.request<ShopOrder[]>({ method: 'GET', url: '/shop/orders' });
+  public async getShopOrders(params?: any) {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : '';
+    return this.axiosInstance.get<any, { orders: ShopOrder[]; total: number }>(`/shop/orders${queryString}`);
   }
 
   public async updateOrderStatus(orderItemId: number, status: string) {
-    return this.request<void>({ method: 'PUT', url: `/shop/orders/items/${orderItemId}/status`, data: { status } });
+    return this.axiosInstance.put<any, void>(`/shop/orders/items/${orderItemId}/status`, { newStatus: status });
   }
 
   public async getShopReviews() {
-    return this.request<ShopReview[]>({ method: 'GET', url: '/shop/reviews' });
+    return this.axiosInstance.get<any, ShopReview[]>('/shop/reviews');
   }
 
   public async getShopStatistics() {
-    return this.request<ShopStatistics>({ method: 'GET', url: '/shop/statistics' });
+    return this.axiosInstance.get<any, ShopStatistics>('/shop/statistics');
   }
 
-  // --- 6. Admin Management ---
+  // ==========================================
+  // 6. ADMIN MANAGEMENT
+  // ==========================================
+
+  // --- Categories ---
   public async adminGetCategories() {
-    return this.request<Category[]>({ method: 'GET', url: '/admin/categories' });
+    return this.axiosInstance.get<any, Category[]>('/admin/categories');
   }
 
   public async adminCreateCategory(data: CreateCategoryRequest) {
@@ -628,13 +683,7 @@ class ApiService {
     formData.append('name', data.name);
     if (data.description) formData.append('description', data.description);
     if (data.imageFile) formData.append('imageFile', data.imageFile);
-
-    return this.request<Category>({
-      method: 'POST',
-      url: '/admin/categories',
-      data: formData,
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    return this.axiosInstance.post('/admin/categories', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
   }
 
   public async adminUpdateCategory(id: number, data: UpdateCategoryRequest) {
@@ -642,85 +691,82 @@ class ApiService {
     if (data.name) formData.append('name', data.name);
     if (data.description) formData.append('description', data.description);
     if (data.imageFile) formData.append('imageFile', data.imageFile);
-
-    return this.request<Category>({
-      method: 'PUT',
-      url: `/admin/categories/${id}`,
-      data: formData,
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    return this.axiosInstance.put(`/admin/categories/${id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
   }
 
   public async adminDeleteCategory(id: number) {
-    return this.request<void>({ method: 'DELETE', url: `/admin/categories/${id}` });
+    return this.axiosInstance.delete(`/admin/categories/${id}`);
   }
 
-  public async adminUpdateCategoryVisibility(id: number, isVisible: boolean) {
-    return this.request<void>({ method: 'PUT', url: `/admin/categories/${id}/visibility`, data: { isVisible } });
+  public async adminToggleCategoryVisibility(id: number, isHidden: boolean) {
+    return this.axiosInstance.put(`/admin/categories/${id}/visibility`, { isHidden });
   }
 
-  public async adminReorderCategories(categoryIds: number[]) {
-    return this.request<void>({ method: 'PUT', url: '/admin/categories/reorder', data: categoryIds });
+  public async adminReorderCategories(orderedCategoryIds: number[]) {
+    return this.axiosInstance.put('/admin/categories/reorder', { orderedCategoryIds });
   }
 
+  // --- Shops ---
   public async adminGetShops() {
-    return this.request<AdminShopDto[]>({ method: 'GET', url: '/admin/shops' });
+    return this.axiosInstance.get<any, AdminShopDto[]>('/admin/shops');
   }
 
   public async adminCreateShop(data: any) {
-    return this.request<any>({ method: 'POST', url: '/admin/shops/create-new', data });
+    return this.axiosInstance.post('/admin/shops/create-new', data);
   }
 
   public async adminConvertGuestToShop(data: any) {
-    return this.request<any>({ method: 'POST', url: '/admin/shops/convert-guest', data });
+    return this.axiosInstance.post('/admin/shops/convert-guest', data);
   }
 
   public async adminUpdateShop(id: number, data: any) {
-    return this.request<any>({ method: 'PUT', url: `/admin/shops/${id}`, data });
+    return this.axiosInstance.put(`/admin/shops/${id}`, data);
   }
 
-  public async adminUpdateShopStatus(id: number, status: string) {
-    return this.request<void>({ method: 'PUT', url: `/admin/shops/${id}/status`, data: { status } });
+  public async adminToggleShopLock(id: number, isLocked: boolean) {
+    return this.axiosInstance.put(`/admin/shops/${id}/status`, { isLocked });
   }
 
-  public async adminResetShopPassword(id: number) {
-    return this.request<any>({ method: 'POST', url: `/admin/shops/${id}/reset-password` });
+  public async adminResetShopPassword(id: number, newPassword: string) {
+    return this.axiosInstance.post(`/admin/shops/${id}/reset-password`, { newPassword });
   }
 
+  // --- Products ---
   public async adminGetProducts() {
-    return this.request<Product[]>({ method: 'GET', url: '/admin/products' });
+    return this.axiosInstance.get<any, Product[]>('/admin/products');
   }
 
-  public async adminUpdateProductVisibility(id: number, isVisible: boolean) {
-    return this.request<void>({ method: 'PUT', url: `/admin/products/${id}/visibility`, data: { isVisible } });
+  public async adminToggleProductVisibility(id: number, isHidden: boolean) {
+    return this.axiosInstance.put(`/admin/products/${id}/visibility`, { isHidden });
   }
 
   public async adminChangeProductCategory(id: number, newCategoryId: number) {
-    return this.request<void>({ method: 'PUT', url: `/admin/products/${id}/change-category`, data: { newCategoryId } });
+    return this.axiosInstance.put(`/admin/products/${id}/change-category`, { newCategoryId });
   }
 
+  // --- Config & Dashboard ---
   public async adminGetCommissions() {
-    return this.request<any>({ method: 'GET', url: '/admin/config/commissions' });
+    return this.axiosInstance.get('/admin/config/commissions');
   }
 
-  public async adminUpdateDefaultCommission(rate: number) {
-    return this.request<void>({ method: 'PUT', url: '/admin/config/commissions/default', data: { rate } });
+  public async adminSetDefaultCommission(rate: number) {
+    return this.axiosInstance.put('/admin/config/commissions/default', { rate });
   }
 
-  public async adminUpdateShopCommission(shopId: number, rate: number) {
-    return this.request<void>({ method: 'PUT', url: `/admin/config/commissions/shop/${shopId}`, data: { rate } });
+  public async adminSetShopCommission(shopId: number, rate: number) {
+    return this.axiosInstance.put(`/admin/config/commissions/shop/${shopId}`, { rate });
   }
 
   public async adminGetRevenueStats() {
-    return this.request<AdminRevenueStats>({ method: 'GET', url: '/admin/dashboard/revenue-stats' });
+    return this.axiosInstance.get<any, AdminRevenueStats>('/admin/dashboard/revenue-stats');
   }
 
   public async adminGetRevenueByShop() {
-    return this.request<any>({ method: 'GET', url: '/admin/dashboard/revenue-by-shop' });
+    return this.axiosInstance.get('/admin/dashboard/revenue-by-shop');
   }
 
-  public async adminGetLogs() {
-    return this.request<any[]>({ method: 'GET', url: '/admin/logs' });
+  public async adminGetActivityLogs(count: number = 20) {
+    return this.axiosInstance.get(`/admin/logs?count=${count}`);
   }
 }
 
