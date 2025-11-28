@@ -98,12 +98,29 @@ export function getAllProductImages(product: any): string[] {
     if (normalized) images.push(normalized);
   }
   
-  // Check for array of images (camelCase or PascalCase)
+  // Check for array of images (camelCase or PascalCase) - List<string>
   const imageArray = product.imageUrls || product.ImageUrls || [];
   if (Array.isArray(imageArray)) {
     imageArray.forEach((img: any) => {
       if (img && typeof img === 'string') {
         const normalized = normalizeImageUrl(img);
+        if (normalized && !images.includes(normalized)) {
+          images.push(normalized);
+        }
+      }
+    });
+  }
+
+  // Check for array of image objects (camelCase or PascalCase) - List<ImageDto>
+  // Backend returns: public List<ImageDto> Images { get; set; }
+  // ImageDto: { Url: string }
+  const imageObjects = product.images || product.Images || [];
+  if (Array.isArray(imageObjects)) {
+    imageObjects.forEach((imgObj: any) => {
+      // Handle object with Url/url property
+      const imgUrl = imgObj.url || imgObj.Url;
+      if (imgUrl && typeof imgUrl === 'string') {
+        const normalized = normalizeImageUrl(imgUrl);
         if (normalized && !images.includes(normalized)) {
           images.push(normalized);
         }
@@ -126,17 +143,27 @@ export function getProductImageUrl(product: any): string | undefined {
     // Check all possible field names
     const imageUrl = product.imageUrl || product.ImageUrl;
     const imageUrls = product.imageUrls || product.ImageUrls || [];
+    const imageObjects = product.images || product.Images || [];
     
-    // Priority: single imageUrl > first from ImageUrls array
+    // Priority 1: single imageUrl
     if (imageUrl && typeof imageUrl === 'string') {
       return normalizeImageUrl(imageUrl);
     }
     
-    // Check array of images
+    // Priority 2: first from ImageUrls array (List<string>)
     if (Array.isArray(imageUrls) && imageUrls.length > 0) {
       const firstImage = imageUrls[0];
       if (firstImage && typeof firstImage === 'string') {
         return normalizeImageUrl(firstImage);
+      }
+    }
+
+    // Priority 3: first from Images array (List<ImageDto>)
+    if (Array.isArray(imageObjects) && imageObjects.length > 0) {
+      const firstImageObj = imageObjects[0];
+      const firstImageUrl = firstImageObj.url || firstImageObj.Url;
+      if (firstImageUrl && typeof firstImageUrl === 'string') {
+        return normalizeImageUrl(firstImageUrl);
       }
     }
     
