@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Search as SearchIcon, Filter, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,13 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
 import {
   apiService,
+  Product,
   SearchParams,
   SearchResponse,
-  Product,
 } from "@/services/apiService";
-import ProductCard from "@/components/ProductCard";
+import { getProductImageUrl } from "@/utils/imageUtils";
 
 interface SearchProps {
   onClose?: () => void;
@@ -39,20 +40,7 @@ const Search = ({ onClose, className = "" }: SearchProps) => {
     pageSize: 20,
   });
 
-  // Debounced search
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (searchQuery.trim()) {
-        performSearch();
-      } else {
-        setSearchResults([]);
-      }
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery, filters]);
-
-  const performSearch = async () => {
+  const performSearch = useCallback(async () => {
     if (!searchQuery.trim()) return;
 
     setLoading(true);
@@ -64,9 +52,7 @@ const Search = ({ onClose, className = "" }: SearchProps) => {
         ...filters,
       };
 
-      const response: SearchResponse = await apiService.searchProducts(
-        searchParams
-      );
+      const response = await apiService.getProducts(searchParams);
       setSearchResults(response.products);
     } catch (apiError) {
       console.warn("Search API not available:", apiError);
@@ -75,7 +61,21 @@ const Search = ({ onClose, className = "" }: SearchProps) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchQuery, filters]);
+
+  // Debounced search
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchQuery.trim()) {
+        performSearch();
+      } else {
+        setSearchResults([]);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, filters, performSearch]);
+
 
   const handleFilterChange = (key: keyof SearchParams, value: any) => {
     setFilters((prev) => ({
@@ -273,12 +273,13 @@ const Search = ({ onClose, className = "" }: SearchProps) => {
                   <CardContent className="p-3">
                     <div className="flex items-center gap-3">
                       <img
-                        src={
-                          product.imageUrl ||
-                          "https://via.placeholder.com/60x60"
-                        }
+                        src={getProductImageUrl(product)}
                         alt={product.name}
                         className="w-15 h-15 object-cover rounded-md"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "/assets/no-image.png";
+                        }}
                       />
                       <div className="flex-1">
                         <h4 className="font-medium text-sm line-clamp-1">

@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Eye, EyeOff } from "lucide-react";
-import { apiService, authUtils } from "@/services/apiService";
+import { apiService } from "@/services/apiService";
 import { offlineAuthService } from "@/services/offlineAuthService";
 import { OfflineStatus } from "@/components/OfflineStatus";
 
@@ -37,7 +37,7 @@ const Login = () => {
 
         if (response.token) {
           // Store JWT token
-          authUtils.setToken(response.token);
+          localStorage.setItem("userToken", response.token);
 
           // Decode JWT to get user roles
           const tokenPayload = JSON.parse(atob(response.token.split(".")[1]));
@@ -46,13 +46,13 @@ const Login = () => {
             ? roles.includes("Admin")
               ? "admin"
               : roles.includes("Shop")
-              ? "shop"
-              : "user"
+                ? "shop"
+                : "user"
             : roles === "Admin"
-            ? "admin"
-            : roles === "Shop"
-            ? "shop"
-            : "user";
+              ? "admin"
+              : roles === "Shop"
+                ? "shop"
+                : "user";
 
           // Store user data and role from JWT
           localStorage.setItem("userRole", primaryRole);

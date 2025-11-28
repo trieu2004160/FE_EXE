@@ -6,35 +6,14 @@ const API_BASE_URL = 'http://localhost:8081/api';
 // Create axios instance with default config
 const shopApi = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Add token to requests and handle auth errors
-shopApi.interceptors.request.use((config: any) => {
-  const token = localStorage.getItem('userToken');
-  
-  // Check if user has shop role and valid token
-  if (!token || token === 'authenticated' || !isTokenValid() || !hasShopRole()) {
-    throw new Error('Token không hợp lệ hoặc không có quyền truy cập Shop');
-  }
-  
-  config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
-
-// Handle response errors
-shopApi.interceptors.response.use(
-  (response: any) => response,
   (error: any) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid
-      clearAuthData();
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
+  if (error.response?.status === 401) {
+    // Token expired or invalid
+    clearAuthData();
+    window.location.href = '/login';
   }
+  return Promise.reject(error);
+}
 );
 
 // Interfaces
@@ -158,7 +137,7 @@ export const shopApiService = {
           formData.append(key, value.toString());
         }
       });
-      
+
       const response = await shopApi.put('/shop/profile', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -181,7 +160,7 @@ export const shopApiService = {
     if (productData.imageFile) {
       const formData = new FormData();
       formData.append('imageFile', productData.imageFile);
-      
+
       // Add other fields
       formData.append('name', productData.name);
       if (productData.description) formData.append('description', productData.description);
@@ -191,7 +170,7 @@ export const shopApiService = {
       if (productData.maxPrice) formData.append('maxPrice', productData.maxPrice.toString());
       formData.append('stockQuantity', productData.stockQuantity.toString());
       formData.append('productCategoryId', productData.productCategoryId.toString());
-      
+
       // Add specifications
       if (productData.specifications.xuatXu) {
         formData.append('specifications.xuatXu', productData.specifications.xuatXu);
@@ -219,7 +198,7 @@ export const shopApiService = {
     if (productData.imageFile) {
       const formData = new FormData();
       formData.append('imageFile', productData.imageFile);
-      
+
       Object.entries(productData).forEach(([key, value]) => {
         if (key !== 'imageFile' && value !== undefined) {
           if (key === 'specifications' && typeof value === 'object') {
@@ -257,7 +236,7 @@ export const shopApiService = {
   },
 
   updateOrderItemStatus: async (
-    orderItemId: number, 
+    orderItemId: number,
     status: 'pending' | 'preparing' | 'shipped' | 'delivered' | 'cancelled'
   ): Promise<void> => {
     await shopApi.put(`/shop/orders/items/${orderItemId}/status`, { status });

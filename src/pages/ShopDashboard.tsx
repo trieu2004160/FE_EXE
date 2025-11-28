@@ -7,7 +7,6 @@ import {
   Settings,
   Package,
   BarChart3,
-  LogOut,
   Plus,
   Edit,
   Trash2,
@@ -18,9 +17,9 @@ import {
   Store,
   Upload,
   Link as LinkIcon,
-  RefreshCw,
   AlertCircle,
 } from "lucide-react";
+import { getProductImageUrl } from "@/utils/imageUtils";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -31,7 +30,6 @@ import {
   ShopDashboardDto,
   ShopProfile,
   ShopOrder,
-  ProductFormData,
 } from "@/services/shopApi";
 import {
   hasShopRole,
@@ -39,11 +37,33 @@ import {
   clearAuthData,
   getTokenInfo,
   getUserRole,
-  getShopId,
 } from "@/utils/tokenUtils";
 
 // Use interfaces from API service
 type Product = ShopProduct;
+
+interface ProductFormData {
+  name: string;
+  description: string;
+  price?: number;
+  basePrice: number;
+  maxPrice?: number;
+  stockQuantity: number;
+  category?: string;
+  productCategoryId: number;
+  images: string[];
+  imageUrl?: string;
+  imageFiles: File[];
+  imageFile?: File;
+  inStock?: boolean;
+  isPopular: boolean;
+  features?: string;
+  specifications?: {
+    xuatXu?: string;
+    baoQuan?: string;
+    hanSuDung?: string;
+  };
+}
 
 const ShopDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -108,7 +128,7 @@ const ShopDashboard = () => {
         const stats = {
           totalProducts:
             dashboardData.totalProducts ?? dashboardData.TotalProducts ?? 0,
-          productsInStock:
+          inStockProducts:
             dashboardData.productsInStock ?? dashboardData.ProductsInStock ?? 0,
           outOfStockProducts:
             dashboardData.outOfStockProducts ??
@@ -134,7 +154,7 @@ const ShopDashboard = () => {
 
         // Load products
         const productsData = await shopApi.getShopProducts();
-        setProducts(productsData as ShopProduct[]);
+        setProducts(productsData.products);
 
         // Load shop profile
         const profileData = await shopApi.getShopProfile();
@@ -142,7 +162,7 @@ const ShopDashboard = () => {
 
         // Load orders
         const ordersData = await shopApi.getShopOrders();
-        setOrders(ordersData as ShopOrder[]);
+        setOrders(ordersData.orders);
       } catch (err: any) {
         console.error("Error loading shop data:", err);
 
@@ -276,55 +296,37 @@ const ShopDashboard = () => {
 
   const handleSaveProduct = async (formData: ProductFormData) => {
     try {
-      let imageUrl = formData.imageUrl;
-
-      // Upload image if file is provided
+      const imageUrl = formData.imageUrl;
+      // Combine imageFiles array and single imageFile if present
+      let imageFiles = formData.imageFiles || [];
       if (formData.imageFile) {
-        try {
-          const uploadResult = await shopApi.uploadImage(formData.imageFile);
-          imageUrl = uploadResult.url;
-        } catch (uploadErr) {
-          console.error("Error uploading image:", uploadErr);
-          setError("Không thể tải lên hình ảnh. Vui lòng thử lại sau.");
-          return;
-        }
+        imageFiles = [...imageFiles, formData.imageFile];
       }
+
+      const apiProductData = {
+        name: formData.name,
+        description: formData.description,
+        basePrice: formData.basePrice,
+        maxPrice: formData.maxPrice,
+        stockQuantity: formData.stockQuantity,
+        productCategoryId: formData.productCategoryId,
+        features: formData.features,
+        isPopular: formData.isPopular,
+        specifications: formData.specifications,
+        images: imageUrl ? [imageUrl] : [],
+        imageFiles: imageFiles,
+      };
 
       if (editingProduct) {
-        // Update existing product
-        const apiProductData = {
-          name: formData.name,
-          description: formData.description,
-          price: formData.basePrice,
-          category: formData.productCategoryId.toString(),
-          images: imageUrl ? [imageUrl] : [],
-          inStock: formData.stockQuantity > 0,
-        };
-
-        const updatedProduct = await shopApi.updateProduct(
-          editingProduct.id.toString(),
-          apiProductData
-        );
-        setProducts(
-          products.map((p) =>
-            p.id === editingProduct.id ? { ...p, ...formData, imageUrl } : p
-          )
-        );
+        await shopApi.updateProduct(editingProduct.id.toString(), apiProductData);
       } else {
-        // Add new product
-        // Convert ProductFormData to API format
-        const apiProductData = {
-          name: formData.name,
-          description: formData.description,
-          price: formData.basePrice,
-          category: formData.productCategoryId.toString(),
-          images: imageUrl ? [imageUrl] : [],
-          inStock: formData.stockQuantity > 0,
-        };
-
-        const newProduct = await shopApi.createProduct(apiProductData);
-        setProducts([...products, newProduct as Product]);
+        await shopApi.createProduct(apiProductData);
       }
+
+      // Reload products to get the latest data (including new image URLs)
+      const productsData = await shopApi.getShopProducts();
+      setProducts(productsData.products);
+
       setShowAddForm(false);
       setEditingProduct(null);
     } catch (err) {
@@ -351,7 +353,7 @@ const ShopDashboard = () => {
     {
       title: "Đang Bán",
       value:
-        dashboardStats?.productsInStock ??
+        dashboardStats?.inStockProducts ??
         products.filter((p) => p.stockQuantity > 0).length,
       icon: ShoppingCart,
       color: "bg-green-500",
@@ -366,7 +368,7 @@ const ShopDashboard = () => {
     },
     {
       title: "Đơn Hàng Chờ",
-      value: dashboardStats?.pendingOrderItems ?? 0,
+      value: dashboardStats?.pendingOrders ?? 0,
       icon: FileText,
       color: "bg-amber-500",
     },
@@ -401,11 +403,10 @@ const ShopDashboard = () => {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center px-6 py-3 text-left hover:bg-green-50 transition-colors ${
-                    activeTab === item.id
-                      ? "bg-green-50 border-r-4 border-green-500 text-green-700"
-                      : "text-gray-600"
-                  }`}
+                  className={`w-full flex items-center px-6 py-3 text-left hover:bg-green-50 transition-colors ${activeTab === item.id
+                    ? "bg-green-50 border-r-4 border-green-500 text-green-700"
+                    : "text-gray-600"
+                    }`}
                 >
                   <IconComponent className="h-5 w-5 mr-3" />
                   {item.label}
@@ -492,26 +493,24 @@ const ShopDashboard = () => {
                     <CardContent>
                       <div className="space-y-4">
                         {dashboardStats?.recentActivities?.map(
-                          (activity, index) => (
+                          (activity: any, index: any) => (
                             <div
                               key={index}
-                              className={`flex items-center justify-between p-4 rounded-lg ${
-                                activity.type === "product_updated"
-                                  ? "bg-green-50"
-                                  : activity.type === "order_created"
+                              className={`flex items-center justify-between p-4 rounded-lg ${activity.type === "product_updated"
+                                ? "bg-green-50"
+                                : activity.type === "order_created"
                                   ? "bg-blue-50"
                                   : "bg-amber-50"
-                              }`}
+                                }`}
                             >
                               <div className="flex items-center">
                                 <div
-                                  className={`w-2 h-2 rounded-full mr-3 ${
-                                    activity.type === "product_updated"
-                                      ? "bg-green-500"
-                                      : activity.type === "order_created"
+                                  className={`w-2 h-2 rounded-full mr-3 ${activity.type === "product_updated"
+                                    ? "bg-green-500"
+                                    : activity.type === "order_created"
                                       ? "bg-blue-500"
                                       : "bg-amber-500"
-                                  }`}
+                                    }`}
                                 ></div>
                                 <span>{activity.description}</span>
                               </div>
@@ -523,10 +522,10 @@ const ShopDashboard = () => {
                             </div>
                           )
                         ) || (
-                          <div className="text-center py-8 text-gray-500">
-                            Chưa có hoạt động nào
-                          </div>
-                        )}
+                            <div className="text-center py-8 text-gray-500">
+                              Chưa có hoạt động nào
+                            </div>
+                          )}
                       </div>
                     </CardContent>
                   </Card>
@@ -586,13 +585,16 @@ const ShopDashboard = () => {
                               <div className="flex items-center">
                                 <img
                                   src={
-                                    product.imageUrl ||
-                                    (product.imageFile
-                                      ? URL.createObjectURL(product.imageFile)
-                                      : "https://via.placeholder.com/40")
+                                    (product as any).imageFile
+                                      ? URL.createObjectURL((product as any).imageFile)
+                                      : getProductImageUrl(product)
                                   }
                                   alt={product.name}
                                   className="h-10 w-10 rounded-lg object-cover mr-3"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.src = "/assets/no-image.png";
+                                  }}
                                 />
                                 <div>
                                   <div className="text-sm font-medium text-gray-900">
@@ -611,7 +613,7 @@ const ShopDashboard = () => {
                               <Badge variant="outline">
                                 {
                                   categoryMap[
-                                    product.productCategoryId as keyof typeof categoryMap
+                                  product.productCategoryId as keyof typeof categoryMap
                                   ]
                                 }
                               </Badge>
@@ -665,44 +667,49 @@ const ShopDashboard = () => {
                 </CardContent>
               </Card>
             </div>
-          )}
+          )
+          }
 
           {/* Other tabs placeholder */}
-          {["orders", "settings"].includes(activeTab) && (
-            <Card>
-              <CardHeader>
-                <CardTitle>
-                  {activeTab === "orders" && "Quản Lý Đơn Hàng"}
-                  {activeTab === "settings" && "Cài Đặt Cửa Hàng"}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12">
-                  <div className="text-gray-400 mb-4">
-                    <Store className="h-16 w-16 mx-auto" />
+          {
+            ["orders", "settings"].includes(activeTab) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>
+                    {activeTab === "orders" && "Quản Lý Đơn Hàng"}
+                    {activeTab === "settings" && "Cài Đặt Cửa Hàng"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-12">
+                    <div className="text-gray-400 mb-4">
+                      <Store className="h-16 w-16 mx-auto" />
+                    </div>
+                    <p className="text-gray-500">
+                      Tính năng này đang được phát triển...
+                    </p>
                   </div>
-                  <p className="text-gray-500">
-                    Tính năng này đang được phát triển...
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
+                </CardContent>
+              </Card>
+            )
+          }
+        </div >
+      </div >
 
       {/* Add/Edit Product Modal */}
-      {showAddForm && (
-        <ProductForm
-          product={editingProduct}
-          onSave={handleSaveProduct}
-          onCancel={() => {
-            setShowAddForm(false);
-            setEditingProduct(null);
-          }}
-        />
-      )}
-    </div>
+      {
+        showAddForm && (
+          <ProductForm
+            product={editingProduct}
+            onSave={handleSaveProduct}
+            onCancel={() => {
+              setShowAddForm(false);
+              setEditingProduct(null);
+            }}
+          />
+        )
+      }
+    </div >
   );
 };
 
@@ -726,11 +733,12 @@ const ProductForm = ({
     stockQuantity: product?.stockQuantity || 0,
     productCategoryId: product?.productCategoryId || 1,
     imageUrl: product?.imageUrl || "",
-    specifications: {
-      xuatXu: product?.specifications?.xuatXu || "",
-      baoQuan: product?.specifications?.baoQuan || "",
-      hanSuDung: product?.specifications?.hanSuDung || "",
-    },
+    images: product?.images?.map((img) => img.url) || [],
+    imageFiles: [],
+    specifications:
+      typeof product?.specifications === "string"
+        ? JSON.parse(product.specifications)
+        : product?.specifications || {},
   });
 
   const [imageMethod, setImageMethod] = useState<"url" | "file">("url");
@@ -919,11 +927,10 @@ const ProductForm = ({
                 <button
                   type="button"
                   onClick={() => setImageMethod("url")}
-                  className={`px-4 py-2 rounded-md flex items-center space-x-2 ${
-                    imageMethod === "url"
-                      ? "bg-amber-100 text-amber-800 border border-amber-300"
-                      : "bg-gray-100 text-gray-600"
-                  }`}
+                  className={`px-4 py-2 rounded-md flex items-center space-x-2 ${imageMethod === "url"
+                    ? "bg-amber-100 text-amber-800 border border-amber-300"
+                    : "bg-gray-100 text-gray-600"
+                    }`}
                 >
                   <LinkIcon className="h-4 w-4" />
                   <span>Nhập URL</span>
@@ -931,11 +938,10 @@ const ProductForm = ({
                 <button
                   type="button"
                   onClick={() => setImageMethod("file")}
-                  className={`px-4 py-2 rounded-md flex items-center space-x-2 ${
-                    imageMethod === "file"
-                      ? "bg-amber-100 text-amber-800 border border-amber-300"
-                      : "bg-gray-100 text-gray-600"
-                  }`}
+                  className={`px-4 py-2 rounded-md flex items-center space-x-2 ${imageMethod === "file"
+                    ? "bg-amber-100 text-amber-800 border border-amber-300"
+                    : "bg-gray-100 text-gray-600"
+                    }`}
                 >
                   <Upload className="h-4 w-4" />
                   <span>Upload File</span>

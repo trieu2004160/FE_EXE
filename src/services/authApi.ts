@@ -1,6 +1,7 @@
 // Auth API - Handles authentication and user shipping info
-import { apiService, UserProfile, authUtils } from './apiService';
+import { apiService, UserProfile } from './apiService';
 import { offlineAuthService, OfflineUser } from './offlineAuthService';
+import { getUserRole, clearAuthData, isTokenValid } from '@/utils/tokenUtils';
 
 export interface AuthUser {
   id: string;
@@ -24,14 +25,16 @@ class AuthApi {
   getCurrentUser(): AuthUser | null {
     // Try to get from online profile first
     try {
-      const userData = authUtils.getUserData();
+      const userDataStr = localStorage.getItem('userData');
+      const userData = userDataStr ? JSON.parse(userDataStr) : null;
+
       if (userData) {
         return {
           id: userData.email,
           email: userData.email,
-          fullName: userData.fullName || '',
-          phone: userData.phoneNumber,
-          role: authUtils.getUserRole() || undefined,
+          fullName: userData.fullName || userData.name || '',
+          phone: userData.phoneNumber || userData.phone,
+          role: getUserRole() || undefined,
         };
       }
     } catch (error) {
@@ -55,7 +58,7 @@ class AuthApi {
 
   // Logout
   logout(): void {
-    authUtils.removeToken();
+    clearAuthData();
     offlineAuthService.logout();
   }
 
@@ -108,7 +111,7 @@ class AuthApi {
   // Get user profile (try online first, then offline)
   async getProfile(): Promise<UserProfile | OfflineUser | null> {
     try {
-      if (authUtils.isAuthenticated()) {
+      if (isTokenValid()) {
         const profile = await apiService.getProfile();
         return profile;
       }

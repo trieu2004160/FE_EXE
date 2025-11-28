@@ -359,11 +359,10 @@ const Cart = () => {
                       {items.map((item) => (
                         <div
                           key={item.id}
-                          className={`flex items-center gap-4 p-4 border rounded-xl bg-white hover:shadow-lg transition-all duration-300 ${
-                            item.selected || item.isSelected
-                              ? "border-[#A67C42] bg-[#A67C42]/5"
-                              : "border-gray-200"
-                          }`}
+                          className={`flex items-center gap-4 p-4 border rounded-xl bg-white hover:shadow-lg transition-all duration-300 ${item.selected || item.isSelected
+                            ? "border-[#A67C42] bg-[#A67C42]/5"
+                            : "border-gray-200"
+                            }`}
                         >
                           <input
                             type="checkbox"
@@ -385,7 +384,7 @@ const Cart = () => {
                               );
                               return (
                                 normalizedUrl ||
-                                "https://via.placeholder.com/200?text=No+Image"
+                                "/assets/no-image.png"
                               );
                             })()}
                             alt={item.name}
@@ -398,7 +397,7 @@ const Cart = () => {
                                 e.currentTarget.src
                               );
                               e.currentTarget.src =
-                                "https://via.placeholder.com/200?text=No+Image";
+                                "/assets/no-image.png";
                             }}
                           />
                           <div className="flex-1">

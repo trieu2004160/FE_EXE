@@ -1,40 +1,16 @@
-// API configuration
-// Use relative path to leverage Vite proxy in development
-// Vite proxy will forward /api/* to https://localhost:5001/api/*
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
+import axios, { AxiosInstance, AxiosResponse, AxiosError, AxiosRequestConfig } from 'axios';
 
-console.log('[apiService] API_BASE_URL configured:', API_BASE_URL)
+// Configuration
+const API_BASE_URL = "https://localhost:5001/api";
 
-// Base Types
-export interface ApiResponse<T = unknown> {
-  message?: string;
-  data?: T;
-  success?: boolean;
-  errors?: string[];
+// --- Interfaces ---
+
+// Common
+export interface ApiResponse {
+  message: string;
 }
 
-// Shop Dashboard Types (matching backend DTOs)
-// Backend returns PascalCase, so we support both formats
-export interface ShopDashboardDto {
-  // PascalCase (from backend)
-  TotalProducts?: number;
-  ProductsInStock?: number;
-  OutOfStockProducts?: number;
-  PendingOrderItems?: number;
-  // camelCase (converted)
-  totalProducts?: number;
-  productsInStock?: number;
-  outOfStockProducts?: number;
-  pendingOrderItems?: number;
-}
-
-// Account Types
-export interface RegisterRequest {
-  fullName: string;
-  email: string;
-  password: string;
-}
-
+// Auth
 export interface LoginRequest {
   email: string;
   password: string;
@@ -42,107 +18,107 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   token: string;
+  user: {
+    id: number;
+    email: string;
+    fullName: string;
+    role: string;
+  };
+}
+
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  fullName: string;
+  phoneNumber?: string;
+  address?: string;
 }
 
 export interface ChangePasswordRequest {
-  oldPassword: string;
+  currentPassword: string;
   newPassword: string;
+  confirmNewPassword: string;
 }
 
 export interface DeleteAccountRequest {
   password: string;
 }
 
-// Profile Types
-export interface UserProfile {
-  fullName: string;
-  email: string;
-  phoneNumber?: string;
-  address?: string;
-  introduction?: string;
-}
-
-export interface UpdateProfileRequest {
-  fullName: string;
-  phoneNumber?: string;
-  address?: string;
-  introduction?: string;
-}
-
-// Category Types
+// Category
 export interface Category {
   id: number;
   name: string;
   description?: string;
   imageUrl?: string;
+  isVisible?: boolean;
 }
 
 export interface CreateCategoryRequest {
   name: string;
   description?: string;
-  imageUrl?: string;
+  imageFile?: File;
 }
 
 export interface UpdateCategoryRequest {
-  name: string;
+  name?: string;
   description?: string;
-  imageUrl?: string;
+  imageFile?: File;
 }
 
-// Product Types
+// Product
+export interface ImageDto {
+  id: number;
+  url: string; // Base64 string or URL
+}
+
 export interface Product {
   id: number;
   name: string;
   description?: string;
   features?: string;
-  imageUrl?: string; // Single image URL (normalized)
-  imageUrls?: string[]; // Array of image URLs (camelCase from frontend)
-  ImageUrls?: string[]; // Array from backend (PascalCase)
+  images: ImageDto[];
   isPopular: boolean;
   basePrice: number;
   maxPrice?: number;
   stockQuantity: number;
-  specifications?: string | Record<string, string>; // Can be JSON string or Dictionary object
+  specifications?: Record<string, string>;
   productCategoryId: number;
-  shop?: {
-    id: number;
-    shopName: string;
-  };
-  reviews?: ProductReview[];
+  productCategoryName?: string;
+  shopId: number;
+  shopName?: string;
+  imageUrl?: string; // Helper for frontend display (first image)
 }
 
 export interface CreateProductRequest {
   name: string;
   description?: string;
   features?: string;
-  imageUrl?: string;
   isPopular: boolean;
   basePrice: number;
   maxPrice?: number;
   stockQuantity: number;
-  specifications?: string;
+  specifications?: string; // JSON string
   productCategoryId: number;
+  imageFiles?: File[];
+  imageUrls?: string[];
 }
 
 export interface UpdateProductRequest {
-  name: string;
+  name?: string;
   description?: string;
   features?: string;
-  imageUrl?: string;
-  isPopular: boolean;
-  basePrice: number;
+  isPopular?: boolean;
+  basePrice?: number;
   maxPrice?: number;
-  stockQuantity: number;
-  specifications?: string;
-  productCategoryId: number;
+  stockQuantity?: number;
+  specifications?: string; // JSON string
+  productCategoryId?: number;
+  imageFiles?: File[];
+  imageUrls?: string[];
+  keepImageIds?: number[];
 }
 
-export interface ProductDetailResponse {
-  product: Product;
-  relatedProducts: Product[];
-}
-
-// Review Types
+// Review
 export interface ProductReview {
   id: number;
   userId: string;
@@ -152,6 +128,7 @@ export interface ProductReview {
   createdAt: string;
   user?: {
     fullName: string;
+    avatarUrl?: string;
   };
 }
 
@@ -160,38 +137,27 @@ export interface CreateReviewRequest {
   comment?: string;
 }
 
-// Search Types
-export interface SearchParams {
-  query?: string;
-  category?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  sortBy?: 'name' | 'price' | 'rating' | 'createdAt';
-  page?: number;
-  pageSize?: number;
+// User Profile
+export interface UserProfile {
+  id: number;
+  email: string;
+  fullName: string;
+  phoneNumber?: string;
+  address?: string;
+  introduction?: string;
+  avatarUrl?: string; // Base64 string
+  roles: string[];
 }
 
-export interface SearchResponse {
-  products: Product[];
-  totalCount: number;
-  currentPage: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
+export interface UpdateProfileRequest {
+  fullName: string;
+  phoneNumber?: string;
+  address?: string;
+  introduction?: string;
+  avatarFile?: File;
 }
 
-// Admin Types
-export interface GrantShopRoleRequest {
-  userEmail: string;
-  shopName: string;
-}
-
-export interface GrantShopRoleResponse {
-  message: string;
-  shopId: number;
-}
-
-// Cart Types
+// Cart
 export interface CartItemDto {
   id: number;
   productId: number;
@@ -200,21 +166,49 @@ export interface CartItemDto {
   price: number;
   quantity: number;
   isSelected: boolean;
-}
-
-export interface ShopInCartDto {
-  shopId: number;
-  shopName: string;
-  items: CartItemDto[];
+  shopName?: string;
 }
 
 export interface CartResponseDto {
   id: number;
-  shops: ShopInCartDto[];
+  items: CartItemDto[];
   totalPrice: number;
 }
 
-// UserAddress Types
+// Order
+export interface ShippingAddress {
+  fullName: string;
+  phoneNumber: string;
+  street: string;
+  ward: string;
+  district: string;
+  city: string;
+}
+
+export interface OrderItemDto {
+  productId: number;
+  productName: string;
+  imageUrl?: string;
+  price: number;
+  quantity: number;
+  shopName: string;
+}
+
+export interface OrderResponseDto {
+  id: number;
+  orderDate: string;
+  status: string;
+  subtotal: number;
+  total: number;
+  shippingAddress: ShippingAddress;
+  items: OrderItemDto[];
+}
+
+export interface CreateOrderRequest {
+  shippingAddress?: ShippingAddress;
+}
+
+// Address
 export interface UpsertAddressDto {
   fullName: string;
   phoneNumber: string;
@@ -236,1256 +230,499 @@ export interface AddressResponseDto {
   isDefault: boolean;
 }
 
-// Order Types
-export interface OrderResponseDto {
-  id: number;
-  orderDate: string;
-  status: string;
-  subtotal: number;
-  total: number;
-  shippingAddress: {
-    fullName: string;
-    phoneNumber: string;
-    street: string;
-    ward: string;
-    district: string;
-    city: string;
-  };
-  items: OrderItemDto[];
-}
-
-export interface OrderItemDto {
-  productId: number;
-  productName: string;
-  imageUrl?: string;
-  price: number;
-  quantity: number;
-  shopName: string;
-}
-
-// Admin Types
-export interface AdminCategoryDto {
+// Shop
+export interface ShopProfile {
   id: number;
   name: string;
   description?: string;
-  imageUrl?: string;
-  isVisible?: boolean;
-  displayOrder?: number;
-}
-
-export interface AdminShopDto {
-  id: number;
-  name: string; // Shop name
-  ownerEmail: string;
+  avatarBase64?: string;
   contactPhoneNumber?: string;
-  isLocked: boolean;
-  commissionRate?: number;
-  // Additional fields that might be in response
-  ownerFullName?: string;
-  address?: string;
+  joinDate: string;
 }
 
-export interface AdminProductDto {
+export interface UpdateShopProfileRequest {
+  name: string;
+  description?: string;
+  contactPhoneNumber?: string;
+  avatarFile?: File;
+  avatarUrl?: string;
+}
+
+export interface ShopDashboardDto {
+  totalProducts: number;
+  productsInStock: number;
+  outOfStockProducts: number;
+  pendingOrderItems: number;
+}
+
+export interface ShopProduct {
   id: number;
   name: string;
-  shopName: string;
-  categoryName: string;
   basePrice: number;
   stockQuantity: number;
-  isVisible?: boolean;
+  soldCount: number;
+  rating: number;
+  status: string;
+  images?: { id: number; url: string }[];
+  description?: string;
+  features?: string;
+  isPopular?: boolean;
+  maxPrice?: number;
+  productCategoryId?: number;
+  specifications?: string | Record<string, string>;
+  imageUrl?: string;
 }
 
-export interface CommissionConfig {
-  defaultCommissionRate?: number;
-  shopCommissionRates?: Record<number, number>;
+export interface ShopOrder {
+  id: string;
+  customerName: string;
+  totalAmount: number;
+  status: string;
+  createdAt: string;
+  items: {
+    productName: string;
+    quantity: number;
+    price: number;
+  }[];
 }
 
-export interface RevenueStats {
+export interface ShopReview {
+  id: string;
+  userName: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  productName: string;
+}
+
+export interface ShopStatistics {
+  revenue: {
+    daily: number;
+    weekly: number;
+    monthly: number;
+  };
+  orders: {
+    pending: number;
+    processing: number;
+    completed: number;
+    cancelled: number;
+  };
+  topProducts: {
+    id: number;
+    name: string;
+    sold: number;
+    revenue: number;
+  }[];
+}
+
+// Admin
+export interface AdminShopDto {
+  id: number;
+  name: string;
+  email: string;
+  status: string;
+  joinDate: string;
+}
+
+export interface AdminRevenueStats {
   totalRevenue: number;
-  totalCommission: number;
-  totalOrders: number;
-  activeShops: number;
-  revenueToday: number;
-  revenueThisWeek: number;
-  revenueThisMonth: number;
-  revenueThisYear: number;
+  dailyRevenue: number;
+  monthlyRevenue: number;
 }
 
-export interface RevenueByShop {
-  shopId: number;
-  shopName: string;
-  revenue: number;
-  commission: number;
-  orderCount: number;
-  commissionRate: number;
-}
+// --- ApiService Class ---
 
-// API service class
 class ApiService {
+  private static instance: ApiService;
+  private axiosInstance: AxiosInstance;
   private baseURL: string;
 
-  constructor(baseURL: string = API_BASE_URL) {
-    this.baseURL = baseURL;
-  }
+  private constructor() {
+    this.baseURL = API_BASE_URL;
+    this.axiosInstance = axios.create({
+      baseURL: this.baseURL,
+      headers: { 'Content-Type': 'application/json' },
+    });
 
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
-    const url = `${this.baseURL}${endpoint}`;
-    
-    // Get token from localStorage
-    const token = localStorage.getItem('userToken');
-    
-    // Prepare headers
-    const headers: Record<string, string> = {};
-    
-    // Copy existing headers
-    if (options.headers) {
-      if (options.headers instanceof Headers) {
-        options.headers.forEach((value, key) => {
-          headers[key] = value;
-        });
-      } else if (Array.isArray(options.headers)) {
-        options.headers.forEach(([key, value]) => {
-          headers[key] = value;
-        });
-      } else {
-        Object.assign(headers, options.headers);
-      }
-    }
-
-    // Set Content-Type only if not already set and not FormData
-    if (!(options.body instanceof FormData) && !headers['Content-Type']) {
-      headers['Content-Type'] = 'application/json';
-    }
-
-    // Add Authorization header with Bearer token
-    if (token && token !== 'authenticated' && token.trim() !== '') {
-      headers['Authorization'] = `Bearer ${token.trim()}`;
-    } else {
-      console.warn(`[apiService] No valid token found for request to ${endpoint}`, {
-        hasToken: !!token,
-        tokenValue: token?.substring(0, 30) || 'null/empty'
-      });
-    }
-
-    const config: RequestInit = {
-      ...options,
-      headers,
-    };
-
-    try {
-      console.log('[apiService] Making request:', {
-        url,
-        method: config.method || 'GET',
-        hasAuth: !!headers['Authorization'],
-      });
-
-      const response = await fetch(url, config);
-      
-      if (!response.ok) {
-        // Try to get error message from response
-        let errorMessage = `HTTP error! status: ${response.status}`;
-        let errorData: { message?: string; error?: string } = {};
-        
-        try {
-          const responseText = await response.text();
-          if (responseText) {
-            errorData = JSON.parse(responseText) as { message?: string; error?: string };
-            errorMessage = errorData.message || errorData.error || errorMessage;
-          }
-        } catch {
-          // If response is not JSON, use status text
-          errorMessage = response.statusText || errorMessage;
+    // 1. Interceptor Request: Attach Token
+    this.axiosInstance.interceptors.request.use(
+      (config) => {
+        const token = localStorage.getItem('token') || localStorage.getItem('userToken');
+        if (token) {
+          const cleanToken = token.replace(/"/g, '');
+          config.headers.Authorization = `Bearer ${cleanToken}`;
         }
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
 
-        // Enhanced logging for 401 errors
-        if (response.status === 401) {
-          const tokenInfo = this.getTokenInfo(token);
-          console.error('[apiService] Unauthorized (401):', {
-            endpoint,
-            url,
-            errorMessage,
-            errorData,
-            token: token ? `${token.substring(0, 30)}...` : 'missing',
-            tokenInfo: tokenInfo ? {
-              email: tokenInfo.email,
-              role: tokenInfo.role,
-              shopId: tokenInfo.ShopId,
-              exp: tokenInfo.exp ? new Date(tokenInfo.exp * 1000).toISOString() : undefined,
-            } : null,
-            responseHeaders: Object.fromEntries(response.headers.entries()),
-          });
-        }
-        
-        throw new Error(errorMessage);
+    // 2. Interceptor Response: Handle Errors
+    this.axiosInstance.interceptors.response.use(
+      (response) => response.data,
+      (error: AxiosError) => {
+        console.error("API Error:", error.response?.status, error.config?.url, error.message);
+        return Promise.reject(error);
       }
+    );
+  }
 
-      return await response.json();
-    } catch (error) {
-      // Handle network errors (Failed to fetch)
-      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        console.error('[apiService] Network error (Failed to fetch):', {
-          endpoint,
-          url,
-          baseURL: this.baseURL,
-          possibleCauses: [
-            'Backend server is not running',
-            'CORS issue - check backend CORS configuration',
-            'Network connectivity issue',
-            'SSL certificate issue (if using HTTPS)',
-            'Wrong URL or port'
-          ],
-          suggestion: `Make sure backend is running at ${url.includes('localhost:5001') ? 'https://localhost:5001' : this.baseURL}`,
-        });
-        
-        throw new Error(`Không thể kết nối đến server. Vui lòng kiểm tra:\n1. Backend server đang chạy không?\n2. URL: ${url}\n3. CORS configuration`);
-      }
-      
-      console.error('[apiService] Request failed:', {
-        endpoint,
-        url,
-        error: error instanceof Error ? error.message : String(error),
-        errorType: error instanceof Error ? error.constructor.name : typeof error,
-        token: token ? `${token.substring(0, 30)}...` : 'missing',
-      });
-      throw error;
+  public static getInstance(): ApiService {
+    if (!ApiService.instance) {
+      ApiService.instance = new ApiService();
     }
+    return ApiService.instance;
   }
 
-  // Helper method to decode token info for debugging
-  private getTokenInfo(token: string | null): { email?: string; role?: string | string[]; ShopId?: string; exp?: number } | null {
-    if (!token || token === 'authenticated') return null;
-    
-    try {
-      const parts = token.split('.');
-      if (parts.length !== 3) return null;
-      
-      const payload = parts[1];
-      const paddedPayload = payload + '='.repeat((4 - payload.length % 4) % 4);
-      const decoded = JSON.parse(atob(paddedPayload));
-      
-      return {
-        email: decoded.email || decoded[`http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress`],
-        role: decoded.role || decoded[`http://schemas.microsoft.com/ws/2008/06/identity/claims/role`],
-        ShopId: decoded.ShopId || decoded.shopId,
-        exp: decoded.exp,
-      };
-    } catch {
-      return null;
-    }
+  // Helper to handle axios requests and return Promise<T>
+  private async request<T>(config: AxiosRequestConfig): Promise<T> {
+    return this.axiosInstance.request(config) as Promise<T>;
   }
 
-  // ==================== ACCOUNT API ====================
-  // Base URL: /api/accounts
-
-  /**
-   * Register a new user account
-   * POST /api/accounts/register
-   */
-  async register(data: RegisterRequest): Promise<ApiResponse> {
-    return this.request<ApiResponse>('/accounts/register', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+  // --- 1. Auth & Account ---
+  public async register(data: RegisterRequest) {
+    return this.request<ApiResponse>({ method: 'POST', url: '/Accounts/register', data });
   }
 
-  /**
-   * User login
-   * POST /api/accounts/login
-   */
-  async login(data: LoginRequest): Promise<LoginResponse> {
-    return this.request<LoginResponse>('/accounts/login', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+  public async login(data: LoginRequest) {
+    return this.request<LoginResponse>({ method: 'POST', url: '/Accounts/login', data });
   }
 
-  /**
-   * Change user password
-   * POST /api/accounts/changepassword
-   */
-  async changePassword(data: ChangePasswordRequest): Promise<ApiResponse> {
-    return this.request<ApiResponse>('/accounts/changepassword', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+  public async changePassword(data: ChangePasswordRequest) {
+    return this.request<ApiResponse>({ method: 'POST', url: '/Accounts/changepassword', data });
   }
 
-  /**
-   * Delete user account
-   * DELETE /api/accounts/deleteme
-   */
-  async deleteAccount(data: DeleteAccountRequest): Promise<ApiResponse> {
-    return this.request<ApiResponse>('/accounts/deleteme', {
-      method: 'DELETE',
-      body: JSON.stringify(data),
-    });
+  public async deleteAccount(data: DeleteAccountRequest) {
+    return this.request<ApiResponse>({ method: 'DELETE', url: '/Accounts/deleteme', data });
   }
 
-  // ==================== PROFILE API ====================
-  // Base URL: /api/profile
-
-  /**
-   * Get current user profile
-   * GET /api/profile/me
-   */
-  async getProfile(): Promise<UserProfile> {
-    return this.request<UserProfile>('/profile/me', {
-      method: 'GET',
-    });
+  // --- 2. Public Data ---
+  public async getCategories() {
+    return this.request<Category[]>({ method: 'GET', url: '/Categories' });
   }
 
-  /**
-   * Update current user profile
-   * PUT /api/profile/me
-   */
-  async updateProfile(data: UpdateProfileRequest): Promise<ApiResponse> {
-    return this.request<ApiResponse>('/profile/me', {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
+  public async getCategory(id: number) {
+    return this.request<Category>({ method: 'GET', url: `/Categories/${id}` });
   }
 
-  // ==================== CATEGORIES API ====================
-  // Base URL: /api/categories
-
-  /**
-   * Get all categories
-   * GET /api/categories
-   */
-  async getCategories(): Promise<Category[]> {
-    return this.request<Category[]>('/categories', {
-      method: 'GET',
-    });
+  public async getCategoryProducts(categoryId: number) {
+    return this.request<Product[]>({ method: 'GET', url: `/Categories/${categoryId}/products` });
   }
 
-  /**
-   * Get products by category
-   * GET /api/categories/{categoryId}/products
-   */
-  async getProductsByCategory(categoryId: number): Promise<Product[]> {
-    return this.request<Product[]>(`/categories/${categoryId}/products`, {
-      method: 'GET',
-    });
+  public async getProducts() {
+    return this.request<Product[]>({ method: 'GET', url: '/Products' });
   }
 
-  /**
-   * Create a new category
-   * POST /api/categories
-   */
-  async createCategory(data: CreateCategoryRequest): Promise<Category> {
-    return this.request<Category>('/categories', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+  public async getProduct(id: number) {
+    return this.request<Product>({ method: 'GET', url: `/Products/${id}` });
   }
 
-  /**
-   * Update a category
-   * PUT /api/categories/{id}
-   */
-  async updateCategory(id: number, data: UpdateCategoryRequest): Promise<void> {
-    return this.request<void>(`/categories/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
+  public async getProductReviews(productId: number) {
+    return this.request<ProductReview[]>({ method: 'GET', url: `/products/${productId}/reviews` });
   }
 
-  /**
-   * Delete a category
-   * DELETE /api/categories/{id}
-   */
-  async deleteCategory(id: number): Promise<void> {
-    return this.request<void>(`/categories/${id}`, {
-      method: 'DELETE',
-    });
+  public async searchProducts(keyword: string) {
+    if (!keyword || keyword.trim() === '') return [];
+    return this.request<Product[]>({ method: 'GET', url: `/Search?q=${encodeURIComponent(keyword)}` });
   }
 
-  // ==================== PRODUCTS API ====================
-  // Base URL: /api/products
-
-  /**
-   * Get all products
-   * GET /api/products
-   */
-  async getProducts(): Promise<Product[]> {
-    return this.request<Product[]>('/products', {
-      method: 'GET',
-    });
+  // --- 3. User Features ---
+  public async getProfile() {
+    return this.request<UserProfile>({ method: 'GET', url: '/Profile/me' });
   }
 
-  /**
-   * Get product by ID with details and related products
-   * GET /api/products/{id}
-   */
-  async getProductById(id: number): Promise<ProductDetailResponse> {
-    return this.request<ProductDetailResponse>(`/products/${id}`, {
-      method: 'GET',
-    });
-  }
-
-  /**
-   * Create a new product
-   * POST /api/products
-   */
-  async createProduct(data: CreateProductRequest): Promise<Product> {
-    return this.request<Product>('/products', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  /**
-   * Update a product
-   * PUT /api/products/{id}
-   */
-  async updateProduct(id: number, data: UpdateProductRequest): Promise<void> {
-    return this.request<void>(`/products/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  }
-
-  /**
-   * Delete a product
-   * DELETE /api/products/{id}
-   */
-  async deleteProduct(id: number): Promise<void> {
-    return this.request<void>(`/products/${id}`, {
-      method: 'DELETE',
-    });
-  }
-
-  // ==================== REVIEWS API ====================
-  // Base URL: /api/products/{productId}/reviews
-
-  /**
-   * Get reviews for a product
-   * GET /api/products/{productId}/reviews
-   */
-  async getProductReviews(productId: number): Promise<ProductReview[]> {
-    return this.request<ProductReview[]>(`/products/${productId}/reviews`, {
-      method: 'GET',
-    });
-  }
-
-  /**
-   * Create a review for a product
-   * POST /api/products/{productId}/reviews
-   */
-  async createProductReview(productId: number, data: CreateReviewRequest): Promise<ProductReview> {
-    return this.request<ProductReview>(`/products/${productId}/reviews`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  // ==================== SEARCH API ====================
-  // Base URL: /api/search
-
-  /**
-   * Search products
-   * GET /api/search?query={query}&category={category}&minPrice={minPrice}&maxPrice={maxPrice}
-   */
-  async searchProducts(params: SearchParams): Promise<SearchResponse> {
-    const searchParams = new URLSearchParams();
-    
-    if (params.query) searchParams.append('query', params.query);
-    if (params.category) searchParams.append('category', params.category);
-    if (params.minPrice !== undefined) searchParams.append('minPrice', params.minPrice.toString());
-    if (params.maxPrice !== undefined) searchParams.append('maxPrice', params.maxPrice.toString());
-    if (params.sortBy) searchParams.append('sortBy', params.sortBy);
-    if (params.page) searchParams.append('page', params.page.toString());
-    if (params.pageSize) searchParams.append('pageSize', params.pageSize.toString());
-
-    return this.request<SearchResponse>(`/search?${searchParams.toString()}`);
-  }
-
-  // ==================== ADMIN API ====================
-  // Base URL: /api/admin
-
-  /**
-   * Grant shop role to user
-   * POST /api/admin/grantshoprole
-   */
-  async grantShopRole(data: GrantShopRoleRequest): Promise<GrantShopRoleResponse> {
-    return this.request<GrantShopRoleResponse>('/admin/grantshoprole', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  // ==================== UTILITY METHODS ====================
-
-  /**
-   * Helper method to check if backend is available
-   */
-  async healthCheck(): Promise<boolean> {
-    try {
-      const response = await fetch(`${this.baseURL}/health`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      return response.ok;
-    } catch (error) {
-      console.warn('Backend health check failed:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Upload file (for images, documents, etc.)
-   * POST /api/upload
-   */
-  async uploadFile(file: File, type: 'product' | 'category' | 'profile' = 'product'): Promise<{
-    url: string;
-    fileName: string;
-    fileSize: number;
-    contentType: string;
-  }> {
+  public async updateProfile(data: UpdateProfileRequest) {
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('type', type);
+    formData.append('fullName', data.fullName);
+    if (data.phoneNumber) formData.append('phoneNumber', data.phoneNumber);
+    if (data.address) formData.append('address', data.address);
+    if (data.introduction) formData.append('introduction', data.introduction);
+    if (data.avatarFile) formData.append('avatarFile', data.avatarFile);
 
-    const token = localStorage.getItem('userToken');
-    const headers: Record<string, string> = {};
-    
-    if (token && token !== 'authenticated') {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    try {
-      const response = await fetch(`${this.baseURL}/upload`, {
-        method: 'POST',
-        headers,
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('File upload failed:', error);
-      throw error;
-    }
-  }
-
-  // ==================== SHOP API ====================
-  // Base URL: /api/shop
-
-  /**
-   * Get shop dashboard data
-   * GET /api/shop/dashboard
-   * Quyền: Chỉ Shop
-   * Nhiệm vụ & Tác dụng: Lấy dữ liệu cho trang Dashboard (Tổng SP, SP hết hàng, Đơn hàng chờ xử lý)
-   * Backend trả về PascalCase (TotalProducts, ProductsInStock, etc.) - ASP.NET default
-   */
-  async getShopDashboard(): Promise<ShopDashboardDto> {
-    try {
-      const data = await this.request<ShopDashboardDto>('/shop/dashboard', {
-        method: 'GET',
-      });
-      
-      console.log('[apiService] Dashboard response (raw):', data);
-      
-      // Backend returns PascalCase by default (ASP.NET Core)
-      // Convert to camelCase for frontend use
-      const result = {
-        // PascalCase (keep original from backend)
-        TotalProducts: data.TotalProducts ?? data.totalProducts ?? 0,
-        ProductsInStock: data.ProductsInStock ?? data.productsInStock ?? 0,
-        OutOfStockProducts: data.OutOfStockProducts ?? data.outOfStockProducts ?? 0,
-        PendingOrderItems: data.PendingOrderItems ?? data.pendingOrderItems ?? 0,
-        // camelCase (converted for frontend)
-        totalProducts: data.TotalProducts ?? data.totalProducts ?? 0,
-        productsInStock: data.ProductsInStock ?? data.productsInStock ?? 0,
-        outOfStockProducts: data.OutOfStockProducts ?? data.outOfStockProducts ?? 0,
-        pendingOrderItems: data.PendingOrderItems ?? data.pendingOrderItems ?? 0,
-      };
-      
-      console.log('[apiService] Dashboard response (converted):', result);
-      return result;
-    } catch (error) {
-      console.error('[apiService] Error in getShopDashboard:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get shop profile
-   * GET /api/shop/profile
-   * Quyền: Chỉ Shop
-   * Nhiệm vụ & Tác dụng: Lấy thông tin chi tiết của cửa hàng (Tên, Mô tả, SĐT, Ảnh) để hiển thị trong trang "Cài đặt"
-   */
-  async getShopProfile() {
-    return this.request('/shop/profile', {
-      method: 'GET',
-    });
-  }
-
-  /**
-   * Update shop profile
-   * PUT /api/shop/profile
-   * Quyền: Chỉ Shop
-   * Nhiệm vụ & Tác dụng: Cập nhật thông tin cửa hàng (hỗ trợ cả URL và upload ảnh)
-   */
-  async updateShopProfile(profileData: {
-    name?: string;
-    description?: string;
-    address?: string;
-    phone?: string;
-    email?: string;
-    logo?: string;
-  }) {
-    return this.request('/shop/profile', {
+    return this.request<UserProfile>({
       method: 'PUT',
-      body: JSON.stringify(profileData),
+      url: '/Profile/me',
+      data: formData,
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
   }
 
-  /**
-   * Get shop products
-   * GET /api/shop/products
-   * Quyền: Chỉ Shop
-   * Nhiệm vụ & Tác dụng: Lấy danh sách chỉ những sản phẩm mà Shop này sở hữu
-   */
-  async getShopProducts(params?: {
-    page?: number;
-    limit?: number;
-    search?: string;
-    category?: string;
-  }) {
-    const searchParams = new URLSearchParams();
-    if (params?.page) searchParams.append('page', params.page.toString());
-    if (params?.limit) searchParams.append('limit', params.limit.toString());
-    if (params?.search) searchParams.append('search', params.search);
-    if (params?.category) searchParams.append('category', params.category);
-    
-    const queryString = searchParams.toString();
-    const endpoint = queryString ? `/shop/products?${queryString}` : '/shop/products';
-    
-    return this.request(endpoint, {
-      method: 'GET',
-    });
+  public async createProductReview(productId: number, data: CreateReviewRequest) {
+    return this.request<ProductReview>({ method: 'POST', url: `/products/${productId}/reviews`, data });
   }
 
-  /**
-   * Create a new product
-   * POST /api/shop/products
-   * Quyền: Chỉ Shop
-   * Nhiệm vụ & Tác dụng: Tạo một sản phẩm mới (hỗ trợ cả URL và upload ảnh)
-   */
-  async createShopProduct(productData: {
-    name: string;
-    description: string;
-    price: number;
-    category: string;
-    images?: string[];
-    inStock: boolean;
-  }) {
-    return this.request('/shop/products', {
-      method: 'POST',
-      body: JSON.stringify(productData),
-    });
+  public async getCart() {
+    return this.request<CartResponseDto>({ method: 'GET', url: '/Cart' });
   }
 
-  /**
-   * Update a product
-   * PUT /api/shop/products/{id}
-   * Quyền: Chỉ Shop
-   * Nhiệm vụ & Tác dụng: Cập nhật sản phẩm của Shop (BE kiểm tra quyền sở hữu)
-   */
-  async updateShopProduct(id: string, productData: {
-    name?: string;
-    description?: string;
-    price?: number;
-    category?: string;
-    images?: string[];
-    inStock?: boolean;
-  }) {
-    return this.request(`/api/shop/products/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(productData),
-    });
+  public async addToCart(productId: number, quantity: number) {
+    return this.request<CartResponseDto>({ method: 'POST', url: '/Cart/items', data: { productId, quantity } });
   }
 
-  /**
-   * Delete a product
-   * DELETE /api/shop/products/{id}
-   * Quyền: Chỉ Shop
-   * Nhiệm vụ & Tác dụng: Xóa sản phẩm của Shop (BE kiểm tra quyền sở hữu)
-   */
-  async deleteShopProduct(id: string) {
-    return this.request(`/api/shop/products/${id}`, {
-      method: 'DELETE',
-    });
+  public async updateCartItem(cartItemId: number, quantity: number) {
+    return this.request<CartResponseDto>({ method: 'PUT', url: `/Cart/items/${cartItemId}/quantity`, data: { quantity } });
   }
 
-  /**
-   * Get shop orders
-   * GET /api/shop/orders
-   * Quyền: Chỉ Shop
-   * Nhiệm vụ & Tác dụng: Lấy danh sách các món hàng (OrderItems) thuộc về Shop, kèm thông tin khách hàng, trạng thái xử lý
-   */
-  async getShopOrders(params?: {
-    page?: number;
-    limit?: number;
-    status?: string;
-  }) {
-    const searchParams = new URLSearchParams();
-    if (params?.page) searchParams.append('page', params.page.toString());
-    if (params?.limit) searchParams.append('limit', params.limit.toString());
-    if (params?.status) searchParams.append('status', params.status);
-    
-    const queryString = searchParams.toString();
-    const endpoint = queryString ? `/shop/orders?${queryString}` : '/shop/orders';
-    
-    return this.request(endpoint, {
-      method: 'GET',
-    });
+  public async selectCartItem(cartItemId: number, isSelected: boolean) {
+    return this.request<CartResponseDto>({ method: 'PUT', url: `/Cart/items/${cartItemId}/select`, data: { isSelected } });
   }
 
-  /**
-   * Update order status
-   * PUT /api/shop/orders/items/{orderItemId}/status
-   * Quyền: Chỉ Shop
-   * Nhiệm vụ & Tác dụng: Shop cập nhật trạng thái xử lý của một món hàng (Pending -> Preparing -> Shipped...)
-   */
-  async updateOrderStatus(orderItemId: string, status: string) {
-    return this.request(`/api/shop/orders/items/${orderItemId}/status`, {
-      method: 'PUT',
-      body: JSON.stringify({ status }),
-    });
+  public async removeCartItem(cartItemId: number) {
+    return this.request<CartResponseDto>({ method: 'DELETE', url: `/Cart/items/${cartItemId}` });
   }
 
-  /**
-   * Get shop reviews
-   * GET /api/shop/reviews
-   * Quyền: Chỉ Shop
-   * Nhiệm vụ & Tác dụng: Lấy danh sách tất cả các đánh giá về sản phẩm của Shop
-   */
-  async getShopReviews(params?: {
-    page?: number;
-    limit?: number;
-    rating?: number;
-  }) {
-    const searchParams = new URLSearchParams();
-    if (params?.page) searchParams.append('page', params.page.toString());
-    if (params?.limit) searchParams.append('limit', params.limit.toString());
-    if (params?.rating) searchParams.append('rating', params.rating.toString());
-    
-    const queryString = searchParams.toString();
-    const endpoint = queryString ? `/shop/reviews?${queryString}` : '/shop/reviews';
-    
-    return this.request(endpoint, {
-      method: 'GET',
-    });
+  public async getOrders() {
+    return this.request<OrderResponseDto[]>({ method: 'GET', url: '/Orders' });
   }
 
-  /**
-   * Get shop statistics
-   * GET /api/shop/statistics
-   * Quyền: Chỉ Shop
-   * Nhiệm vụ & Tác dụng: Lấy dữ liệu thống kê doanh thu cơ bản (doanh thu tháng này, số đơn...) cho Shop
-   */
-  async getShopStatistics() {
-    return this.request('/shop/statistics', {
-      method: 'GET',
-    });
+  public async getOrder(id: number) {
+    return this.request<OrderResponseDto>({ method: 'GET', url: `/Orders/${id}` });
   }
 
-  // ==================== CART API ====================
-  // Base URL: /api/cart
-
-  /**
-   * Get current user's cart
-   * GET /api/cart
-   * Requires authentication
-   */
-  async getCart(): Promise<CartResponseDto> {
-    return this.request<CartResponseDto>('/cart', {
-      method: 'GET',
-    });
+  public async createOrder(data: CreateOrderRequest) {
+    return this.request<OrderResponseDto>({ method: 'POST', url: '/Orders', data });
   }
 
-  /**
-   * Add item to cart
-   * POST /api/cart/items
-   * Requires authentication
-   */
-  async addItemToCart(data: { productId: number; quantity: number }): Promise<CartResponseDto> {
-    return this.request<CartResponseDto>('/cart/items', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+  // --- 4. User Address Book ---
+  public async getAddresses() {
+    return this.request<AddressResponseDto[]>({ method: 'GET', url: '/useraddresses' });
   }
 
-  /**
-   * Update cart item quantity
-   * PUT /api/cart/items/{cartItemId}/quantity
-   * Requires authentication
-   */
-  async updateCartItemQuantity(cartItemId: number, quantity: number): Promise<CartResponseDto> {
-    return this.request<CartResponseDto>(`/cart/items/${cartItemId}/quantity`, {
-      method: 'PUT',
-      body: JSON.stringify({ quantity }),
-    });
+  public async getAddress(id: number) {
+    return this.request<AddressResponseDto>({ method: 'GET', url: `/useraddresses/${id}` });
   }
 
-  /**
-   * Toggle cart item selection
-   * PUT /api/cart/items/{cartItemId}/select
-   * Requires authentication
-   */
-  async selectCartItem(cartItemId: number, isSelected: boolean): Promise<CartResponseDto> {
-    return this.request<CartResponseDto>(`/cart/items/${cartItemId}/select`, {
-      method: 'PUT',
-      body: JSON.stringify({ isSelected }),
-    });
+  public async addAddress(data: UpsertAddressDto) {
+    return this.request<AddressResponseDto>({ method: 'POST', url: '/useraddresses', data });
   }
 
-  /**
-   * Remove item from cart
-   * DELETE /api/cart/items/{cartItemId}
-   * Requires authentication
-   */
-  async removeCartItem(cartItemId: number): Promise<CartResponseDto> {
-    return this.request<CartResponseDto>(`/cart/items/${cartItemId}`, {
-      method: 'DELETE',
-    });
+  public async updateAddress(id: number, data: UpsertAddressDto) {
+    return this.request<void>({ method: 'PUT', url: `/useraddresses/${id}`, data });
   }
 
-  // ==================== USER ADDRESSES API ====================
-  // Base URL: /api/useraddresses
-
-  /**
-   * Get all addresses for current user
-   * GET /api/useraddresses
-   * Requires authentication
-   */
-  async getUserAddresses(): Promise<AddressResponseDto[]> {
-    return this.request<AddressResponseDto[]>('/useraddresses', {
-      method: 'GET',
-    });
+  public async deleteAddress(id: number) {
+    return this.request<void>({ method: 'DELETE', url: `/useraddresses/${id}` });
   }
 
-  /**
-   * Get address by ID
-   * GET /api/useraddresses/{id}
-   * Requires authentication
-   */
-  async getUserAddressById(id: number): Promise<AddressResponseDto> {
-    return this.request<AddressResponseDto>(`/useraddresses/${id}`, {
-      method: 'GET',
-    });
+  public async setDefaultAddress(id: number) {
+    return this.request<void>({ method: 'POST', url: `/useraddresses/${id}/set-default` });
   }
 
-  /**
-   * Add new address
-   * POST /api/useraddresses
-   * Requires authentication
-   */
-  async addUserAddress(data: UpsertAddressDto): Promise<AddressResponseDto> {
-    return this.request<AddressResponseDto>('/useraddresses', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+  // --- 5. Shop Management ---
+  public async getShopDashboard() {
+    return this.request<ShopDashboardDto>({ method: 'GET', url: '/shop/dashboard' });
   }
 
-  /**
-   * Update address
-   * PUT /api/useraddresses/{id}
-   * Requires authentication
-   */
-  async updateUserAddress(id: number, data: UpsertAddressDto): Promise<void> {
-    return this.request<void>(`/useraddresses/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
+  public async getShopProfile() {
+    return this.request<ShopProfile>({ method: 'GET', url: '/shop/profile' });
   }
 
-  /**
-   * Delete address
-   * DELETE /api/useraddresses/{id}
-   * Requires authentication
-   */
-  async deleteUserAddress(id: number): Promise<void> {
-    return this.request<void>(`/useraddresses/${id}`, {
-      method: 'DELETE',
-    });
-  }
-
-  /**
-   * Set default address
-   * POST /api/useraddresses/{id}/set-default
-   * Requires authentication
-   */
-  async setDefaultAddress(id: number): Promise<ApiResponse> {
-    return this.request<ApiResponse>(`/useraddresses/${id}/set-default`, {
-      method: 'POST',
-    });
-  }
-
-  // ==================== ORDERS API ====================
-  // Base URL: /api/orders
-
-  /**
-   * Get order by ID
-   * GET /api/orders/{id}
-   * Requires authentication
-   */
-  async getOrderById(id: number): Promise<OrderResponseDto> {
-    return this.request<OrderResponseDto>(`/orders/${id}`, {
-      method: 'GET',
-    });
-  }
-
-  // ==================== ADMIN API ====================
-  // Base URL: /api/admin
-  // All endpoints require Admin role
-
-  /**
-   * Get all categories (Admin)
-   * GET /api/admin/categories
-   */
-  async getAdminCategories(): Promise<AdminCategoryDto[]> {
-    return this.request<AdminCategoryDto[]>('/admin/categories', {
-      method: 'GET',
-    });
-  }
-
-  /**
-   * Create category (Admin)
-   * POST /api/admin/categories
-   */
-  async createAdminCategory(data: CreateCategoryRequest): Promise<AdminCategoryDto> {
-    return this.request<AdminCategoryDto>('/admin/categories', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  /**
-   * Update category (Admin)
-   * PUT /api/admin/categories/{id}
-   */
-  async updateAdminCategory(id: number, data: UpdateCategoryRequest): Promise<void> {
-    return this.request<void>(`/admin/categories/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  }
-
-  /**
-   * Delete category (Admin)
-   * DELETE /api/admin/categories/{id}
-   */
-  async deleteAdminCategory(id: number): Promise<void> {
-    return this.request<void>(`/admin/categories/${id}`, {
-      method: 'DELETE',
-    });
-  }
-
-  /**
-   * Toggle category visibility (Admin)
-   * PUT /api/admin/categories/{id}/visibility
-   */
-  async toggleCategoryVisibility(id: number, isVisible: boolean): Promise<void> {
-    return this.request<void>(`/admin/categories/${id}/visibility`, {
-      method: 'PUT',
-      body: JSON.stringify({ isVisible }),
-    });
-  }
-
-  /**
-   * Reorder categories (Admin)
-   * PUT /api/admin/categories/reorder
-   */
-  async reorderCategories(categoryIds: number[]): Promise<void> {
-    return this.request<void>('/admin/categories/reorder', {
-      method: 'PUT',
-      body: JSON.stringify({ categoryIds }),
-    });
-  }
-
-  /**
-   * Get all shops (Admin)
-   * GET /api/admin/shops
-   */
-  async getAdminShops(): Promise<AdminShopDto[]> {
-    return this.request<AdminShopDto[]>('/admin/shops', {
-      method: 'GET',
-    });
-  }
-
-  /**
-   * Create new shop account (Admin)
-   * POST /api/admin/shops/create-new
-   */
-  async createShopAccount(data: {
-    email: string;
-    fullName: string;
-    password: string;
-    shopName: string;
-  }): Promise<AdminShopDto> {
-    return this.request<AdminShopDto>('/admin/shops/create-new', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  /**
-   * Convert guest to shop (Admin)
-   * POST /api/admin/shops/convert-guest
-   */
-  async convertGuestToShop(data: {
-    userEmail: string;
-    shopName: string;
-  }): Promise<AdminShopDto> {
-    return this.request<AdminShopDto>('/admin/shops/convert-guest', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  /**
-   * Update shop info (Admin)
-   * PUT /api/admin/shops/{id}
-   */
-  async updateShopInfo(id: number, data: Partial<AdminShopDto>): Promise<void> {
-    return this.request<void>(`/admin/shops/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  }
-
-  /**
-   * Update shop status (Admin)
-   * PUT /api/admin/shops/{id}/status
-   */
-  async updateShopStatus(id: number, isActive: boolean): Promise<void> {
-    return this.request<void>(`/admin/shops/${id}/status`, {
-      method: 'PUT',
-      body: JSON.stringify({ isActive }),
-    });
-  }
-
-  /**
-   * Reset shop password (Admin)
-   * POST /api/admin/shops/{id}/reset-password
-   */
-  async resetShopPassword(id: number, newPassword: string): Promise<ApiResponse> {
-    return this.request<ApiResponse>(`/admin/shops/${id}/reset-password`, {
-      method: 'POST',
-      body: JSON.stringify({ newPassword }),
-    });
-  }
-
-  /**
-   * Get all products (Admin)
-   * GET /api/admin/products
-   */
-  async getAdminProducts(): Promise<AdminProductDto[]> {
-    return this.request<AdminProductDto[]>('/admin/products', {
-      method: 'GET',
-    });
-  }
-
-  /**
-   * Toggle product visibility (Admin)
-   * PUT /api/admin/products/{id}/visibility
-   */
-  async toggleProductVisibility(id: number, isVisible: boolean): Promise<void> {
-    return this.request<void>(`/admin/products/${id}/visibility`, {
-      method: 'PUT',
-      body: JSON.stringify({ isVisible }),
-    });
-  }
-
-  /**
-   * Change product category (Admin)
-   * PUT /api/admin/products/{id}/change-category
-   */
-  async changeProductCategory(id: number, categoryId: number): Promise<void> {
-    return this.request<void>(`/admin/products/${id}/change-category`, {
-      method: 'PUT',
-      body: JSON.stringify({ categoryId }),
-    });
-  }
-
-  /**
-   * Get commission config (Admin)
-   * GET /api/admin/config/commissions
-   */
-  async getCommissionConfig(): Promise<CommissionConfig> {
-    return this.request<CommissionConfig>('/admin/config/commissions', {
-      method: 'GET',
-    });
-  }
-
-  /**
-   * Set default commission (Admin)
-   * PUT /api/admin/config/commissions/default
-   */
-  async setDefaultCommission(rate: number): Promise<void> {
-    return this.request<void>('/admin/config/commissions/default', {
-      method: 'PUT',
-      body: JSON.stringify({ rate }),
-    });
-  }
-
-  /**
-   * Set shop commission (Admin)
-   * PUT /api/admin/config/commissions/shop/{shopId}
-   */
-  async setShopCommission(shopId: number, rate: number): Promise<void> {
-    return this.request<void>(`/admin/config/commissions/shop/${shopId}`, {
-      method: 'PUT',
-      body: JSON.stringify({ rate }),
-    });
-  }
-
-  /**
-   * Get revenue statistics (Admin)
-   * GET /api/admin/dashboard/revenue-stats
-   */
-  async getRevenueStats(): Promise<RevenueStats> {
-    return this.request<RevenueStats>('/admin/dashboard/revenue-stats', {
-      method: 'GET',
-    });
-  }
-
-  /**
-   * Get revenue by shop (Admin)
-   * GET /api/admin/dashboard/revenue-by-shop
-   */
-  async getRevenueByShop(): Promise<RevenueByShop[]> {
-    return this.request<RevenueByShop[]>('/admin/dashboard/revenue-by-shop', {
-      method: 'GET',
-    });
-  }
-
-  /**
-   * Get system logs (Admin)
-   * GET /api/admin/logs
-   */
-  async getSystemLogs(params?: {
-    page?: number;
-    limit?: number;
-  }): Promise<unknown> {
-    const searchParams = new URLSearchParams();
-    if (params?.page) searchParams.append('page', params.page.toString());
-    if (params?.limit) searchParams.append('limit', params.limit.toString());
-    
-    const queryString = searchParams.toString();
-    const endpoint = queryString ? `/admin/logs?${queryString}` : '/admin/logs';
-    
-    return this.request(endpoint, {
-      method: 'GET',
-    });
-  }
-
-  /**
-   * Upload shop image
-   * POST /api/shop/upload-image
-   * Helper method for uploading shop-related images
-   */
-  async uploadShopImage(file: File) {
+  public async updateShopProfile(data: UpdateShopProfileRequest) {
     const formData = new FormData();
-    formData.append('image', file);
-    
-    const token = localStorage.getItem('userToken');
-    const headers: Record<string, string> = {};
-    
-    if (token && token !== 'authenticated') {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-    
-    const response = await fetch(`${this.baseURL}/api/shop/upload-image`, {
-      method: 'POST',
-      headers,
-      body: formData,
+    formData.append('name', data.name);
+    if (data.description) formData.append('description', data.description);
+    if (data.contactPhoneNumber) formData.append('contactPhoneNumber', data.contactPhoneNumber);
+    if (data.avatarFile) formData.append('avatarFile', data.avatarFile);
+    if (data.avatarUrl) formData.append('avatarUrl', data.avatarUrl);
+
+    return this.request<ShopProfile>({
+      method: 'PUT',
+      url: '/shop/profile',
+      data: formData,
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+  }
+
+  public async getShopProducts() {
+    return this.request<ShopProduct[]>({ method: 'GET', url: '/shop/products' });
+  }
+
+  public async getShopProduct(id: number) {
+    return this.request<ShopProduct>({ method: 'GET', url: `/shop/products/${id}` });
+  }
+
+  public async createShopProduct(data: CreateProductRequest) {
+    const formData = new FormData();
+    formData.append('name', data.name);
+    if (data.description) formData.append('description', data.description);
+    if (data.features) formData.append('features', data.features);
+    formData.append('isPopular', String(data.isPopular));
+    formData.append('basePrice', String(data.basePrice));
+    if (data.maxPrice) formData.append('maxPrice', String(data.maxPrice));
+    formData.append('stockQuantity', String(data.stockQuantity));
+    formData.append('productCategoryId', String(data.productCategoryId));
+    if (data.specifications) formData.append('specifications', data.specifications);
+
+    if (data.imageFiles) {
+      data.imageFiles.forEach(file => formData.append('imageFiles', file));
     }
-    
-    return await response.json();
+    if (data.imageUrls) {
+      data.imageUrls.forEach(url => formData.append('imageUrls', url));
+    }
+
+    return this.request<ShopProduct>({
+      method: 'POST',
+      url: '/shop/products',
+      data: formData,
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  }
+
+  public async updateShopProduct(id: number, data: UpdateProductRequest) {
+    const formData = new FormData();
+    if (data.name) formData.append('name', data.name);
+    if (data.description) formData.append('description', data.description);
+    if (data.features) formData.append('features', data.features);
+    if (data.isPopular !== undefined) formData.append('isPopular', String(data.isPopular));
+    if (data.basePrice !== undefined) formData.append('basePrice', String(data.basePrice));
+    if (data.maxPrice !== undefined) formData.append('maxPrice', String(data.maxPrice));
+    if (data.stockQuantity !== undefined) formData.append('stockQuantity', String(data.stockQuantity));
+    if (data.productCategoryId !== undefined) formData.append('productCategoryId', String(data.productCategoryId));
+    if (data.specifications) formData.append('specifications', data.specifications);
+
+    if (data.imageFiles) {
+      data.imageFiles.forEach(file => formData.append('imageFiles', file));
+    }
+    if (data.imageUrls) {
+      data.imageUrls.forEach(url => formData.append('imageUrls', url));
+    }
+    if (data.keepImageIds) {
+      data.keepImageIds.forEach(id => formData.append('keepImageIds', String(id)));
+    }
+
+    return this.request<ShopProduct>({
+      method: 'PUT',
+      url: `/shop/products/${id}`,
+      data: formData,
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  }
+
+  public async deleteShopProduct(id: number) {
+    return this.request<void>({ method: 'DELETE', url: `/shop/products/${id}` });
+  }
+
+  public async getShopOrders() {
+    return this.request<ShopOrder[]>({ method: 'GET', url: '/shop/orders' });
+  }
+
+  public async updateOrderStatus(orderItemId: number, status: string) {
+    return this.request<void>({ method: 'PUT', url: `/shop/orders/items/${orderItemId}/status`, data: { status } });
+  }
+
+  public async getShopReviews() {
+    return this.request<ShopReview[]>({ method: 'GET', url: '/shop/reviews' });
+  }
+
+  public async getShopStatistics() {
+    return this.request<ShopStatistics>({ method: 'GET', url: '/shop/statistics' });
+  }
+
+  // --- 6. Admin Management ---
+  public async adminGetCategories() {
+    return this.request<Category[]>({ method: 'GET', url: '/admin/categories' });
+  }
+
+  public async adminCreateCategory(data: CreateCategoryRequest) {
+    const formData = new FormData();
+    formData.append('name', data.name);
+    if (data.description) formData.append('description', data.description);
+    if (data.imageFile) formData.append('imageFile', data.imageFile);
+
+    return this.request<Category>({
+      method: 'POST',
+      url: '/admin/categories',
+      data: formData,
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  }
+
+  public async adminUpdateCategory(id: number, data: UpdateCategoryRequest) {
+    const formData = new FormData();
+    if (data.name) formData.append('name', data.name);
+    if (data.description) formData.append('description', data.description);
+    if (data.imageFile) formData.append('imageFile', data.imageFile);
+
+    return this.request<Category>({
+      method: 'PUT',
+      url: `/admin/categories/${id}`,
+      data: formData,
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  }
+
+  public async adminDeleteCategory(id: number) {
+    return this.request<void>({ method: 'DELETE', url: `/admin/categories/${id}` });
+  }
+
+  public async adminUpdateCategoryVisibility(id: number, isVisible: boolean) {
+    return this.request<void>({ method: 'PUT', url: `/admin/categories/${id}/visibility`, data: { isVisible } });
+  }
+
+  public async adminReorderCategories(categoryIds: number[]) {
+    return this.request<void>({ method: 'PUT', url: '/admin/categories/reorder', data: categoryIds });
+  }
+
+  public async adminGetShops() {
+    return this.request<AdminShopDto[]>({ method: 'GET', url: '/admin/shops' });
+  }
+
+  public async adminCreateShop(data: any) {
+    return this.request<any>({ method: 'POST', url: '/admin/shops/create-new', data });
+  }
+
+  public async adminConvertGuestToShop(data: any) {
+    return this.request<any>({ method: 'POST', url: '/admin/shops/convert-guest', data });
+  }
+
+  public async adminUpdateShop(id: number, data: any) {
+    return this.request<any>({ method: 'PUT', url: `/admin/shops/${id}`, data });
+  }
+
+  public async adminUpdateShopStatus(id: number, status: string) {
+    return this.request<void>({ method: 'PUT', url: `/admin/shops/${id}/status`, data: { status } });
+  }
+
+  public async adminResetShopPassword(id: number) {
+    return this.request<any>({ method: 'POST', url: `/admin/shops/${id}/reset-password` });
+  }
+
+  public async adminGetProducts() {
+    return this.request<Product[]>({ method: 'GET', url: '/admin/products' });
+  }
+
+  public async adminUpdateProductVisibility(id: number, isVisible: boolean) {
+    return this.request<void>({ method: 'PUT', url: `/admin/products/${id}/visibility`, data: { isVisible } });
+  }
+
+  public async adminChangeProductCategory(id: number, newCategoryId: number) {
+    return this.request<void>({ method: 'PUT', url: `/admin/products/${id}/change-category`, data: { newCategoryId } });
+  }
+
+  public async adminGetCommissions() {
+    return this.request<any>({ method: 'GET', url: '/admin/config/commissions' });
+  }
+
+  public async adminUpdateDefaultCommission(rate: number) {
+    return this.request<void>({ method: 'PUT', url: '/admin/config/commissions/default', data: { rate } });
+  }
+
+  public async adminUpdateShopCommission(shopId: number, rate: number) {
+    return this.request<void>({ method: 'PUT', url: `/admin/config/commissions/shop/${shopId}`, data: { rate } });
+  }
+
+  public async adminGetRevenueStats() {
+    return this.request<AdminRevenueStats>({ method: 'GET', url: '/admin/dashboard/revenue-stats' });
+  }
+
+  public async adminGetRevenueByShop() {
+    return this.request<any>({ method: 'GET', url: '/admin/dashboard/revenue-by-shop' });
+  }
+
+  public async adminGetLogs() {
+    return this.request<any[]>({ method: 'GET', url: '/admin/logs' });
   }
 }
 
-// Export singleton instance
-export const apiService = new ApiService();
-
-// JWT Decode utility function
-const decodeJWT = (token: string) => {
-  try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-    }).join(''));
-    return JSON.parse(jsonPayload);
-  } catch (error) {
-    console.error('Error decoding JWT:', error);
-    return null;
-  }
-};
-
-// Utility functions for auth token management
-export const authUtils = {
-  setToken: (token: string) => {
-    localStorage.setItem('userToken', token);
-  },
-  
-  getToken: (): string | null => {
-    return localStorage.getItem('userToken');
-  },
-  
-  removeToken: () => {
-    localStorage.removeItem('userToken');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('userData');
-  },
-  
-  isAuthenticated: (): boolean => {
-    const token = localStorage.getItem('userToken');
-    return !!token && token !== 'authenticated';
-  },
-
-  setUserData: (userData: UserProfile) => {
-    localStorage.setItem('userData', JSON.stringify(userData));
-  },
-
-  getUserData: (): UserProfile | null => {
-    const userData = localStorage.getItem('userData');
-    return userData ? JSON.parse(userData) : null;
-  },
-
-  setUserRole: (role: string) => {
-    localStorage.setItem('userRole', role);
-  },
-
-  getUserRole: (): string | null => {
-    return localStorage.getItem('userRole');
-  },
-
-  isAdmin: (): boolean => {
-    return authUtils.getUserRole() === 'admin';
-  },
-
-  isShop: (): boolean => {
-    return authUtils.getUserRole() === 'shop';
-  }
-};
-
-// All types are already exported above with their interface declarations
+export const apiService = ApiService.getInstance();
+export default apiService;

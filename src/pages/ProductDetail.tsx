@@ -77,15 +77,15 @@ const ProductDetail = () => {
         // Normalize image URLs from backend
         const normalizedProduct = {
           ...product,
-          imageUrl: getProductImageUrl(product),
+          imageUrl: getProductImageUrl(product) || "",
         };
 
         // Normalize related products images
         const normalizedRelatedProducts = Array.isArray(relatedProducts)
           ? relatedProducts.map((p: Product) => ({
-              ...p,
-              imageUrl: getProductImageUrl(p),
-            }))
+            ...p,
+            imageUrl: getProductImageUrl(p),
+          }))
           : [];
 
         setProduct(normalizedProduct);
@@ -116,26 +116,26 @@ const ProductDetail = () => {
   const discount =
     product?.maxPrice && product.maxPrice > product.basePrice
       ? Math.round(
-          ((product.maxPrice - product.basePrice) / product.maxPrice) * 100
-        )
+        ((product.maxPrice - product.basePrice) / product.maxPrice) * 100
+      )
       : 0;
 
   // Get shop info from product data
   const shop = product?.shop
     ? {
-        id: product.shop.id,
-        name: product.shop.shopName,
-        avatar: "", // Will be fetched from shop API if needed
-        description: "",
-        address: "",
-        phone: "",
-        email: "",
-        isVerified: false,
-        rating: 0,
-        totalSales: 0,
-        totalProducts: 0,
-        joinedDate: "",
-      }
+      id: product.shop.id,
+      name: product.shop.shopName,
+      avatar: "", // Will be fetched from shop API if needed
+      description: "",
+      address: "",
+      phone: "",
+      email: "",
+      isVerified: false,
+      rating: 0,
+      totalSales: 0,
+      totalProducts: 0,
+      joinedDate: "",
+    }
     : null;
 
   const handleAddToCart = async () => {
@@ -315,7 +315,7 @@ const ProductDetail = () => {
                   <img
                     src={
                       product.imageUrl ||
-                      "https://via.placeholder.com/800x800?text=No+Image"
+                      "/assets/no-image.png"
                     }
                     alt={product.name}
                     className="w-full h-[450px] object-cover"
@@ -333,37 +333,46 @@ const ProductDetail = () => {
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.src =
-                        "https://via.placeholder.com/800x800?text=No+Image";
+                        "/assets/no-image.png";
                     }}
                   />
                 </div>
 
-                {/* Ảnh nhỏ (hiện tại chỉ 1 ảnh, nhưng để sẵn grid cho mở rộng sau này) */}
+                {/* Ảnh nhỏ */}
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-                  <div className="overflow-hidden rounded-lg border-2 border-red-500 bg-white cursor-pointer hover:border-primary transition-colors">
-                    <img
-                      src={
-                        product.imageUrl ||
-                        "https://via.placeholder.com/200x200?text=No+Image"
-                      }
-                      alt={product.name}
-                      className="w-full h-32 object-cover"
-                      style={
-                        {
-                          imageRendering: "crisp-edges",
-                          backfaceVisibility: "hidden",
-                          transform: "translateZ(0)",
-                        } as React.CSSProperties
-                      }
-                      loading="lazy"
-                      decoding="async"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src =
-                          "https://via.placeholder.com/200x200?text=No+Image";
-                      }}
-                    />
-                  </div>
+                  {product.images && product.images.length > 0 ? (
+                    product.images.map((img: any, index: number) => (
+                      <div
+                        key={img.id || index}
+                        className="overflow-hidden rounded-lg border-2 border-transparent hover:border-primary transition-colors cursor-pointer"
+                        onClick={() => {
+                          // Logic to change main image could go here
+                        }}
+                      >
+                        <img
+                          src={img.url || "/assets/no-image.png"}
+                          alt={`${product.name} ${index + 1}`}
+                          className="w-full h-32 object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = "/assets/no-image.png";
+                          }}
+                        />
+                      </div>
+                    ))
+                  ) : (
+                    <div className="overflow-hidden rounded-lg border-2 border-primary bg-white cursor-pointer">
+                      <img
+                        src={product.imageUrl || "/assets/no-image.png"}
+                        alt={product.name}
+                        className="w-full h-32 object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "/assets/no-image.png";
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -394,11 +403,10 @@ const ProductDetail = () => {
                       {[...Array(5)].map((_, i) => (
                         <Star
                           key={i}
-                          className={`h-5 w-5 ${
-                            i < 4 // Default 4-star rating
-                              ? "text-secondary fill-current"
-                              : "text-muted-foreground"
-                          }`}
+                          className={`h-5 w-5 ${i < 4 // Default 4-star rating
+                            ? "text-secondary fill-current"
+                            : "text-muted-foreground"
+                            }`}
                         />
                       ))}
                       <span className="ml-2 text-sm text-muted-foreground">
@@ -407,11 +415,10 @@ const ProductDetail = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <div
-                        className={`w-3 h-3 rounded-full ${
-                          product.stockQuantity > 0
-                            ? "bg-green-500"
-                            : "bg-red-500"
-                        }`}
+                        className={`w-3 h-3 rounded-full ${product.stockQuantity > 0
+                          ? "bg-green-500"
+                          : "bg-red-500"
+                          }`}
                       />
                       <span className="text-sm text-muted-foreground">
                         {product.stockQuantity > 0
@@ -493,9 +500,8 @@ const ProductDetail = () => {
                       }
                     >
                       <Heart
-                        className={`h-5 w-5 ${
-                          isInWishlist(product.id) ? "fill-current" : ""
-                        }`}
+                        className={`h-5 w-5 ${isInWishlist(product.id) ? "fill-current" : ""
+                          }`}
                       />
                     </Button>
                     <Button variant="outline" size="lg">
@@ -729,11 +735,10 @@ const ProductDetail = () => {
                                     {[...Array(5)].map((_, i) => (
                                       <Star
                                         key={i}
-                                        className={`h-4 w-4 ${
-                                          i < review.rating
-                                            ? "text-yellow-400 fill-current"
-                                            : "text-gray-300"
-                                        }`}
+                                        className={`h-4 w-4 ${i < review.rating
+                                          ? "text-yellow-400 fill-current"
+                                          : "text-gray-300"
+                                          }`}
                                       />
                                     ))}
                                   </div>
@@ -790,11 +795,10 @@ const ProductDetail = () => {
                             {[...Array(5)].map((_, i) => (
                               <button
                                 key={i}
-                                className={`h-8 w-8 transition-colors ${
-                                  i < reviewRating
-                                    ? "text-yellow-400"
-                                    : "text-gray-300 hover:text-yellow-400"
-                                }`}
+                                className={`h-8 w-8 transition-colors ${i < reviewRating
+                                  ? "text-yellow-400"
+                                  : "text-gray-300 hover:text-yellow-400"
+                                  }`}
                                 title={`Đánh giá ${i + 1} sao`}
                                 onClick={() => setReviewRating(i + 1)}
                               >

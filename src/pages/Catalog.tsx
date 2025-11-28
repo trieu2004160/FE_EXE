@@ -16,7 +16,6 @@ import { apiService, Product, Category } from "@/services/apiService";
 import { getProductImageUrl } from "@/utils/imageUtils";
 import ProductCard from "@/components/ProductCard";
 import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 
 const Catalog = () => {
   const { category } = useParams<{ category: string }>();
@@ -48,9 +47,8 @@ const Catalog = () => {
         const normalizedProducts = productsData.map((product) => {
           const normalized = {
             ...product,
-            imageUrl: getProductImageUrl(product),
+            imageUrl: product.images?.[0]?.url || "",
           };
-          console.log('Catalog - Product:', product.name, 'Original ImageUrls:', product.ImageUrls, 'Normalized imageUrl:', normalized.imageUrl);
           return normalized;
         });
 
@@ -93,7 +91,7 @@ const Catalog = () => {
       filtered = filtered.filter(
         (product) =>
           product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          product.description?.toLowerCase().includes(searchQuery.toLowerCase())
+          (product.description?.toLowerCase() || "").includes(searchQuery.toLowerCase())
       );
     }
 
@@ -370,53 +368,45 @@ const Catalog = () => {
               {filteredProducts.map((product) => (
                 <ProductCard
                   key={product.id}
-                  id={product.id}
-                  name={product.name}
-                  price={product.basePrice}
-                  originalPrice={product.maxPrice}
-                  image={product.imageUrl || ""}
-                  rating={4.5}
-                  reviews={0}
-                  category={
-                    categories.find((c) => c.id === product.productCategoryId)
-                      ?.name || "Sản phẩm"
-                  }
-                  shopId={product.shop?.id || 1}
-                  isBestSeller={product.isPopular}
-                  isNew={false}
+                  {...product}
                 />
               ))}
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-6">
               {filteredProducts.map((product) => (
                 <Card
                   key={product.id}
                   className="hover:shadow-lg transition-shadow"
                 >
                   <CardContent className="p-4">
-                    <div className="flex gap-4">
+                    <div className="flex flex-col sm:flex-row gap-4 items-center">
                       <img
                         src={
                           product.imageUrl ||
-                          "https://via.placeholder.com/96x96"
+                          "/assets/no-image.png"
                         }
                         alt={product.name}
-                        className="w-24 h-24 object-cover rounded-md"
+                        className="w-24 h-24 object-cover rounded-md flex-shrink-0"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src =
+                            "/assets/no-image.png";
+                        }}
                       />
-                      <div className="flex-1">
+                      <div className="flex-1 text-center sm:text-left">
                         <Badge variant="secondary" className="text-xs mb-2">
                           {categories.find(
                             (c) => c.id === product.productCategoryId
                           )?.name || "Sản phẩm"}
                         </Badge>
                         <Link to={`/product/${product.id}`}>
-                          <h3 className="font-semibold text-foreground hover:text-primary transition">
+                          <h3 className="font-semibold text-foreground hover:text-primary transition text-lg">
                             {product.name}
                           </h3>
                         </Link>
-                        <div className="flex items-center gap-2 mt-2">
-                          <span className="text-lg font-semibold text-[#C99F4D]">
+                        <div className="flex items-center justify-center sm:justify-start gap-2 mt-2">
+                          <span className="text-xl font-semibold text-[#C99F4D]">
                             {product.basePrice.toLocaleString("vi-VN")}đ
                           </span>
                           {product.maxPrice &&
@@ -427,7 +417,7 @@ const Catalog = () => {
                             )}
                         </div>
                       </div>
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-2 sm:ml-auto">
                         <Button size="sm">Thêm vào giỏ</Button>
                         <Button variant="outline" size="sm">
                           <Link to={`/product/${product.id}`}>
@@ -443,8 +433,6 @@ const Catalog = () => {
           )}
         </div>
       </section>
-
-      <Footer />
     </div>
   );
 };

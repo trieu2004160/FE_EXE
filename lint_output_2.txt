@@ -1,0 +1,94 @@
+
+> vite_react_shadcn_ts@0.0.0 lint
+> eslint .
+
+
+E:\FPTuniver\Fall2025\EXE101\EXE_Final\FE_EXE\src\components\ProductCard.tsx
+  79:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+E:\FPTuniver\Fall2025\EXE101\EXE_Final\FE_EXE\src\components\Search.tsx
+  62:4  error  Parsing error: ',' expected
+
+E:\FPTuniver\Fall2025\EXE101\EXE_Final\FE_EXE\src\components\ui\badge.tsx
+  29:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+E:\FPTuniver\Fall2025\EXE101\EXE_Final\FE_EXE\src\components\ui\button.tsx
+  47:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+E:\FPTuniver\Fall2025\EXE101\EXE_Final\FE_EXE\src\components\ui\command.tsx
+  24:11  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+E:\FPTuniver\Fall2025\EXE101\EXE_Final\FE_EXE\src\components\ui\form.tsx
+  129:10  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+E:\FPTuniver\Fall2025\EXE101\EXE_Final\FE_EXE\src\components\ui\navigation-menu.tsx
+  111:3  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+E:\FPTuniver\Fall2025\EXE101\EXE_Final\FE_EXE\src\components\ui\sidebar.tsx
+  636:3  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+E:\FPTuniver\Fall2025\EXE101\EXE_Final\FE_EXE\src\components\ui\sonner.tsx
+  27:19  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+E:\FPTuniver\Fall2025\EXE101\EXE_Final\FE_EXE\src\components\ui\textarea.tsx
+  5:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+E:\FPTuniver\Fall2025\EXE101\EXE_Final\FE_EXE\src\components\ui\toggle.tsx
+  37:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+E:\FPTuniver\Fall2025\EXE101\EXE_Final\FE_EXE\src\contexts\WishlistContext.tsx
+  77:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+E:\FPTuniver\Fall2025\EXE101\EXE_Final\FE_EXE\src\pages\Cart.tsx
+   75:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  121:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  174:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  205:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+E:\FPTuniver\Fall2025\EXE101\EXE_Final\FE_EXE\src\pages\ProductDetail.tsx
+   66:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  102:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  344:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+E:\FPTuniver\Fall2025\EXE101\EXE_Final\FE_EXE\src\pages\Shop.tsx
+  74:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+E:\FPTuniver\Fall2025\EXE101\EXE_Final\FE_EXE\src\pages\ShopDashboard.tsx
+  147:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+E:\FPTuniver\Fall2025\EXE101\EXE_Final\FE_EXE\src\services\apiService.ts
+   72:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  726:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  733:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  738:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  745:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  758:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  770:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+E:\FPTuniver\Fall2025\EXE101\EXE_Final\FE_EXE\src\services\ordersApi.ts
+  67:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  94:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+E:\FPTuniver\Fall2025\EXE101\EXE_Final\FE_EXE\src\services\shopApi.ts
+  198:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+E:\FPTuniver\Fall2025\EXE101\EXE_Final\FE_EXE\src\services\shopApiService.ts
+  15:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  29:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  30:11  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+E:\FPTuniver\Fall2025\EXE101\EXE_Final\FE_EXE\src\utils\imageUtils.ts
+  57:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  70:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  87:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+E:\FPTuniver\Fall2025\EXE101\EXE_Final\FE_EXE\src\utils\tokenUtils.ts
+  56:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  57:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  88:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+E:\FPTuniver\Fall2025\EXE101\EXE_Final\FE_EXE\tailwind.config.ts
+  107:13  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+✖ 41 problems (33 errors, 8 warnings)
+

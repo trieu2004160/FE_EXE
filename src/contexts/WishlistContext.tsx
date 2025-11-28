@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { Product } from "@/data/mockData";
+import { Product } from "@/services/apiService";
 
 interface WishlistContextType {
   wishlist: Product[];

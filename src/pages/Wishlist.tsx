@@ -7,6 +7,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useToast } from "@/hooks/use-toast";
+import { getProductImageUrl } from "@/utils/imageUtils";
 
 const Wishlist = () => {
   const { wishlist, removeFromWishlist, clearWishlist } = useWishlist();
@@ -109,7 +110,7 @@ const Wishlist = () => {
                   <div className="relative">
                     <Link to={`/product/${product.id}`}>
                       <img
-                        src={product.image}
+                        src={getProductImageUrl(product) || "/assets/no-image.png"}
                         alt={product.name}
                         className="w-full h-48 object-cover rounded-t-lg"
                       />
@@ -117,23 +118,18 @@ const Wishlist = () => {
 
                     {/* Badges */}
                     <div className="absolute top-3 left-3 flex flex-col gap-1">
-                      {product.isNew && (
-                        <Badge className="bg-green-500 text-white text-xs">
-                          Mới
-                        </Badge>
-                      )}
-                      {product.isBestSeller && (
+                      {product.isPopular && (
                         <Badge className="bg-orange-500 text-white text-xs">
-                          Bán chạy
+                          Phổ biến
                         </Badge>
                       )}
-                      {product.originalPrice && (
+                      {product.maxPrice && (
                         <Badge className="bg-red-500 text-white text-xs">
                           -
                           {Math.round(
-                            ((product.originalPrice - product.price) /
-                              product.originalPrice) *
-                              100
+                            ((product.maxPrice - product.basePrice) /
+                              product.maxPrice) *
+                            100
                           )}
                           %
                         </Badge>
@@ -154,9 +150,7 @@ const Wishlist = () => {
                   </div>
 
                   <CardContent className="p-4">
-                    <Badge variant="secondary" className="text-xs mb-2">
-                      {product.category}
-                    </Badge>
+                    {/* Category removed as it is not in Product interface */}
 
                     <Link to={`/product/${product.id}`}>
                       <h3 className="font-medium text-base mb-2 text-foreground line-clamp-2 group-hover:text-primary transition">
@@ -166,11 +160,11 @@ const Wishlist = () => {
 
                     <div className="flex items-center gap-2 mb-4">
                       <span className="text-lg font-semibold text-[#C99F4D]">
-                        {product.price.toLocaleString("vi-VN")}đ
+                        {product.basePrice.toLocaleString("vi-VN")}đ
                       </span>
-                      {product.originalPrice && (
+                      {product.maxPrice && (
                         <span className="text-sm text-muted-foreground line-through">
-                          {product.originalPrice.toLocaleString("vi-VN")}đ
+                          {product.maxPrice.toLocaleString("vi-VN")}đ
                         </span>
                       )}
                     </div>

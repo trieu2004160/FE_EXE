@@ -20,7 +20,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { apiService, UserProfile, authUtils } from "@/services/apiService";
+import { apiService, UserProfile } from "@/services/apiService";
+import { clearAuthData } from "@/utils/tokenUtils";
 
 const Profile = () => {
   const { toast } = useToast();
@@ -29,12 +30,16 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userInfo, setUserInfo] = useState<UserProfile>({
+    id: 0,
     fullName: "",
     email: "",
     phoneNumber: "",
     address: "",
     introduction: "",
+    roles: [],
   });
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   // Load user data from API
   useEffect(() => {
@@ -63,6 +68,7 @@ const Profile = () => {
           try {
             const parsedUserData = JSON.parse(userData);
             setUserInfo({
+              id: parsedUserData.id || 0,
               fullName: parsedUserData.fullName || parsedUserData.name || "",
               email: parsedUserData.email || "",
               phoneNumber:
@@ -70,6 +76,7 @@ const Profile = () => {
               address: parsedUserData.address || "",
               introduction:
                 parsedUserData.introduction || parsedUserData.bio || "",
+              roles: parsedUserData.roles || [],
             });
           } catch (error) {
             console.error("Error parsing user data:", error);
@@ -106,6 +113,7 @@ const Profile = () => {
         phoneNumber: userInfo.phoneNumber,
         address: userInfo.address,
         introduction: userInfo.introduction,
+        avatarFile: avatarFile || undefined,
       });
 
       toast({
@@ -124,53 +132,11 @@ const Profile = () => {
     }
   };
 
-  const handleSaveProfile = () => {
-    try {
-      // Update localStorage with new user data
-      const currentUserData = localStorage.getItem("userData");
-      let updatedUserData = {};
 
-      if (currentUserData) {
-        updatedUserData = JSON.parse(currentUserData);
-      }
-
-      // Update the user data with new information
-      updatedUserData = {
-        ...updatedUserData,
-        fullName: userInfo.fullName,
-        name: userInfo.fullName,
-        email: userInfo.email,
-        phone: userInfo.phoneNumber,
-        phoneNumber: userInfo.phoneNumber,
-        address: userInfo.address,
-        bio: userInfo.introduction,
-        introduction: userInfo.introduction,
-        avatar: "",
-      };
-
-      // Save back to localStorage
-      localStorage.setItem("userData", JSON.stringify(updatedUserData));
-
-      setIsEditing(false);
-      toast({
-        title: "Cập nhật thành công!",
-        description: "Thông tin cá nhân đã được lưu.",
-      });
-    } catch (error) {
-      console.error("Error saving profile:", error);
-      toast({
-        title: "Lỗi!",
-        description: "Không thể lưu thông tin. Vui lòng thử lại.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleLogout = () => {
     // Clear all auth data
-    authUtils.removeToken();
-    localStorage.removeItem("userData");
-    localStorage.removeItem("userRole");
+    clearAuthData();
 
     // Redirect to home page
     navigate("/");
@@ -232,14 +198,28 @@ const Profile = () => {
                 <div className="flex flex-col md:flex-row items-center gap-6">
                   <div className="relative">
                     <Avatar className="w-24 h-24">
-                      <AvatarImage src="" />
+                      <AvatarImage src={avatarPreview || userInfo.avatarUrl} />
                       <AvatarFallback className="bg-[#C99F4D] text-white text-2xl">
                         {getInitials(userInfo.fullName)}
                       </AvatarFallback>
                     </Avatar>
+                    <input
+                      type="file"
+                      id="avatar-upload"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setAvatarFile(file);
+                          setAvatarPreview(URL.createObjectURL(file));
+                        }
+                      }}
+                    />
                     <Button
                       size="icon"
                       className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full bg-[#C99F4D] hover:bg-[#B8904A]"
+                      onClick={() => document.getElementById("avatar-upload")?.click()}
                     >
                       <Camera className="h-4 w-4" />
                     </Button>
@@ -388,7 +368,7 @@ const Profile = () => {
                     {isEditing && (
                       <div className="flex gap-2 pt-4">
                         <Button
-                          onClick={handleSaveProfile}
+                          onClick={saveProfile}
                           className="bg-[#C99F4D] hover:bg-[#B8904A]"
                         >
                           Lưu thay đổi

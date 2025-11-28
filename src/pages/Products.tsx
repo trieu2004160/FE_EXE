@@ -33,34 +33,35 @@ const Products = () => {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      setError(null);
-
       try {
-        // Only use API data - no fallback to mock data
-        const [productsData, categoriesData] = await Promise.all([
+        // Lúc này apiService.getProducts() sẽ trả về mảng [] từ API /Products
+        const [productsArray, categoriesData] = await Promise.all([
           apiService.getProducts(),
           apiService.getCategories(),
         ]);
 
-        // Normalize image URLs from backend
-        const normalizedProducts = productsData.map((product) => ({
-          ...product,
-          imageUrl: getProductImageUrl(product),
-        }));
+        const rawProducts = Array.isArray(productsArray) ? productsArray : (productsArray.products || []);
 
-        console.log("Products data:", productsData);
-        console.log("Normalized products:", normalizedProducts);
+        const normalizedProducts = rawProducts.map((product) => {
+          // ... (Logic map ảnh như tôi đã gửi ở câu trả lời trước) ...
+          const imagesList = product.images || product.Images || [];
+          let img = (imagesList.length > 0) ? (imagesList[0].url || imagesList[0].Url) : "https://placehold.co/400x300?text=No+Image";
+
+          return {
+            ...product,
+            imageUrl: img,
+            // Map các trường khác...
+          };
+        });
 
         setProducts(normalizedProducts);
         setCategories(categoriesData);
-      } catch (apiError) {
-        console.error("Failed to fetch data from API:", apiError);
-        setError("Không thể tải dữ liệu từ server. Vui lòng thử lại sau.");
+      } catch (err) {
+        console.error(err);
       } finally {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
@@ -72,7 +73,7 @@ const Products = () => {
     const matchesCategory =
       selectedCategory === "Tất cả" ||
       categories.find((c) => c.name === selectedCategory)?.id ===
-        product.productCategoryId;
+      product.productCategoryId;
     return matchesSearch && matchesCategory;
   });
 
@@ -168,17 +169,16 @@ const Products = () => {
                   key={typeof category === "string" ? category : category.name}
                   variant={
                     selectedCategory ===
-                    (typeof category === "string" ? category : category.name)
+                      (typeof category === "string" ? category : category.name)
                       ? "default"
                       : "secondary"
                   }
                   className={`cursor-pointer transition-all duration-200 rounded-md text-sm font-medium shadow-sm
-        ${
-          selectedCategory ===
-          (typeof category === "string" ? category : category.name)
-            ? "bg-gray-700 hover:bg-gray-800 text-white"
-            : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-        }`}
+        ${selectedCategory ===
+                      (typeof category === "string" ? category : category.name)
+                      ? "bg-gray-700 hover:bg-gray-800 text-white"
+                      : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                    }`}
                   onClick={() =>
                     setSelectedCategory(
                       typeof category === "string" ? category : category.name
@@ -211,11 +211,10 @@ const Products = () => {
                   size="icon"
                   onClick={() => setViewMode("grid")}
                   className={`rounded-none transition-all duration-200 hover:bg-gray-100
-      ${
-        viewMode === "grid"
-          ? "bg-gray-200 text-gray-800 hover:bg-gray-400"
-          : "bg-white text-gray-600 hover:bg-gray-400"
-      }`}
+      ${viewMode === "grid"
+                      ? "bg-gray-200 text-gray-800 hover:bg-gray-400"
+                      : "bg-white text-gray-600 hover:bg-gray-400"
+                    }`}
                 >
                   <Grid className="h-4 w-4" />
                 </Button>
@@ -225,11 +224,10 @@ const Products = () => {
                   size="icon"
                   onClick={() => setViewMode("list")}
                   className={`rounded-none transition-all duration-200 hover:bg-gray-100
-      ${
-        viewMode === "list"
-          ? "bg-gray-200 text-gray-800 hover:bg-gray-400"
-          : "bg-white text-gray-600 hover:bg-gray-400"
-      }`}
+      ${viewMode === "list"
+                      ? "bg-gray-200 text-gray-800 hover:bg-gray-400"
+                      : "bg-white text-gray-600 hover:bg-gray-400"
+                    }`}
                 >
                   <List className="h-4 w-4" />
                 </Button>
@@ -267,20 +265,8 @@ const Products = () => {
               {sortedProducts.map((product) => (
                 <ProductCard
                   key={product.id}
-                  id={product.id}
-                  name={product.name}
-                  price={product.basePrice}
-                  originalPrice={product.maxPrice}
-                  image={product.imageUrl || ""}
-                  rating={4.5}
-                  reviews={0}
-                  category={
-                    categories.find((c) => c.id === product.productCategoryId)
-                      ?.name || "Sản phẩm"
-                  }
-                  shopId={product.shop?.id || 1}
-                  isBestSeller={product.isPopular}
-                  isNew={false}
+                  {...product}
+                  reviews={product.reviews || []}
                 />
               ))}
             </div>

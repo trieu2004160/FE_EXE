@@ -13,8 +13,8 @@ export function normalizeImageUrl(url: string | undefined | null): string | unde
 
     const trimmedUrl = url.trim();
 
-    // If already absolute URL (http:// or https://), return as is
-    if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')) {
+    // If already absolute URL (http:// or https://) or Base64 data URI, return as is
+    if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://') || trimmedUrl.startsWith('data:')) {
       return trimmedUrl;
     }
 
@@ -29,7 +29,7 @@ export function normalizeImageUrl(url: string | undefined | null): string | unde
 
     // Production: construct full URL
     let backendBaseUrl = 'https://localhost:5001';
-    
+
     if (import.meta.env.VITE_API_BASE_URL) {
       const apiUrl = import.meta.env.VITE_API_BASE_URL;
       if (apiUrl.startsWith('http://') || apiUrl.startsWith('https://')) {
@@ -42,7 +42,7 @@ export function normalizeImageUrl(url: string | undefined | null): string | unde
     } else if (import.meta.env.VITE_BACKEND_URL) {
       backendBaseUrl = import.meta.env.VITE_BACKEND_URL.replace(/\/$/, '');
     }
-    
+
     // Construct full URL: https://localhost:5001/images/products/xxx.jpg
     return `${backendBaseUrl}${cleanUrl}`;
   } catch (error) {
@@ -56,14 +56,14 @@ export function normalizeImageUrl(url: string | undefined | null): string | unde
  */
 export function getAllProductImages(product: any): string[] {
   const images: string[] = [];
-  
+
   // Check for single imageUrl (camelCase or PascalCase)
   const imageUrl = product.imageUrl || product.ImageUrl;
   if (imageUrl && typeof imageUrl === 'string') {
     const normalized = normalizeImageUrl(imageUrl);
     if (normalized) images.push(normalized);
   }
-  
+
   // Check for array of images (camelCase or PascalCase)
   const imageArray = product.imageUrls || product.ImageUrls || [];
   if (Array.isArray(imageArray)) {
@@ -76,7 +76,7 @@ export function getAllProductImages(product: any): string[] {
       }
     });
   }
-  
+
   return images;
 }
 
@@ -84,32 +84,47 @@ export function getAllProductImages(product: any): string[] {
  * Get the first image URL from product response
  * Backend returns ImageUrls (PascalCase array) from ProductResponseDto
  */
-export function getProductImageUrl(product: any): string | undefined {
+export function getProductImageUrl(product: any): string {
+  const placeholder = '/assets/no-image.png';
+
   try {
-    if (!product) return undefined;
-    
-    // Backend returns ImageUrls (PascalCase) as List<string>
-    // Check all possible field names
-    const imageUrl = product.imageUrl || product.ImageUrl;
-    const imageUrls = product.imageUrls || product.ImageUrls || [];
-    
-    // Priority: single imageUrl > first from ImageUrls array
-    if (imageUrl && typeof imageUrl === 'string') {
-      return normalizeImageUrl(imageUrl);
-    }
-    
-    // Check array of images
-    if (Array.isArray(imageUrls) && imageUrls.length > 0) {
-      const firstImage = imageUrls[0];
-      if (firstImage && typeof firstImage === 'string') {
-        return normalizeImageUrl(firstImage);
+    if (!product) return placeholder;
+
+    // 1. Priority: Check for images array (New Backend Structure - Base64)
+    if (Array.isArray(product.images) && product.images.length > 0) {
+      const firstImage = product.images[0];
+      if (firstImage && firstImage.url) {
+        // If it's a Base64 string, it might need the data URI prefix if not present
+        // But usually backend sends full data URI or just base64 string
+        // Let's use normalizeImageUrl to be safe, or return as is if it looks like a data URI
+        return normalizeImageUrl(firstImage.url) || placeholder;
       }
     }
-    
-    return undefined;
+
+    // 2. Fallback: Check for Base64 data (Legacy/Transitional)
+    if (product.imageData && product.imageMimeType) {
+      return `data:${product.imageMimeType};base64,${product.imageData}`;
+    }
+
+    // 3. Fallback: Check for single imageUrl (Legacy)
+    const imageUrl = product.imageUrl || product.ImageUrl;
+    if (imageUrl && typeof imageUrl === 'string') {
+      return normalizeImageUrl(imageUrl) || placeholder;
+    }
+
+    // 4. Fallback: Check for imageUrls array (Legacy)
+    const imageUrls = product.imageUrls || product.ImageUrls;
+    if (Array.isArray(imageUrls) && imageUrls.length > 0) {
+      const firstUrl = imageUrls[0];
+      if (typeof firstUrl === 'string') {
+        return normalizeImageUrl(firstUrl) || placeholder;
+      }
+    }
+
+    return placeholder;
   } catch (error) {
-    console.error('Error getting product image URL:', error, product);
-    return undefined;
+    console.error('Error getting product image URL:', error);
+    return placeholder;
   }
 }
 
