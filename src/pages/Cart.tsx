@@ -50,31 +50,52 @@ const Cart = () => {
       setLoading(true);
       setError("");
       try {
+        console.log('[Cart] Fetching cart data...');
         const cartResponse = await apiService.getCart();
+        console.log('[Cart] Cart data received:', cartResponse);
+        
         setCartData(cartResponse);
 
         // Flatten cart items from shops structure
         const flattenedItems: CartItem[] = [];
-        cartResponse.shops.forEach((shop: ShopInCartDto) => {
-          shop.items.forEach((item: CartItemDto) => {
-            console.log("Cart item imageUrl:", item.imageUrl);
-            flattenedItems.push({
-              id: item.id,
-              name: item.productName,
-              price: item.price,
-              imageUrl: item.imageUrl,
-              quantity: item.quantity,
-              category: "", // Category not available in cart API
-              shopId: shop.shopId,
-              selected: item.isSelected,
-              isSelected: item.isSelected,
-            });
+        if (cartResponse && cartResponse.shops && Array.isArray(cartResponse.shops)) {
+          cartResponse.shops.forEach((shop: ShopInCartDto) => {
+            if (shop.items && Array.isArray(shop.items)) {
+              shop.items.forEach((item: CartItemDto) => {
+                console.log("Cart item imageUrl:", item.imageUrl);
+                flattenedItems.push({
+                  id: item.id,
+                  name: item.productName,
+                  price: item.price,
+                  imageUrl: item.imageUrl,
+                  quantity: item.quantity,
+                  category: "", // Category not available in cart API
+                  shopId: shop.shopId,
+                  selected: item.isSelected,
+                  isSelected: item.isSelected,
+                });
+              });
+            }
           });
-        });
+        }
         setCartItems(flattenedItems);
+        console.log('[Cart] Flattened items:', flattenedItems);
       } catch (err: any) {
-        console.error("Error fetching cart:", err);
-        setError(err.message || "Không thể tải giỏ hàng. Vui lòng đăng nhập.");
+        console.error('[Cart] Error fetching cart:', {
+          error: err,
+          message: err?.message,
+          stack: err?.stack,
+          name: err?.name
+        });
+        
+        // Check if it's an authentication error
+        if (err?.message?.includes('401') || err?.message?.includes('Unauthorized')) {
+          setError("Vui lòng đăng nhập để xem giỏ hàng");
+        } else if (err?.message?.includes('Failed to fetch') || err?.message?.includes('kết nối')) {
+          setError("Không thể kết nối đến server. Vui lòng kiểm tra:\n1. Backend server đang chạy không?\n2. URL: https://localhost:5001/api/cart\n3. CORS configuration");
+        } else {
+          setError(err.message || "Không thể tải giỏ hàng. Vui lòng thử lại sau.");
+        }
         setCartItems([]);
       } finally {
         setLoading(false);
@@ -314,10 +335,61 @@ const Cart = () => {
         <section className="py-16">
           <div className="container mx-auto px-4 text-center">
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-12 max-w-2xl mx-auto">
-              <p className="text-red-500 mb-4">{error}</p>
-              <p className="text-gray-600">
-                Vui lòng đăng nhập để xem giỏ hàng
-              </p>
+              <p className="text-red-500 mb-4 text-lg font-semibold">Không thể tải giỏ hàng</p>
+              <p className="text-gray-600 mb-4 whitespace-pre-line">{error}</p>
+              <div className="flex gap-2 justify-center mt-6">
+                <Button
+                  onClick={() => {
+                    setError("");
+                    setLoading(true);
+                    const fetchCart = async () => {
+                      try {
+                        const cartResponse = await apiService.getCart();
+                        setCartData(cartResponse);
+                        const flattenedItems: CartItem[] = [];
+                        if (cartResponse && cartResponse.shops && Array.isArray(cartResponse.shops)) {
+                          cartResponse.shops.forEach((shop: ShopInCartDto) => {
+                            if (shop.items && Array.isArray(shop.items)) {
+                              shop.items.forEach((item: CartItemDto) => {
+                                flattenedItems.push({
+                                  id: item.id,
+                                  name: item.productName,
+                                  price: item.price,
+                                  imageUrl: item.imageUrl,
+                                  quantity: item.quantity,
+                                  category: "",
+                                  shopId: shop.shopId,
+                                  selected: item.isSelected,
+                                  isSelected: item.isSelected,
+                                });
+                              });
+                            }
+                          });
+                        }
+                        setCartItems(flattenedItems);
+                        setError("");
+                      } catch (err: any) {
+                        setError(err.message || "Không thể tải giỏ hàng.");
+                      } finally {
+                        setLoading(false);
+                      }
+                    };
+                    fetchCart();
+                  }}
+                  className="bg-[#A67C42] hover:bg-[#8B6835] text-white"
+                >
+                  Thử lại
+                </Button>
+                {error.includes("đăng nhập") && (
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate("/login")}
+                    className="border-[#A67C42] text-[#A67C42] hover:bg-[#A67C42] hover:text-white"
+                  >
+                    Đăng nhập
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </section>

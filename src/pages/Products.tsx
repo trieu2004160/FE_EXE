@@ -36,11 +36,26 @@ const Products = () => {
       setError(null);
 
       try {
+        console.log('[Products] Starting to fetch products and categories...');
+        
         // Only use API data - no fallback to mock data
         const [productsData, categoriesData] = await Promise.all([
           apiService.getProducts(),
           apiService.getCategories(),
         ]);
+
+        console.log('[Products] Data received:', {
+          productsCount: productsData?.length || 0,
+          categoriesCount: categoriesData?.length || 0,
+          products: productsData,
+          categories: categoriesData
+        });
+
+        // Check if products data is valid
+        if (!productsData || !Array.isArray(productsData)) {
+          console.error('[Products] Invalid products data:', productsData);
+          throw new Error('Dữ liệu sản phẩm không hợp lệ');
+        }
 
         // Normalize image URLs from backend
         const normalizedProducts = productsData.map((product) => ({
@@ -48,14 +63,29 @@ const Products = () => {
           imageUrl: getProductImageUrl(product),
         }));
 
-        console.log("Products data:", productsData);
-        console.log("Normalized products:", normalizedProducts);
+        console.log('[Products] Normalized products:', {
+          count: normalizedProducts.length,
+          sample: normalizedProducts.slice(0, 3)
+        });
 
         setProducts(normalizedProducts);
-        setCategories(categoriesData);
-      } catch (apiError) {
-        console.error("Failed to fetch data from API:", apiError);
-        setError("Không thể tải dữ liệu từ server. Vui lòng thử lại sau.");
+        setCategories(categoriesData || []);
+      } catch (apiError: any) {
+        console.error('[Products] Failed to fetch data from API:', {
+          error: apiError,
+          message: apiError?.message,
+          stack: apiError?.stack
+        });
+        
+        let errorMessage = "Không thể tải dữ liệu từ server. Vui lòng thử lại sau.";
+        
+        if (apiError?.message?.includes('Failed to fetch') || apiError?.message?.includes('kết nối')) {
+          errorMessage = "Không thể kết nối đến server. Vui lòng kiểm tra:\n1. Backend server đang chạy không?\n2. URL: https://localhost:5001/api/products\n3. CORS configuration";
+        } else if (apiError?.message) {
+          errorMessage = apiError.message;
+        }
+        
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -107,9 +137,46 @@ const Products = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-500 mb-4">Không thể tải sản phẩm</p>
-          <Button onClick={() => window.location.reload()}>Thử lại</Button>
+        <div className="text-center max-w-md px-4">
+          <p className="text-red-500 mb-2 text-lg font-semibold">Không thể tải sản phẩm</p>
+          <p className="text-muted-foreground mb-4 text-sm whitespace-pre-line">{error}</p>
+          <div className="flex gap-2 justify-center">
+            <Button onClick={() => window.location.reload()}>Thử lại</Button>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setError(null);
+                setLoading(true);
+                const fetchData = async () => {
+                  try {
+                    const [productsData, categoriesData] = await Promise.all([
+                      apiService.getProducts(),
+                      apiService.getCategories(),
+                    ]);
+                    if (productsData && Array.isArray(productsData)) {
+                      const normalizedProducts = productsData.map((product) => ({
+                        ...product,
+                        imageUrl: getProductImageUrl(product),
+                      }));
+                      setProducts(normalizedProducts);
+                      setCategories(categoriesData || []);
+                      setError(null);
+                    }
+                  } catch (err: any) {
+                    setError(err?.message || "Không thể tải dữ liệu từ server.");
+                  } finally {
+                    setLoading(false);
+                  }
+                };
+                fetchData();
+              }}
+            >
+              Tải lại
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-4">
+            Vui lòng kiểm tra: Backend server đang chạy? URL đúng không?
+          </p>
         </div>
       </div>
     );
