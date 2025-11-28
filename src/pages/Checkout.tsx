@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/dialog";
 import {
   ArrowLeft,
-  Truck,
   CreditCard,
   Edit2,
   Plus,
@@ -48,12 +47,9 @@ const Checkout = () => {
 
   // Address state
   const [addresses, setAddresses] = useState<AddressResponseDto[]>([]);
-  const [defaultAddress, setDefaultAddress] =
-    useState<AddressResponseDto | null>(null);
   const [selectedAddress, setSelectedAddress] =
     useState<AddressResponseDto | null>(null);
   const [showAddressDialog, setShowAddressDialog] = useState(false);
-  const [showAddAddressDialog, setShowAddAddressDialog] = useState(false);
 
   // Address form
   const [addressForm, setAddressForm] = useState<UpsertAddressDto>({
@@ -127,19 +123,17 @@ const Checkout = () => {
           // Find default address
           const defaultAddr = userAddresses.find((addr) => addr.isDefault);
           if (defaultAddr) {
-            setDefaultAddress(defaultAddr);
             setSelectedAddress(defaultAddr);
           } else if (userAddresses.length > 0) {
             // If no default, use first one
             setSelectedAddress(userAddresses[0]);
           } else {
             // No addresses, show add form
-            setShowAddAddressDialog(true);
           }
         } catch (error) {
           console.error("Error fetching addresses:", error);
           // If no addresses, show add form
-          setShowAddAddressDialog(true);
+          // If no addresses, show add form
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -160,12 +154,12 @@ const Checkout = () => {
   // Group selected items by shop
   const groupedItems = cartData
     ? cartData.shops
-        .filter((shop) => shop.items.some((item) => item.isSelected))
-        .map((shop) => ({
-          shopId: shop.shopId,
-          shopName: shop.shopName,
-          items: shop.items.filter((item) => item.isSelected),
-        }))
+      .filter((shop) => shop.items.some((item) => item.isSelected))
+      .map((shop) => ({
+        shopId: shop.shopId,
+        shopName: shop.shopName,
+        items: shop.items.filter((item) => item.isSelected),
+      }))
     : [];
 
   // Calculate totals
@@ -207,7 +201,6 @@ const Checkout = () => {
 
       if (newAddress.isDefault || addresses.length === 0) {
         setSelectedAddress(newAddress);
-        setDefaultAddress(newAddress);
       }
 
       // Reset form
@@ -221,7 +214,7 @@ const Checkout = () => {
         isDefault: false,
       });
 
-      setShowAddAddressDialog(false);
+
       toast({
         title: "Thành công",
         description: "Đã thêm địa chỉ mới",
@@ -288,15 +281,15 @@ const Checkout = () => {
       });
 
       // Convert selectedAddress to ShippingAddress format for order
+      // Convert selectedAddress to ShippingAddress format for order
+      // Backend expects: FullName, PhoneNumber, Street, Ward, District, City
       const shippingAddress = {
         fullName: selectedAddress.fullName,
-        email: "", // Will be filled by backend from user profile
-        phone: selectedAddress.phoneNumber,
-        address: `${selectedAddress.street}, ${selectedAddress.ward}, ${selectedAddress.district}, ${selectedAddress.city}`,
-        city: selectedAddress.city,
-        postalCode: "",
-        district: selectedAddress.district,
+        phoneNumber: selectedAddress.phoneNumber,
+        street: selectedAddress.street,
         ward: selectedAddress.ward,
+        district: selectedAddress.district,
+        city: selectedAddress.city,
       };
 
       const orderData: CreateOrderRequest = {
@@ -316,8 +309,8 @@ const Checkout = () => {
       // Dispatch event to update cart count
       window.dispatchEvent(new Event("cartUpdated"));
 
-      // Navigate to order detail or orders list
-      navigate(`/orders/${order.id}`);
+      // Navigate to payment success page
+      navigate(`/payment-success?orderId=${order.id}`);
     } catch (error: any) {
       console.error("[Checkout] Error creating order:", error);
       toast({
@@ -417,11 +410,10 @@ const Checkout = () => {
                           addresses.map((address) => (
                             <div
                               key={address.id}
-                              className={`border rounded-lg p-4 cursor-pointer transition-all ${
-                                selectedAddress?.id === address.id
-                                  ? "border-[#A67C42] bg-[#A67C42]/5"
-                                  : "border-gray-200 hover:border-gray-300"
-                              }`}
+                              className={`border rounded-lg p-4 cursor-pointer transition-all ${selectedAddress?.id === address.id
+                                ? "border-[#A67C42] bg-[#A67C42]/5"
+                                : "border-gray-200 hover:border-gray-300"
+                                }`}
                               onClick={() => handleSelectAddress(address)}
                             >
                               <div className="flex items-start justify-between">
@@ -458,7 +450,7 @@ const Checkout = () => {
                           className="w-full flex items-center gap-2"
                           onClick={() => {
                             setShowAddressDialog(false);
-                            setShowAddAddressDialog(true);
+                            setSelectedAddress(null);
                           }}
                         >
                           <Plus className="h-4 w-4" />

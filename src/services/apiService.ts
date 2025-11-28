@@ -1,4 +1,4 @@
-// API configuration
+﻿// API configuration
 // Use relative path to leverage Vite proxy in development
 // Vite proxy will forward /api/* to https://localhost:5001/api/*
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
@@ -239,30 +239,38 @@ export interface AddressResponseDto {
 }
 
 // Order Types
-export interface OrderResponseDto {
-  id: number;
-  orderDate: string;
-  status: string;
-  subtotal: number;
-  total: number;
-  shippingAddress: {
-    fullName: string;
-    phoneNumber: string;
-    street: string;
-    ward: string;
-    district: string;
-    city: string;
-  };
-  items: OrderItemDto[];
+export interface ShippingAddressDto {
+  fullName: string;
+  phoneNumber: string;
+  street: string;
+  ward: string;
+  district: string;
+  city: string;
 }
 
-export interface OrderItemDto {
+export interface CreateOrderDto {
+  shippingAddress?: ShippingAddressDto;
+  paymentMethod?: 'cash_on_delivery' | 'payos';
+}
+
+export interface OrderItemResponseDto {
   productId: number;
   productName: string;
   imageUrl?: string;
   price: number;
   quantity: number;
   shopName: string;
+}
+
+export interface OrderResponseDto {
+  id: number;
+  orderNumber?: string;
+  status: string;
+  total: number;
+  subtotal: number;
+  createdAt: string;
+  shippingAddress: ShippingAddressDto;
+  items: OrderItemResponseDto[];
 }
 
 // Admin Types
@@ -335,13 +343,13 @@ class ApiService {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    
+
     // Get token from localStorage
     const token = localStorage.getItem('userToken');
-    
+
     // Prepare headers
     const headers: Record<string, string> = {};
-    
+
     // Copy existing headers
     if (options.headers) {
       if (options.headers instanceof Headers) {
@@ -385,12 +393,12 @@ class ApiService {
       });
 
       const response = await fetch(url, config);
-      
+
       if (!response.ok) {
         // Try to get error message from response
         let errorMessage = `HTTP error! status: ${response.status}`;
         let errorData: { message?: string; error?: string } = {};
-        
+
         try {
           const responseText = await response.text();
           if (responseText) {
@@ -420,7 +428,7 @@ class ApiService {
             responseHeaders: Object.fromEntries(response.headers.entries()),
           });
         }
-        
+
         throw new Error(errorMessage);
       }
 
@@ -441,10 +449,10 @@ class ApiService {
           ],
           suggestion: `Make sure backend is running at ${url.includes('localhost:5001') ? 'https://localhost:5001' : this.baseURL}`,
         });
-        
-        throw new Error(`Không thể kết nối đến server. Vui lòng kiểm tra:\n1. Backend server đang chạy không?\n2. URL: ${url}\n3. CORS configuration`);
+
+        throw new Error(`KhÃ´ng thá»ƒ káº¿t ná»‘i Ä‘áº¿n server. Vui lÃ²ng kiá»ƒm tra:\n1. Backend server Ä‘ang cháº¡y khÃ´ng?\n2. URL: ${url}\n3. CORS configuration`);
       }
-      
+
       console.error('[apiService] Request failed:', {
         endpoint,
         url,
@@ -459,15 +467,15 @@ class ApiService {
   // Helper method to decode token info for debugging
   private getTokenInfo(token: string | null): { email?: string; role?: string | string[]; ShopId?: string; exp?: number } | null {
     if (!token || token === 'authenticated') return null;
-    
+
     try {
       const parts = token.split('.');
       if (parts.length !== 3) return null;
-      
+
       const payload = parts[1];
       const paddedPayload = payload + '='.repeat((4 - payload.length % 4) % 4);
       const decoded = JSON.parse(atob(paddedPayload));
-      
+
       return {
         email: decoded.email || decoded[`http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress`],
         role: decoded.role || decoded[`http://schemas.microsoft.com/ws/2008/06/identity/claims/role`],
@@ -546,29 +554,29 @@ class ApiService {
    */
   async updateProfile(data: UpdateProfileRequest): Promise<ApiResponse> {
     const formData = new FormData();
-    
-    // FullName là required, luôn phải có
+
+    // FullName lÃ  required, luÃ´n pháº£i cÃ³
     const fullName = (data.fullName || '').trim();
     if (!fullName) {
       throw new Error('FullName is required');
     }
     formData.append('FullName', fullName);
-    
-    // Các trường optional - chỉ append nếu có giá trị
+
+    // CÃ¡c trÆ°á»ng optional - chá»‰ append náº¿u cÃ³ giÃ¡ trá»‹
     if (data.phoneNumber) {
       formData.append('PhoneNumber', data.phoneNumber.trim());
     }
-    
+
     if (data.introduction) {
       formData.append('Introduction', data.introduction.trim());
     }
-    
-    // Chỉ append file nếu có
+
+    // Chá»‰ append file náº¿u cÃ³
     if (data.avatarFile) {
       formData.append('AvatarFile', data.avatarFile);
     }
 
-    // Log để debug
+    // Log Ä‘á»ƒ debug
     console.log('[updateProfile] Sending FormData:', {
       FullName: fullName,
       PhoneNumber: data.phoneNumber || '(empty)',
@@ -725,7 +733,7 @@ class ApiService {
    */
   async searchProducts(params: SearchParams): Promise<SearchResponse> {
     const searchParams = new URLSearchParams();
-    
+
     if (params.query) searchParams.append('query', params.query);
     if (params.category) searchParams.append('category', params.category);
     if (params.minPrice !== undefined) searchParams.append('minPrice', params.minPrice.toString());
@@ -787,7 +795,7 @@ class ApiService {
 
     const token = localStorage.getItem('userToken');
     const headers: Record<string, string> = {};
-    
+
     if (token && token !== 'authenticated') {
       headers['Authorization'] = `Bearer ${token}`;
     }
@@ -817,18 +825,18 @@ class ApiService {
   /**
    * Get shop dashboard data
    * GET /api/shop/dashboard
-   * Quyền: Chỉ Shop
-   * Nhiệm vụ & Tác dụng: Lấy dữ liệu cho trang Dashboard (Tổng SP, SP hết hàng, Đơn hàng chờ xử lý)
-   * Backend trả về PascalCase (TotalProducts, ProductsInStock, etc.) - ASP.NET default
+   * Quyá»n: Chá»‰ Shop
+   * Nhiá»‡m vá»¥ & TÃ¡c dá»¥ng: Láº¥y dá»¯ liá»‡u cho trang Dashboard (Tá»•ng SP, SP háº¿t hÃ ng, ÄÆ¡n hÃ ng chá» xá»­ lÃ½)
+   * Backend tráº£ vá» PascalCase (TotalProducts, ProductsInStock, etc.) - ASP.NET default
    */
   async getShopDashboard(): Promise<ShopDashboardDto> {
     try {
       const data = await this.request<ShopDashboardDto>('/shop/dashboard', {
         method: 'GET',
       });
-      
+
       console.log('[apiService] Dashboard response (raw):', data);
-      
+
       // Backend returns PascalCase by default (ASP.NET Core)
       // Convert to camelCase for frontend use
       const result = {
@@ -843,7 +851,7 @@ class ApiService {
         outOfStockProducts: data.OutOfStockProducts ?? data.outOfStockProducts ?? 0,
         pendingOrderItems: data.PendingOrderItems ?? data.pendingOrderItems ?? 0,
       };
-      
+
       console.log('[apiService] Dashboard response (converted):', result);
       return result;
     } catch (error) {
@@ -855,8 +863,8 @@ class ApiService {
   /**
    * Get shop profile
    * GET /api/shop/profile
-   * Quyền: Chỉ Shop
-   * Nhiệm vụ & Tác dụng: Lấy thông tin chi tiết của cửa hàng (Tên, Mô tả, SĐT, Ảnh) để hiển thị trong trang "Cài đặt"
+   * Quyá»n: Chá»‰ Shop
+   * Nhiá»‡m vá»¥ & TÃ¡c dá»¥ng: Láº¥y thÃ´ng tin chi tiáº¿t cá»§a cá»­a hÃ ng (TÃªn, MÃ´ táº£, SÄT, áº¢nh) Ä‘á»ƒ hiá»ƒn thá»‹ trong trang "CÃ i Ä‘áº·t"
    */
   async getShopProfile() {
     return this.request('/shop/profile', {
@@ -867,28 +875,8 @@ class ApiService {
   /**
    * Update shop profile
    * PUT /api/shop/profile
-   * Quyền: Chỉ Shop
-   * Nhiệm vụ & Tác dụng: Cập nhật thông tin cửa hàng (hỗ trợ cả URL và upload ảnh)
-   */
-  async updateShopProfile(profileData: {
-    name?: string;
-    description?: string;
-    address?: string;
-    phone?: string;
-    email?: string;
-    logo?: string;
-  }) {
-    return this.request('/shop/profile', {
-      method: 'PUT',
-      body: JSON.stringify(profileData),
-    });
-  }
-
-  /**
-   * Get shop products
-   * GET /api/shop/products
-   * Quyền: Chỉ Shop
-   * Nhiệm vụ & Tác dụng: Lấy danh sách chỉ những sản phẩm mà Shop này sở hữu
+   * Quyá»n: Chá»‰ Shop
+   * Nhiá»‡m vá»¥ & TÃ¡c dá»¥ng: Láº¥y danh sÃ¡ch chá»‰ nhá»¯ng sáº£n pháº©m mÃ  Shop nÃ y sá»Ÿ há»¯u
    */
   async getShopProducts(params?: {
     page?: number;
@@ -901,10 +889,10 @@ class ApiService {
     if (params?.limit) searchParams.append('limit', params.limit.toString());
     if (params?.search) searchParams.append('search', params.search);
     if (params?.category) searchParams.append('category', params.category);
-    
+
     const queryString = searchParams.toString();
     const endpoint = queryString ? `/shop/products?${queryString}` : '/shop/products';
-    
+
     return this.request(endpoint, {
       method: 'GET',
     });
@@ -913,8 +901,8 @@ class ApiService {
   /**
    * Create a new product
    * POST /api/shop/products
-   * Quyền: Chỉ Shop
-   * Nhiệm vụ & Tác dụng: Tạo một sản phẩm mới (hỗ trợ cả URL và upload ảnh)
+   * Quyá»n: Chá»‰ Shop
+   * Nhiá»‡m vá»¥ & TÃ¡c dá»¥ng: Táº¡o má»™t sáº£n pháº©m má»›i (há»— trá»£ cáº£ URL vÃ  upload áº£nh)
    */
   async createShopProduct(productData: {
     name: string;
@@ -933,8 +921,8 @@ class ApiService {
   /**
    * Update a product
    * PUT /api/shop/products/{id}
-   * Quyền: Chỉ Shop
-   * Nhiệm vụ & Tác dụng: Cập nhật sản phẩm của Shop (BE kiểm tra quyền sở hữu)
+   * Quyá»n: Chá»‰ Shop
+   * Nhiá»‡m vá»¥ & TÃ¡c dá»¥ng: Cáº­p nháº­t sáº£n pháº©m cá»§a Shop (BE kiá»ƒm tra quyá»n sá»Ÿ há»¯u)
    */
   async updateShopProduct(id: string, productData: {
     name?: string;
@@ -953,8 +941,8 @@ class ApiService {
   /**
    * Delete a product
    * DELETE /api/shop/products/{id}
-   * Quyền: Chỉ Shop
-   * Nhiệm vụ & Tác dụng: Xóa sản phẩm của Shop (BE kiểm tra quyền sở hữu)
+   * Quyá»n: Chá»‰ Shop
+   * Nhiá»‡m vá»¥ & TÃ¡c dá»¥ng: XÃ³a sáº£n pháº©m cá»§a Shop (BE kiá»ƒm tra quyá»n sá»Ÿ há»¯u)
    */
   async deleteShopProduct(id: string) {
     return this.request(`/api/shop/products/${id}`, {
@@ -965,8 +953,8 @@ class ApiService {
   /**
    * Get shop orders
    * GET /api/shop/orders
-   * Quyền: Chỉ Shop
-   * Nhiệm vụ & Tác dụng: Lấy danh sách các món hàng (OrderItems) thuộc về Shop, kèm thông tin khách hàng, trạng thái xử lý
+   * Quyá»n: Chá»‰ Shop
+   * Nhiá»‡m vá»¥ & TÃ¡c dá»¥ng: Láº¥y danh sÃ¡ch cÃ¡c mÃ³n hÃ ng (OrderItems) thuá»™c vá» Shop, kÃ¨m thÃ´ng tin khÃ¡ch hÃ ng, tráº¡ng thÃ¡i xá»­ lÃ½
    */
   async getShopOrders(params?: {
     page?: number;
@@ -977,10 +965,10 @@ class ApiService {
     if (params?.page) searchParams.append('page', params.page.toString());
     if (params?.limit) searchParams.append('limit', params.limit.toString());
     if (params?.status) searchParams.append('status', params.status);
-    
+
     const queryString = searchParams.toString();
     const endpoint = queryString ? `/shop/orders?${queryString}` : '/shop/orders';
-    
+
     return this.request(endpoint, {
       method: 'GET',
     });
@@ -989,8 +977,8 @@ class ApiService {
   /**
    * Update order status
    * PUT /api/shop/orders/items/{orderItemId}/status
-   * Quyền: Chỉ Shop
-   * Nhiệm vụ & Tác dụng: Shop cập nhật trạng thái xử lý của một món hàng (Pending -> Preparing -> Shipped...)
+   * Quyá»n: Chá»‰ Shop
+   * Nhiá»‡m vá»¥ & TÃ¡c dá»¥ng: Shop cáº­p nháº­t tráº¡ng thÃ¡i xá»­ lÃ½ cá»§a má»™t mÃ³n hÃ ng (Pending -> Preparing -> Shipped...)
    */
   async updateOrderStatus(orderItemId: string, status: string) {
     return this.request(`/api/shop/orders/items/${orderItemId}/status`, {
@@ -1002,8 +990,8 @@ class ApiService {
   /**
    * Get shop reviews
    * GET /api/shop/reviews
-   * Quyền: Chỉ Shop
-   * Nhiệm vụ & Tác dụng: Lấy danh sách tất cả các đánh giá về sản phẩm của Shop
+   * Quyá»n: Chá»‰ Shop
+   * Nhiá»‡m vá»¥ & TÃ¡c dá»¥ng: Láº¥y danh sÃ¡ch táº¥t cáº£ cÃ¡c Ä‘Ã¡nh giÃ¡ vá» sáº£n pháº©m cá»§a Shop
    */
   async getShopReviews(params?: {
     page?: number;
@@ -1014,10 +1002,10 @@ class ApiService {
     if (params?.page) searchParams.append('page', params.page.toString());
     if (params?.limit) searchParams.append('limit', params.limit.toString());
     if (params?.rating) searchParams.append('rating', params.rating.toString());
-    
+
     const queryString = searchParams.toString();
     const endpoint = queryString ? `/shop/reviews?${queryString}` : '/shop/reviews';
-    
+
     return this.request(endpoint, {
       method: 'GET',
     });
@@ -1026,8 +1014,8 @@ class ApiService {
   /**
    * Get shop statistics
    * GET /api/shop/statistics
-   * Quyền: Chỉ Shop
-   * Nhiệm vụ & Tác dụng: Lấy dữ liệu thống kê doanh thu cơ bản (doanh thu tháng này, số đơn...) cho Shop
+   * Quyá»n: Chá»‰ Shop
+   * Nhiá»‡m vá»¥ & TÃ¡c dá»¥ng: Láº¥y dá»¯ liá»‡u thá»‘ng kÃª doanh thu cÆ¡ báº£n (doanh thu thÃ¡ng nÃ y, sá»‘ Ä‘Æ¡n...) cho Shop
    */
   async getShopStatistics() {
     return this.request('/shop/statistics', {
@@ -1121,11 +1109,6 @@ class ApiService {
     });
   }
 
-  /**
-   * Add new address
-   * POST /api/useraddresses
-   * Requires authentication
-   */
   async addUserAddress(data: UpsertAddressDto): Promise<AddressResponseDto> {
     return this.request<AddressResponseDto>('/useraddresses', {
       method: 'POST',
@@ -1178,13 +1161,11 @@ class ApiService {
   async createOrder(data: {
     shippingAddress?: {
       fullName: string;
-      email: string;
-      phone: string;
-      address: string;
+      phoneNumber: string;
+      street: string;
+      ward: string;
+      district: string;
       city: string;
-      postalCode: string;
-      district?: string;
-      ward?: string;
     };
     paymentMethod?: 'cash_on_delivery' | 'payos';
   }): Promise<OrderResponseDto> {
@@ -1206,14 +1187,17 @@ class ApiService {
     });
   }
 
-  // ==================== ADMIN API ====================
-  // Base URL: /api/admin
-  // All endpoints require Admin role
-
   /**
-   * Get all categories (Admin)
-   * GET /api/admin/categories
+   * Get user orders
+   * GET /api/orders
+   * Requires authentication
    */
+  async getUserOrders(): Promise<OrderResponseDto[]> {
+    return this.request<OrderResponseDto[]>('/orders', {
+      method: 'GET',
+    });
+  }
+
   async getAdminCategories(): Promise<AdminCategoryDto[]> {
     return this.request<AdminCategoryDto[]>('/admin/categories', {
       method: 'GET',
@@ -1442,10 +1426,10 @@ class ApiService {
     const searchParams = new URLSearchParams();
     if (params?.page) searchParams.append('page', params.page.toString());
     if (params?.limit) searchParams.append('limit', params.limit.toString());
-    
+
     const queryString = searchParams.toString();
     const endpoint = queryString ? `/admin/logs?${queryString}` : '/admin/logs';
-    
+
     return this.request(endpoint, {
       method: 'GET',
     });
@@ -1459,63 +1443,49 @@ class ApiService {
   async uploadShopImage(file: File) {
     const formData = new FormData();
     formData.append('image', file);
-    
+
     const token = localStorage.getItem('userToken');
     const headers: Record<string, string> = {};
-    
+
     if (token && token !== 'authenticated') {
       headers['Authorization'] = `Bearer ${token}`;
     }
-    
+
     const response = await fetch(`${this.baseURL}/api/shop/upload-image`, {
       method: 'POST',
       headers,
       body: formData,
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
-    
+
     return await response.json();
   }
+
 }
 
 // Export singleton instance
 export const apiService = new ApiService();
-
-// JWT Decode utility function
-const decodeJWT = (token: string) => {
-  try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-    }).join(''));
-    return JSON.parse(jsonPayload);
-  } catch (error) {
-    console.error('Error decoding JWT:', error);
-    return null;
-  }
-};
 
 // Utility functions for auth token management
 export const authUtils = {
   setToken: (token: string) => {
     localStorage.setItem('userToken', token);
   },
-  
+
   getToken: (): string | null => {
     return localStorage.getItem('userToken');
   },
-  
+
   removeToken: () => {
     localStorage.removeItem('userToken');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userData');
   },
-  
+
   isAuthenticated: (): boolean => {
     const token = localStorage.getItem('userToken');
     return !!token && token !== 'authenticated';
@@ -1546,5 +1516,3 @@ export const authUtils = {
     return authUtils.getUserRole() === 'shop';
   }
 };
-
-// All types are already exported above with their interface declarations

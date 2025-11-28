@@ -3,13 +3,11 @@ import { apiService } from './apiService';
 
 export interface ShippingAddress {
   fullName: string;
-  email: string;
-  phone: string;
-  address: string;
+  phoneNumber: string;
+  street: string;
+  ward: string;
+  district: string;
   city: string;
-  postalCode: string;
-  district?: string;
-  ward?: string;
 }
 
 export interface OrderItem {
@@ -85,9 +83,7 @@ class OrdersApi {
   // Get order by ID from API
   async getOrderById(orderId: number): Promise<OrderResponseDto | null> {
     try {
-      const response = await apiService.request<OrderResponseDto>(`/orders/${orderId}`, {
-        method: 'GET',
-      });
+      const response = await apiService.getOrderById(orderId);
       return response;
     } catch (error: any) {
       console.error('Error getting order:', error);
