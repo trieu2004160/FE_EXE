@@ -384,7 +384,9 @@ const ProductDetail = () => {
                       -{discount}%
                     </Badge>
                   )}
-                  <Badge className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white border-0 px-3 py-1.5 shadow-md">Sản phẩm</Badge>
+                  <Badge className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white border-0 px-3 py-1.5 shadow-md">
+                    Sản phẩm
+                  </Badge>
                 </div>
 
                 {/* Title & Rating */}
@@ -437,11 +439,12 @@ const ProductDetail = () => {
                     <span className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
                       {product.basePrice.toLocaleString("vi-VN")}đ
                     </span>
-                    {product.maxPrice && product.maxPrice > product.basePrice && (
-                      <span className="text-lg text-gray-500 line-through">
-                        {product.maxPrice.toLocaleString("vi-VN")}đ
-                      </span>
-                    )}
+                    {product.maxPrice &&
+                      product.maxPrice > product.basePrice && (
+                        <span className="text-lg text-gray-500 line-through">
+                          {product.maxPrice.toLocaleString("vi-VN")}đ
+                        </span>
+                      )}
                   </div>
                 </div>
 
@@ -544,7 +547,9 @@ const ProductDetail = () => {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="flex items-center gap-2">
                         <Truck className="h-4 w-4 text-amber-600 flex-shrink-0" />
-                        <span className="text-xs text-gray-700">Miễn phí ship</span>
+                        <span className="text-xs text-gray-700">
+                          Miễn phí ship
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Shield className="h-4 w-4 text-green-600 flex-shrink-0" />
@@ -552,11 +557,15 @@ const ProductDetail = () => {
                       </div>
                       <div className="flex items-center gap-2">
                         <RotateCcw className="h-4 w-4 text-blue-600 flex-shrink-0" />
-                        <span className="text-xs text-gray-700">Đổi trả 24h</span>
+                        <span className="text-xs text-gray-700">
+                          Đổi trả 24h
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-orange-600 flex-shrink-0" />
-                        <span className="text-xs text-gray-700">Giao nhanh</span>
+                        <span className="text-xs text-gray-700">
+                          Giao nhanh
+                        </span>
                       </div>
                     </div>
                   </CardContent>
