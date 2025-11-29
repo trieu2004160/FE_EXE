@@ -73,6 +73,18 @@ const Checkout = () => {
     "cash_on_delivery" | "payos"
   >("cash_on_delivery");
 
+  // Fetch addresses function
+  const fetchAddresses = async () => {
+    try {
+      const userAddresses = await apiService.getUserAddresses();
+      setAddresses(userAddresses);
+      return userAddresses;
+    } catch (error) {
+      console.error("Error fetching addresses:", error);
+      return [];
+    }
+  };
+
   // Fetch cart and addresses
   useEffect(() => {
     const fetchData = async () => {
@@ -118,24 +130,17 @@ const Checkout = () => {
         }
 
         // Fetch addresses
-        try {
-          const userAddresses = await apiService.getUserAddresses();
-          setAddresses(userAddresses);
+        const userAddresses = await fetchAddresses();
 
-          // Find default address
-          const defaultAddr = userAddresses.find((addr) => addr.isDefault);
-          if (defaultAddr) {
-            setSelectedAddress(defaultAddr);
-          } else if (userAddresses.length > 0) {
-            // If no default, use first one
-            setSelectedAddress(userAddresses[0]);
-          } else {
-            // No addresses, show add form
-          }
-        } catch (error) {
-          console.error("Error fetching addresses:", error);
-          // If no addresses, show add form
-          // If no addresses, show add form
+        // Find default address
+        const defaultAddr = userAddresses.find((addr) => addr.isDefault);
+        if (defaultAddr) {
+          setSelectedAddress(defaultAddr);
+        } else if (userAddresses.length > 0) {
+          // If no default, use first one
+          setSelectedAddress(userAddresses[0]);
+        } else {
+          // No addresses, show add form
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -156,12 +161,12 @@ const Checkout = () => {
   // Group selected items by shop
   const groupedItems = cartData
     ? cartData.shops
-        .filter((shop) => shop.items.some((item) => item.isSelected))
-        .map((shop) => ({
-          shopId: shop.shopId,
-          shopName: shop.shopName,
-          items: shop.items.filter((item) => item.isSelected),
-        }))
+      .filter((shop) => shop.items.some((item) => item.isSelected))
+      .map((shop) => ({
+        shopId: shop.shopId,
+        shopName: shop.shopName,
+        items: shop.items.filter((item) => item.isSelected),
+      }))
     : [];
 
   // Calculate totals
@@ -215,20 +220,19 @@ const Checkout = () => {
 
       if (!editingAddressId) return;
 
-      const updatedAddress = await apiService.updateUserAddress(
+      await apiService.updateUserAddress(
         editingAddressId,
         addressForm
       );
 
-      // Update addresses list
-      setAddresses(
-        addresses.map((addr) =>
-          addr.id === editingAddressId ? updatedAddress : addr
-        )
-      );
+      // Refetch addresses to get the latest data
+      const updatedAddresses = await fetchAddresses();
+
+      // Find the updated address in the new list
+      const updatedAddress = updatedAddresses.find(a => a.id === editingAddressId);
 
       // Update selected address if it was being edited
-      if (selectedAddress?.id === editingAddressId) {
+      if (selectedAddress?.id === editingAddressId && updatedAddress) {
         setSelectedAddress(updatedAddress);
       }
 
@@ -277,11 +281,20 @@ const Checkout = () => {
         return;
       }
 
-      const newAddress = await apiService.addUserAddress(addressForm);
-      setAddresses([...addresses, newAddress]);
+      await apiService.addUserAddress(addressForm);
 
-      if (newAddress.isDefault || addresses.length === 0) {
-        setSelectedAddress(newAddress);
+      // Refetch addresses to get the latest data
+      const updatedAddresses = await fetchAddresses();
+
+      // If this is the first address or set as default, select it
+      // We need to find the newly added address. Since we don't have the ID, 
+      // we can assume it's the last one or check if we have only one.
+      // A better approach is to rely on the user selecting it, 
+      // or if it was set as default, find the default one.
+
+      if (addressForm.isDefault || updatedAddresses.length === 1) {
+        const defaultAddr = updatedAddresses.find(a => a.isDefault) || updatedAddresses[0];
+        if (defaultAddr) setSelectedAddress(defaultAddr);
       }
 
       // Reset form
@@ -641,11 +654,10 @@ const Checkout = () => {
                               addresses.map((address) => (
                                 <div
                                   key={address.id}
-                                  className={`border rounded-lg p-4 transition-all ${
-                                    selectedAddress?.id === address.id
+                                  className={`border rounded-lg p-4 transition-all ${selectedAddress?.id === address.id
                                       ? "border-[#A67C42] bg-[#A67C42]/5"
                                       : "border-gray-200 hover:border-gray-300"
-                                  }`}
+                                    }`}
                                 >
                                   <div className="flex items-start justify-between">
                                     <div
