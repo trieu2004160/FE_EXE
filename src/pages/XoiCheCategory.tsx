@@ -523,16 +523,12 @@ const XoiCheCategory = () => {
           {products.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
               {products.map((product) => {
-                // Convert API Product to ProductCard format
+                // Pass entire product object to ProductCard
+                // ProductCard will use getProductImageUrl utility to handle all image fields
                 const productCardProps = {
-                  id: product.id,
-                  name: product.name,
+                  ...product,
                   price: product.basePrice,
                   originalPrice: product.maxPrice,
-                  image: product.imageUrl || "",
-                  imageUrl: product.imageUrl,
-                  ImageUrls: product.ImageUrls,
-                  imageUrls: product.imageUrls,
                   rating: 4.5,
                   reviews: product.reviews?.length || 0,
                   category: "Xôi – Chè",

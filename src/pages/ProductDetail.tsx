@@ -86,9 +86,9 @@ const ProductDetail = () => {
         // Normalize related products images
         const normalizedRelatedProducts = Array.isArray(relatedProducts)
           ? relatedProducts.map((p: Product) => ({
-            ...p,
-            imageUrl: getProductImageUrl(p),
-          }))
+              ...p,
+              imageUrl: getProductImageUrl(p),
+            }))
           : [];
 
         setProduct(normalizedProduct);
@@ -119,26 +119,26 @@ const ProductDetail = () => {
   const discount =
     product?.maxPrice && product.maxPrice > product.basePrice
       ? Math.round(
-        ((product.maxPrice - product.basePrice) / product.maxPrice) * 100
-      )
+          ((product.maxPrice - product.basePrice) / product.maxPrice) * 100
+        )
       : 0;
 
   // Get shop info from product data
   const shop = product?.shop
     ? {
-      id: product.shop.id,
-      name: product.shop.shopName,
-      avatar: "", // Will be fetched from shop API if needed
-      description: "",
-      address: "",
-      phone: "",
-      email: "",
-      isVerified: false,
-      rating: 0,
-      totalSales: 0,
-      totalProducts: 0,
-      joinedDate: "",
-    }
+        id: product.shop.id,
+        name: product.shop.shopName,
+        avatar: "", // Will be fetched from shop API if needed
+        description: "",
+        address: "",
+        phone: "",
+        email: "",
+        isVerified: false,
+        rating: 0,
+        totalSales: 0,
+        totalProducts: 0,
+        joinedDate: "",
+      }
     : null;
 
   const handleAddToCart = async () => {
@@ -371,50 +371,58 @@ const ProductDetail = () => {
               </div>
 
               {/* Product Info */}
-              <div className="space-y-6">
+              <div className="space-y-5">
                 {/* Badges */}
                 <div className="flex flex-wrap gap-2">
                   {product.isPopular && (
-                    <Badge className="bg-secondary text-secondary-foreground">
-                      Bán chạy
+                    <Badge className="bg-gradient-to-r from-amber-500 to-yellow-600 text-white border-0 px-3 py-1.5 shadow-md">
+                      ⭐ Bán chạy
                     </Badge>
                   )}
                   {discount > 0 && (
-                    <Badge className="bg-primary text-primary-foreground">
+                    <Badge className="bg-gradient-to-r from-red-500 to-pink-600 text-white border-0 px-3 py-1.5 shadow-md">
                       -{discount}%
                     </Badge>
                   )}
-                  <Badge variant="secondary">Sản phẩm</Badge>
+                  <Badge className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white border-0 px-3 py-1.5 shadow-md">Sản phẩm</Badge>
                 </div>
 
                 {/* Title & Rating */}
-                <div>
-                  <h1 className="text-3xl font-bold text-foreground mb-4">
+                <div className="space-y-3">
+                  <h1 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight">
                     {product.name}
                   </h1>
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="flex items-center">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`h-5 w-5 ${i < 4 // Default 4-star rating
-                              ? "text-secondary fill-current"
-                              : "text-muted-foreground"
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`h-5 w-5 ${
+                              i < 4
+                                ? "text-yellow-400 fill-yellow-400"
+                                : "text-gray-300"
                             }`}
-                        />
-                      ))}
-                      <span className="ml-2 text-sm text-muted-foreground">
-                        4.5 ({reviews.length} đánh giá)
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm font-medium text-gray-700">
+                        4.5
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        ({reviews.length} đánh giá)
                       </span>
                     </div>
+                    <div className="h-4 w-px bg-gray-300 hidden sm:block" />
                     <div className="flex items-center gap-2">
                       <div
-                        className={`w-3 h-3 rounded-full ${product.stockQuantity > 0
+                        className={`w-2.5 h-2.5 rounded-full ${
+                          product.stockQuantity > 0
                             ? "bg-green-500"
                             : "bg-red-500"
-                          }`}
+                        }`}
                       />
-                      <span className="text-sm text-muted-foreground">
+                      <span className="text-sm font-medium text-gray-700">
                         {product.stockQuantity > 0
                           ? `Còn ${product.stockQuantity} sản phẩm`
                           : "Hết hàng"}
@@ -424,15 +432,17 @@ const ProductDetail = () => {
                 </div>
 
                 {/* Price */}
-                <div className="flex items-center gap-4">
-                  <span className="text-3xl font-bold text-primary">
-                    {product.basePrice.toLocaleString("vi-VN")}đ
-                  </span>
-                  {product.maxPrice && product.maxPrice > product.basePrice && (
-                    <span className="text-xl text-muted-foreground line-through">
-                      {product.maxPrice.toLocaleString("vi-VN")}đ
+                <div className="bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 rounded-2xl p-5 border-2 border-amber-200 shadow-lg">
+                  <div className="flex items-baseline gap-3 flex-wrap">
+                    <span className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+                      {product.basePrice.toLocaleString("vi-VN")}đ
                     </span>
-                  )}
+                    {product.maxPrice && product.maxPrice > product.basePrice && (
+                      <span className="text-lg text-gray-500 line-through">
+                        {product.maxPrice.toLocaleString("vi-VN")}đ
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Description */}
@@ -442,20 +452,20 @@ const ProductDetail = () => {
 
                 {/* Quantity & Actions */}
                 <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <label className="text-sm font-medium text-foreground">
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm font-semibold text-gray-700 min-w-[80px]">
                       Số lượng:
                     </label>
-                    <div className="flex items-center border border-border rounded-lg">
+                    <div className="flex items-center border-2 border-amber-300 rounded-xl overflow-hidden bg-white shadow-sm">
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                        className="h-10 w-10"
+                        className="h-11 w-11 hover:bg-amber-50 rounded-none border-r border-amber-200"
                       >
-                        <Minus className="h-4 w-4" />
+                        <Minus className="h-4 w-4 text-amber-700" />
                       </Button>
-                      <span className="w-16 text-center font-semibold">
+                      <span className="w-14 text-center font-bold text-lg text-amber-700">
                         {quantity}
                       </span>
                       <Button
@@ -466,21 +476,21 @@ const ProductDetail = () => {
                             Math.min(product.stockQuantity, quantity + 1)
                           )
                         }
-                        className="h-10 w-10"
+                        className="h-11 w-11 hover:bg-amber-50 rounded-none border-l border-amber-200"
                       >
-                        <Plus className="h-4 w-4" />
+                        <Plus className="h-4 w-4 text-amber-700" />
                       </Button>
                     </div>
                   </div>
 
-                  <div className="flex gap-3">
+                  <div className="flex flex-col sm:flex-row gap-3">
                     <Button
                       onClick={handleAddToCart}
-                      className="flex-1 bg-gradient-primary text-primary-foreground hover:shadow-glow transition-bounce"
+                      className="flex-1 bg-gradient-primary text-primary-foreground hover:shadow-glow transition-bounce bg-[#A67C42] hover:bg-[#8B6835] text-white px-5"
                       size="lg"
                       disabled={product.stockQuantity <= 0}
                     >
-                      <ShoppingCart className="h-5 w-5 mr-2" />
+                      <ShoppingCart className="h-5 w-5 mr-2 " />
                       Thêm vào giỏ
                     </Button>
                     <Button
@@ -489,40 +499,64 @@ const ProductDetail = () => {
                       onClick={handleAddToWishlist}
                       className={
                         isInWishlist(product.id)
-                          ? "text-primary border-primary"
-                          : ""
+                          ? "text-red-500 border-red-500 hover:bg-red-50"
+                          : "hover:text-red-500 hover:border-red-500"
                       }
                     >
                       <Heart
-                        className={`h-5 w-5 ${isInWishlist(product.id) ? "fill-current" : ""
-                          }`}
+                        className={`h-5 w-5 ${
+                          isInWishlist(product.id) ? "fill-red-500" : ""
+                        }`}
                       />
                     </Button>
-                    <Button variant="outline" size="lg">
-                      <Share2 className="h-5 w-5" />
+                    <Button
+                      className="hover:bg-[#8B6835] bg-[#A67C42]"
+                      size="lg"
+                      onClick={() => {
+                        if (navigator.share) {
+                          navigator
+                            .share({
+                              title: product.name,
+                              text: `Xem sản phẩm: ${product.name}`,
+                              url: window.location.href,
+                            })
+                            .catch((error) =>
+                              console.log("Error sharing:", error)
+                            );
+                        } else {
+                          navigator.clipboard.writeText(window.location.href);
+                          toast({
+                            title: "Đã sao chép link!",
+                            description:
+                              "Link sản phẩm đã được sao chép vào clipboard",
+                          });
+                        }
+                      }}
+                    >
+                      <Share2 className="h-5 w-5 hover:bg-[#8B6835]" />
                     </Button>
                   </div>
                 </div>
 
                 {/* Features */}
-                <Card className="bg-gray-50 border-border/50">
-                  <CardContent className="p-6">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="flex items-center gap-3">
-                        <Truck className="h-5 w-5 text-primary" />
-                        <span className="text-sm">Giao hàng miễn phí</span>
+                <Card className="bg-amber-50/50 border border-amber-200">
+                  <CardContent className="p-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex items-center gap-2">
+                        <Truck className="h-4 w-4 text-amber-600 flex-shrink-0" />
+                        <span className="text-xs text-gray-700">Miễn phí ship</span>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <Shield className="h-5 w-5 text-accent" />
-                        <span className="text-sm">Đảm bảo chất lượng</span>
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-4 w-4 text-green-600 flex-shrink-0" />
+                        <span className="text-xs text-gray-700">Bảo đảm</span>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <RotateCcw className="h-5 w-5 text-secondary" />
-                        <span className="text-sm">Đổi trả 24h</span>
+                      <div className="flex items-center gap-2">
+                        <RotateCcw className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                        <span className="text-xs text-gray-700">Đổi trả 24h</span>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <Clock className="h-5 w-5 text-primary" />
-                        <span className="text-sm">Giao hàng nhanh</span>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-orange-600 flex-shrink-0" />
+                        <span className="text-xs text-gray-700">Giao nhanh</span>
                       </div>
                     </div>
                   </CardContent>
@@ -729,10 +763,11 @@ const ProductDetail = () => {
                                     {[...Array(5)].map((_, i) => (
                                       <Star
                                         key={i}
-                                        className={`h-4 w-4 ${i < review.rating
+                                        className={`h-4 w-4 ${
+                                          i < review.rating
                                             ? "text-yellow-400 fill-current"
                                             : "text-gray-300"
-                                          }`}
+                                        }`}
                                       />
                                     ))}
                                   </div>
@@ -789,10 +824,11 @@ const ProductDetail = () => {
                             {[...Array(5)].map((_, i) => (
                               <button
                                 key={i}
-                                className={`h-8 w-8 transition-colors ${i < reviewRating
+                                className={`h-8 w-8 transition-colors ${
+                                  i < reviewRating
                                     ? "text-yellow-400"
                                     : "text-gray-300 hover:text-yellow-400"
-                                  }`}
+                                }`}
                                 title={`Đánh giá ${i + 1} sao`}
                                 onClick={() => setReviewRating(i + 1)}
                               >

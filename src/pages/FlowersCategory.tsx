@@ -350,71 +350,6 @@ const FlowersCategory = () => {
 
       {/* Types Section - Cải thiện layout */}
 
-      {/* Occasions Section - Cải thiện thiết kế */}
-      <section className="py-20 bg-gradient-to-b ">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <Badge className="bg-[#FCE7A2] text-[#8B5E00] border-none mb-4 px-5 py-2 font-semibold tracking-wide shadow-sm">
-              Theo Từng Dịp Lễ
-            </Badge>
-            <h2 className="text-4xl font-bold text-[#C99F4D] mb-4">
-              Hoa Tươi Theo Dịp
-            </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto text-lg leading-relaxed">
-              Mỗi dịp lễ mang trong mình ý nghĩa riêng, và hoa tươi là cách
-              tuyệt vời để thể hiện điều đó.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-            {occasions.map((occasion, index) => (
-              <Card
-                key={index}
-                className="border-amber-200 bg-white shadow-md hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 rounded-2xl"
-              >
-                <div className="p-6 bg-amber-50 border-b border-amber-200">
-                  <Badge className="bg-[#FCE7A2] text-[#8B5E00] hover:bg-[#FCE7A2] hover:text-[#8B5E00] mb-3 py-1.5 px-3 font-medium text-xs uppercase tracking-wide">
-                    {occasion.title}
-                  </Badge>
-                  <h3 className="text-xl font-semibold text-[#C99F4D] mb-1">
-                    {occasion.description}
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    Giá từ{" "}
-                    <span className="font-bold text-[#B7791F]">120.000₫</span>
-                  </p>
-                </div>
-
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    {occasion.flowers.map((flower, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center gap-3 p-3 rounded-lg bg-amber-50/50 hover:bg-amber-100 transition-colors"
-                      >
-                        <div className="w-8 h-8 rounded-full bg-[#C99F4D] flex items-center justify-center flex-shrink-0 shadow-sm">
-                          <Flower className="h-4 w-4 text-white" />
-                        </div>
-                        <span className="text-gray-700 font-medium">
-                          {flower}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <Button
-                    variant="outline"
-                    className="w-full mt-6 bg-[#C99F4D] text-white border-[#C99F4D] hover:bg-[#B88A3E] hover:border-[#B88A3E] font-semibold py-3 transition-all duration-300 rounded-xl"
-                  >
-                    Xem thêm loại hoa
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Culture Section - Cải thiện layout */}
       <section className="py-20 bg-gradient-to-br from-amber-50 via-yellow-50/50 to-orange-50">
         <div className="container mx-auto px-4">
@@ -598,26 +533,27 @@ const FlowersCategory = () => {
 
           {products.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-              {products.map((product) => (
-                <div
-                  key={product.id}
-                  className="transform hover:scale-105 transition-transform duration-300"
-                >
-                  <ProductCard
-                    id={product.id}
-                    name={product.name}
-                    price={product.basePrice}
-                    originalPrice={product.maxPrice}
-                    image={product.imageUrl || ""}
-                    rating={4.5}
-                    reviews={0}
-                    category="Hoa Tươi"
-                    shopId={product.shop?.id || 1}
-                    isBestSeller={product.isPopular}
-                    isNew={false}
-                  />
-                </div>
-              ))}
+              {products.map((product) => {
+                const productCardProps = {
+                  ...product,
+                  price: product.basePrice,
+                  originalPrice: product.maxPrice,
+                  rating: 4.5,
+                  reviews: product.reviews?.length || 0,
+                  category: "Hoa Tươi",
+                  shopId: product.shop?.id || 1,
+                  isBestSeller: product.isPopular,
+                  isNew: false,
+                };
+                return (
+                  <div
+                    key={product.id}
+                    className="transform hover:scale-105 transition-transform duration-300"
+                  >
+                    <ProductCard {...productCardProps} />
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <Card className="max-w-md mx-auto bg-gradient-to-br from-amber-50 to-yellow-50 border-amber-200">

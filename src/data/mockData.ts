@@ -29,4 +29,9 @@ export interface Product {
   isBestSeller?: boolean;
   description?: string;
   shopId: number;
+  imageUrl?: string;
+  imageUrls?: string[];
+  ImageUrls?: string[];
+  images?: any[];
+  Images?: any[];
 }

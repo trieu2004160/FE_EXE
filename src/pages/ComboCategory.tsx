@@ -7,7 +7,8 @@ import ProductCard from "@/components/ProductCard";
 import { apiService, Product } from "@/services/apiService";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-
+import man1 from "../assets/man1.jpg";
+import man2 from "../assets/mam2.jpg";
 const ComboCategory = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,6 +24,9 @@ const ComboCategory = () => {
           apiService.getProducts(),
           apiService.getCategories(),
         ]);
+
+        console.log("[ComboCategory] All products:", allProducts);
+        console.log("[ComboCategory] Sample product:", allProducts[0]);
 
         // Find combo category
         const comboCategory = categories.find(
@@ -230,7 +234,7 @@ const ComboCategory = () => {
               {/* Main image */}
               <div className="relative">
                 <img
-                  src="https://scontent.fsgn2-9.fna.fbcdn.net/v/t39.30808-6/545847489_641524629014973_5535955644678067889_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=127cfc&_nc_eui2=AeHX9MZ-q8EQDG4A_AourIKbth8wdN_xJx-2HzB03_EnH6IUoSCtfCKfQAHfeKukYsS9rpcRtwykwPnx5Hvhcpgy&_nc_ohc=LHjbYQj0nxoQ7kNvwGvlfhA&_nc_oc=AdndRmAqQzEU1cAh3n_QEFPJj6w2eawo--BE09uA8WLt_XJoCfPNTtZ1rCFQDNiB8Q0&_nc_zt=23&_nc_ht=scontent.fsgn2-9.fna&_nc_gid=lmL9WMUYZuHA5OL2WTcXqg&oh=00_Afe775xK1mjpuxjfQXLc4UeVrh72zoBcStPzqI5ih8DsXw&oe=68F4F54C"
+                  src={man1}
                   alt="Combo xôi tiết kiệm thơm ngon mỗi ngày"
                   className="relative rounded-3xl shadow-2xl w-[500px] h-[500px] transform hover:scale-105 transition-transform duration-500 ml-14"
                 />
@@ -312,7 +316,7 @@ const ComboCategory = () => {
 
               <div className="relative">
                 <img
-                  src="https://scontent.fdad3-4.fna.fbcdn.net/v/t39.30808-6/532464477_620527011114735_3462853838480093441_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=833d8c&_nc_eui2=AeGymVmtcAnik5jAhph2Ekp5eaLO-4DtpZd5os77gO2ll4sjK8vFTSJd4fZMlGAGKdet6Wyg2bYUm_qIPTL13oiY&_nc_ohc=yIQeM4GDnZwQ7kNvwEErRrt&_nc_oc=Adm3SyCp18nNTti6nevv1fQ9Nl4Aoo5Iv1vzrQhX_f3vpXpmcANh1KrKDKwGJ48Us4E&_nc_zt=23&_nc_ht=scontent.fdad3-4.fna&_nc_gid=F8HqXM6PBuABXqdp2vQSlw&oh=00_Afc2fzvBvYh9tejlYMCp5FdVEdh9CG8Nam09LCAb3LbOgQ&oe=68F89F6B"
+                  src={man2}
                   alt="Combo đồ cúng"
                   className="rounded-2xl shadow-2xl h-[600px] transform hover:scale-105 transition-transform duration-500"
                 />
@@ -407,16 +411,12 @@ const ComboCategory = () => {
           {products.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {products.map((product) => {
-                // Convert API Product to ProductCard format
+                // Pass entire product object to ProductCard
+                // ProductCard will use getProductImageUrl utility to handle all image fields
                 const productCardProps = {
-                  id: product.id,
-                  name: product.name,
+                  ...product,
                   price: product.basePrice,
                   originalPrice: product.maxPrice,
-                  image: product.imageUrl || "",
-                  imageUrl: product.imageUrl,
-                  ImageUrls: product.ImageUrls,
-                  imageUrls: product.imageUrls,
                   rating: 4.5,
                   reviews: product.reviews?.length || 0,
                   category: "Combo",

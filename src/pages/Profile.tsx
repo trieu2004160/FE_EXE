@@ -39,7 +39,8 @@ const Profile = () => {
   });
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string>("");
-  const [originalAvatarPreview, setOriginalAvatarPreview] = useState<string>("");
+  const [originalAvatarPreview, setOriginalAvatarPreview] =
+    useState<string>("");
 
   // Load user data from API
   useEffect(() => {
@@ -59,7 +60,7 @@ const Profile = () => {
         // Try to fetch from API first
         const profileData = await apiService.getProfile();
         setUserInfo(profileData);
-        
+
         // Load avatar từ backend (có thể là base64 data URL hoặc URL từ database)
         if (profileData.avatarUrl) {
           // normalizeImageUrl sẽ xử lý:
@@ -93,7 +94,7 @@ const Profile = () => {
                 parsedUserData.introduction || parsedUserData.bio || "",
               avatarUrl: parsedUserData.avatarUrl || "",
             });
-            
+
             // Load avatar từ parsed data (fallback từ localStorage)
             if (parsedUserData.avatarUrl) {
               // Normalize URL để đảm bảo consistency (hỗ trợ base64, URL, relative path)
@@ -137,7 +138,7 @@ const Profile = () => {
     const file = e.target.files?.[0];
     if (file) {
       // Validate file type
-      if (!file.type.startsWith('image/')) {
+      if (!file.type.startsWith("image/")) {
         toast({
           title: "Lỗi",
           description: "Vui lòng chọn file ảnh hợp lệ.",
@@ -145,7 +146,7 @@ const Profile = () => {
         });
         return;
       }
-      
+
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         toast({
@@ -157,7 +158,7 @@ const Profile = () => {
       }
 
       setAvatarFile(file);
-      
+
       // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -171,7 +172,7 @@ const Profile = () => {
   const saveProfile = async () => {
     try {
       // Validate required fields
-      if (!userInfo.fullName || userInfo.fullName.trim() === '') {
+      if (!userInfo.fullName || userInfo.fullName.trim() === "") {
         toast({
           title: "Lỗi",
           description: "Vui lòng nhập họ và tên.",
@@ -192,13 +193,13 @@ const Profile = () => {
 
       // Chỉ thêm phoneNumber nếu có giá trị
       const phoneNumber = userInfo.phoneNumber?.trim();
-      if (phoneNumber && phoneNumber !== '') {
+      if (phoneNumber && phoneNumber !== "") {
         updateData.phoneNumber = phoneNumber;
       }
 
       // Chỉ thêm introduction nếu có giá trị
       const introduction = userInfo.introduction?.trim();
-      if (introduction && introduction !== '') {
+      if (introduction && introduction !== "") {
         updateData.introduction = introduction;
       }
 
@@ -212,7 +213,7 @@ const Profile = () => {
 
       // Reload profile để lấy thông tin mới nhất từ backend (bao gồm avatarUrl mới)
       const updatedProfile = await apiService.getProfile();
-      
+
       // Cập nhật state với dữ liệu từ backend
       setUserInfo(updatedProfile);
 
@@ -223,15 +224,15 @@ const Profile = () => {
         setAvatarPreview(normalizedUrl || updatedProfile.avatarUrl);
         setOriginalAvatarPreview(normalizedUrl || updatedProfile.avatarUrl);
       } else {
-        setAvatarPreview('');
-        setOriginalAvatarPreview('');
+        setAvatarPreview("");
+        setOriginalAvatarPreview("");
       }
 
       // Clear file selection sau khi upload thành công
       setAvatarFile(null);
 
       // Xóa localStorage preview vì đã lưu vào backend
-      localStorage.removeItem('userAvatarPreview');
+      localStorage.removeItem("userAvatarPreview");
 
       toast({
         title: "Cập nhật thành công!",
@@ -241,10 +242,12 @@ const Profile = () => {
       setIsEditing(false);
     } catch (error: any) {
       console.error("Error updating profile:", error);
-      
+
       // Hiển thị thông báo lỗi chi tiết hơn
-      const errorMessage = error?.message || "Không thể cập nhật thông tin cá nhân. Vui lòng thử lại.";
-      
+      const errorMessage =
+        error?.message ||
+        "Không thể cập nhật thông tin cá nhân. Vui lòng thử lại.";
+
       toast({
         title: "Lỗi cập nhật",
         description: errorMessage,
@@ -361,7 +364,13 @@ const Profile = () => {
                 <div className="flex flex-col md:flex-row items-center gap-6">
                   <div className="relative">
                     <Avatar className="w-24 h-24">
-                      <AvatarImage src={avatarPreview || normalizeImageUrl(userInfo.avatarUrl) || ""} />
+                      <AvatarImage
+                        src={
+                          avatarPreview ||
+                          normalizeImageUrl(userInfo.avatarUrl) ||
+                          ""
+                        }
+                      />
                       <AvatarFallback className="bg-[#C99F4D] text-white text-2xl">
                         {getInitials(userInfo.fullName)}
                       </AvatarFallback>
@@ -380,7 +389,9 @@ const Profile = () => {
                         size="icon"
                         className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full bg-[#C99F4D] hover:bg-[#B8904A] cursor-pointer"
                         disabled={!isEditing}
-                        onClick={() => document.getElementById('avatar-upload')?.click()}
+                        onClick={() =>
+                          document.getElementById("avatar-upload")?.click()
+                        }
                       >
                         <Camera className="h-4 w-4" />
                       </Button>
@@ -500,51 +511,6 @@ const Profile = () => {
                           disabled={!isEditing}
                           placeholder="Nhập số điện thoại"
                         />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium mb-2 block">
-                          Ảnh đại diện
-                        </label>
-                        <div className="flex items-center gap-4">
-                          {avatarPreview && (
-                            <img
-                              src={avatarPreview}
-                              alt="Avatar preview"
-                              className="w-20 h-20 rounded-full object-cover border-2 border-gray-300"
-                            />
-                          )}
-                          {isEditing && (
-                            <label htmlFor="avatar-upload-form">
-                              <input
-                                id="avatar-upload-form"
-                                type="file"
-                                accept="image/*"
-                                onChange={handleAvatarChange}
-                                className="hidden"
-                              />
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => document.getElementById('avatar-upload-form')?.click()}
-                              >
-                                <Camera className="h-4 w-4 mr-2" />
-                                Chọn ảnh
-                              </Button>
-                            </label>
-                          )}
-                          {avatarFile && (
-                            <span className="text-sm text-gray-600">
-                              {avatarFile.name}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Định dạng: JPG, PNG (tối đa 5MB)
-                        </p>
-                        <p className="text-xs text-green-600 mt-1 font-medium">
-                          ✓ Ảnh sẽ được lưu vào database (dạng base64 hoặc URL) và hiển thị mỗi khi bạn đăng nhập
-                        </p>
                       </div>
                     </div>
 

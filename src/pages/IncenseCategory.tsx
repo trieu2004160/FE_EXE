@@ -461,9 +461,20 @@ const IncenseCategory = () => {
 
           {products.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {products.map((product) => (
-                <ProductCard key={product.id} {...product} />
-              ))}
+              {products.map((product) => {
+                const productCardProps = {
+                  ...product,
+                  price: product.basePrice,
+                  originalPrice: product.maxPrice,
+                  rating: 4.5,
+                  reviews: product.reviews?.length || 0,
+                  category: "Hương",
+                  shopId: product.shop?.id || 1,
+                  isBestSeller: product.isPopular,
+                  isNew: false,
+                };
+                return <ProductCard key={product.id} {...productCardProps} />;
+              })}
             </div>
           ) : (
             <div className="text-center py-12">

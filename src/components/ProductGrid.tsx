@@ -5,6 +5,15 @@ import { apiService, Product } from "@/services/apiService";
 import { Loader2 } from "lucide-react";
 import { getProductImageUrl } from "@/utils/imageUtils";
 
+const CATEGORY_MAPPING: Record<number, string> = {
+  1: "Hoa Tươi",
+  2: "Hương Nến",
+  3: "Hoa Quả",
+  4: "Xôi – Chè",
+  6: "Combo Tiết Kiệm",
+  7: "Chụp Ảnh Lễ",
+};
+
 const ProductGrid = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,7 +27,7 @@ const ProductGrid = () => {
         const featured = allProducts
           .filter((p) => p.isPopular)
           .slice(0, 8);
-        
+
         // If not enough popular products, add more
         if (featured.length < 8) {
           const remaining = allProducts
@@ -78,7 +87,7 @@ const ProductGrid = () => {
             {featuredProducts.map((product, index) => {
               // Get normalized image URL using utility function
               const imageUrl = getProductImageUrl(product);
-              
+
               // Convert API Product to ProductCard format
               const productCardProps = {
                 id: product.id,
@@ -89,14 +98,16 @@ const ProductGrid = () => {
                 imageUrl: product.imageUrl,
                 ImageUrls: product.ImageUrls,
                 imageUrls: product.imageUrls,
+                images: (product as any).images,
+                Images: (product as any).Images,
                 rating: 4.5,
                 reviews: product.reviews?.length || 0,
-                category: "",
+                category: CATEGORY_MAPPING[product.productCategoryId] || "Combo",
                 shopId: product.shop?.id || 1,
                 isBestSeller: product.isPopular,
                 isNew: false,
               };
-              
+
               return (
                 <div
                   key={product.id}
@@ -109,7 +120,7 @@ const ProductGrid = () => {
                 </div>
               );
             })}
-        </div>
+          </div>
         )}
 
         {/* Call to Action Section */}

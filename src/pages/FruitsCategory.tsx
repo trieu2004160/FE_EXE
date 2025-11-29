@@ -348,69 +348,6 @@ const FruitsCategory = () => {
         </div>
       </section>
 
-      {/* Occasions Section */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-8">
-            <Badge className="bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 border-amber-200 mb-4 px-4 py-2 font-semibold">
-              Theo Từng Dịp Lễ
-            </Badge>
-            <h2 className="text-3xl md:text-4xl font-bold text-[#C99F4D] mb-6">
-              Trái Cây Theo Dịp
-            </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto text-lg leading-relaxed">
-              Mỗi dịp lễ có những loại quả phù hợp riêng với ý nghĩa tâm linh
-              đặc biệt
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {occasions.map((occasion, index) => {
-              return (
-                <Card
-                  key={index}
-                  className={`hover:shadow-2xl transition-all duration-500 overflow-hidden border-2  transform hover:-translate-y-2 group`}
-                >
-                  <div className={`p-6 h-36 bg-amber-50 relative`}>
-                    <Badge className="bg-[#FCE7A2] text-[#8B5E00] mb-3 hover:bg-[#FCE7A2] hover:text-[#8B5E00] hover:cursor-pointer py-1.5 px-3 font-medium text-xs uppercase tracking-wide">
-                      {occasion.title}
-                    </Badge>
-
-                    <h3 className="text-2xl font-bold text-[#C99F4D] mb-2">
-                      {occasion.description}
-                    </h3>
-                  </div>
-
-                  <CardContent className="p-6">
-                    <div className="space-y-4">
-                      {occasion.fruits.map((flower, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center gap-3 p-3 rounded-lg bg-amber-50/50 hover:bg-amber-50 transition-colors"
-                        >
-                          <div className="w-8 h-8 rounded-full bg-[#C99F4D] flex items-center justify-center flex-shrink-0">
-                            <Flower className="h-4 w-4 text-white" />
-                          </div>
-                          <span className="text-gray-700 font-medium">
-                            {flower}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <Button
-                      variant="outline"
-                      className="w-full mt-6 bg-[#C99F4D] text-white border-[#C99F4D] hover:bg-[#B88A3E] hover:border-[#B88A3E] font-semibold py-3 transition-all duration-300 rounded-xl"
-                    >
-                      Xem thêm
-                    </Button>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-      </section>
       <section className="py-20 bg-gradient-to-br from-amber-50 via-yellow-50/50 to-orange-50">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
@@ -606,14 +543,27 @@ const FruitsCategory = () => {
 
           {products.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-              {products.map((product) => (
-                <div
-                  key={product.id}
-                  className="transform hover:scale-105 transition-transform duration-300"
-                >
-                  <ProductCard {...product} />
-                </div>
-              ))}
+              {products.map((product) => {
+                const productCardProps = {
+                  ...product,
+                  price: product.basePrice,
+                  originalPrice: product.maxPrice,
+                  rating: 4.5,
+                  reviews: product.reviews?.length || 0,
+                  category: "Hoa Quả",
+                  shopId: product.shop?.id || 1,
+                  isBestSeller: product.isPopular,
+                  isNew: false,
+                };
+                return (
+                  <div
+                    key={product.id}
+                    className="transform hover:scale-105 transition-transform duration-300"
+                  >
+                    <ProductCard {...productCardProps} />
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <Card className="max-w-md mx-auto bg-gradient-to-br from-amber-50 to-yellow-50 border-amber-200">

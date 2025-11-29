@@ -8,6 +8,9 @@ import { useWishlist } from "@/contexts/WishlistContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiService } from "@/services/apiService";
 import { getProductImageUrl } from "@/utils/imageUtils";
+import mam2 from "@/assets/mam2.jpg";
+import flowersHero from "@/assets/flowers-hero.jpg";
+import heroBanner from "@/assets/hero-banner.jpg";
 
 type ProductCardProps = Product;
 
@@ -28,7 +31,16 @@ const ProductCard = (product: ProductCardProps) => {
   // Support both 'image' (from mockData) and 'imageUrl' (from API)
   // Use getProductImageUrl to properly handle ImageUrls from backend
   const apiImageUrl = getProductImageUrl(product);
-  const imageUrl = apiImageUrl || (product as any).imageUrl || image;
+
+  const getDefaultImage = (cat: string) => {
+    const lowerCat = cat?.toLowerCase() || "";
+    if (lowerCat.includes("combo") || lowerCat.includes("mâm")) return mam2;
+    if (lowerCat.includes("hoa")) return flowersHero;
+    return heroBanner;
+  };
+
+  const defaultImage = getDefaultImage(category);
+  const imageUrl = apiImageUrl || (product as any).imageUrl || image || defaultImage;
 
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { toast } = useToast();
@@ -110,7 +122,9 @@ const ProductCard = (product: ProductCardProps) => {
             className="w-full h-52 object-cover transition-transform duration-100 group-hover:scale-105"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
-              target.src = "https://via.placeholder.com/400x300?text=No+Image";
+              if (target.src !== defaultImage) {
+                target.src = defaultImage;
+              }
             }}
           />
 
@@ -140,8 +154,8 @@ const ProductCard = (product: ProductCardProps) => {
           >
             <Heart
               className={`h-4 w-4 transition-colors ${isWishlisted
-                  ? "text-red-500 fill-current"
-                  : "text-gray-600 hover:text-red-500"
+                ? "text-red-500 fill-current"
+                : "text-gray-600 hover:text-red-500"
                 }`}
             />
           </Button>
