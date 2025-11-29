@@ -101,7 +101,7 @@ const ProductCard = (product: ProductCardProps) => {
   };
 
   return (
-    <Card className="group border rounded-xl hover:shadow-lg hover:-translate-y-1 transition-all duration-900 overflow-hidden m-2 ">
+    <Card className="group border rounded-xl hover:shadow-lg hover:-translate-y-1 transition-all duration-900 overflow-hidden m-2 h-full flex flex-col">
       <Link to={`/product/${id}`}>
         <div className="relative">
           <img
@@ -139,17 +139,16 @@ const ProductCard = (product: ProductCardProps) => {
             onClick={handleWishlistToggle}
           >
             <Heart
-              className={`h-4 w-4 transition-colors ${
-                isWishlisted
+              className={`h-4 w-4 transition-colors ${isWishlisted
                   ? "text-red-500 fill-current"
                   : "text-gray-600 hover:text-red-500"
-              }`}
+                }`}
             />
           </Button>
         </div>
       </Link>
 
-      <CardContent className="p-3">
+      <CardContent className="p-3 flex-1 flex flex-col">
         <Badge variant="secondary" className="text-xs mb-1">
           {category}
         </Badge>
@@ -167,9 +166,8 @@ const ProductCard = (product: ProductCardProps) => {
           {[...Array(5)].map((_, i) => (
             <Star
               key={i}
-              className={`h-3.5 w-3.5 ${
-                i < rating ? "text-yellow-400 fill-current" : "text-gray-300"
-              }`}
+              className={`h-3.5 w-3.5 ${i < rating ? "text-yellow-400 fill-current" : "text-gray-300"
+                }`}
             />
           ))}
           <span className="text-xs text-gray-500">({reviews})</span>
@@ -187,8 +185,8 @@ const ProductCard = (product: ProductCardProps) => {
         </div>
       </CardContent>
 
-      <CardFooter className="p-3 pt-0">
-        <Button 
+      <CardFooter className="p-3 pt-0 mt-auto">
+        <Button
           className="w-full h-9 text-sm bg-[#C99F4D] hover:bg-[#B8904A] text-white"
           onClick={handleAddToCart}
         >

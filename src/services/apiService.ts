@@ -140,8 +140,10 @@ export interface UpdateProductRequest {
 }
 
 export interface ProductDetailResponse {
-  product: Product;
-  relatedProducts: Product[];
+  product?: Product;
+  relatedProducts?: Product[];
+  Product?: Product;
+  RelatedProducts?: Product[];
 }
 
 // Review Types
@@ -180,6 +182,27 @@ export interface SearchResponse {
   totalPages: number;
   hasNextPage: boolean;
   hasPreviousPage: boolean;
+}
+
+// Global Search Types (matching backend GlobalSearchResponseDto)
+export interface ProductSearchResultDto {
+  id: number;
+  name: string;
+  imageUrl?: string;
+  basePrice: number;
+  shopName: string;
+}
+
+export interface ShopSearchResultDto {
+  id: number;
+  name: string;
+  imageUrl?: string;
+  popularProducts: ProductSearchResultDto[];
+}
+
+export interface GlobalSearchResponseDto {
+  shops: ShopSearchResultDto[];
+  products: ProductSearchResultDto[];
 }
 
 // Admin Types
@@ -654,12 +677,11 @@ class ApiService {
    */
   async getProducts(): Promise<Product[]> {
     return this.request<Product[]>('/products', {
-      method: 'GET',
     });
   }
 
   /**
-   * Get product by ID with details and related products
+   * Get product by ID
    * GET /api/products/{id}
    */
   async getProductById(id: number): Promise<ProductDetailResponse> {
@@ -728,7 +750,20 @@ class ApiService {
   // Base URL: /api/search
 
   /**
-   * Search products
+   * Global search for products and shops
+   * GET /api/search?q={query}
+   * This is the actual backend API endpoint
+   */
+  async globalSearch(query: string): Promise<GlobalSearchResponseDto> {
+    if (!query || !query.trim()) {
+      return { shops: [], products: [] };
+    }
+
+    return this.request<GlobalSearchResponseDto>(`/search?q=${encodeURIComponent(query.trim())}`);
+  }
+
+  /**
+   * Search products (legacy method - may not be implemented in backend)
    * GET /api/search?query={query}&category={category}&minPrice={minPrice}&maxPrice={maxPrice}
    */
   async searchProducts(params: SearchParams): Promise<SearchResponse> {
@@ -1121,8 +1156,8 @@ class ApiService {
    * PUT /api/useraddresses/{id}
    * Requires authentication
    */
-  async updateUserAddress(id: number, data: UpsertAddressDto): Promise<void> {
-    return this.request<void>(`/useraddresses/${id}`, {
+  async updateUserAddress(id: number, data: UpsertAddressDto): Promise<AddressResponseDto> {
+    return this.request<AddressResponseDto>(`/useraddresses/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });

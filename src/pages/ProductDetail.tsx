@@ -66,11 +66,14 @@ const ProductDetail = () => {
         const response: any = await apiService.getProductById(productId);
 
         // Backend returns PascalCase (Product, RelatedProducts), map to camelCase
-        const product = response.product || response.Product;
+        // Also handle if response is wrapped in { data: ... } or direct
+        const responseData = response.data || response;
+        const product = responseData.product || responseData.Product;
         const relatedProducts =
-          response.relatedProducts || response.RelatedProducts || [];
+          responseData.relatedProducts || responseData.RelatedProducts || [];
 
         if (!product) {
+          console.error("Product data missing in response:", response);
           throw new Error("Product not found in response");
         }
 
@@ -83,9 +86,9 @@ const ProductDetail = () => {
         // Normalize related products images
         const normalizedRelatedProducts = Array.isArray(relatedProducts)
           ? relatedProducts.map((p: Product) => ({
-              ...p,
-              imageUrl: getProductImageUrl(p),
-            }))
+            ...p,
+            imageUrl: getProductImageUrl(p),
+          }))
           : [];
 
         setProduct(normalizedProduct);
@@ -116,26 +119,26 @@ const ProductDetail = () => {
   const discount =
     product?.maxPrice && product.maxPrice > product.basePrice
       ? Math.round(
-          ((product.maxPrice - product.basePrice) / product.maxPrice) * 100
-        )
+        ((product.maxPrice - product.basePrice) / product.maxPrice) * 100
+      )
       : 0;
 
   // Get shop info from product data
   const shop = product?.shop
     ? {
-        id: product.shop.id,
-        name: product.shop.shopName,
-        avatar: "", // Will be fetched from shop API if needed
-        description: "",
-        address: "",
-        phone: "",
-        email: "",
-        isVerified: false,
-        rating: 0,
-        totalSales: 0,
-        totalProducts: 0,
-        joinedDate: "",
-      }
+      id: product.shop.id,
+      name: product.shop.shopName,
+      avatar: "", // Will be fetched from shop API if needed
+      description: "",
+      address: "",
+      phone: "",
+      email: "",
+      isVerified: false,
+      rating: 0,
+      totalSales: 0,
+      totalProducts: 0,
+      joinedDate: "",
+    }
     : null;
 
   const handleAddToCart = async () => {
@@ -394,11 +397,10 @@ const ProductDetail = () => {
                       {[...Array(5)].map((_, i) => (
                         <Star
                           key={i}
-                          className={`h-5 w-5 ${
-                            i < 4 // Default 4-star rating
+                          className={`h-5 w-5 ${i < 4 // Default 4-star rating
                               ? "text-secondary fill-current"
                               : "text-muted-foreground"
-                          }`}
+                            }`}
                         />
                       ))}
                       <span className="ml-2 text-sm text-muted-foreground">
@@ -407,11 +409,10 @@ const ProductDetail = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <div
-                        className={`w-3 h-3 rounded-full ${
-                          product.stockQuantity > 0
+                        className={`w-3 h-3 rounded-full ${product.stockQuantity > 0
                             ? "bg-green-500"
                             : "bg-red-500"
-                        }`}
+                          }`}
                       />
                       <span className="text-sm text-muted-foreground">
                         {product.stockQuantity > 0
@@ -493,9 +494,8 @@ const ProductDetail = () => {
                       }
                     >
                       <Heart
-                        className={`h-5 w-5 ${
-                          isInWishlist(product.id) ? "fill-current" : ""
-                        }`}
+                        className={`h-5 w-5 ${isInWishlist(product.id) ? "fill-current" : ""
+                          }`}
                       />
                     </Button>
                     <Button variant="outline" size="lg">
@@ -729,11 +729,10 @@ const ProductDetail = () => {
                                     {[...Array(5)].map((_, i) => (
                                       <Star
                                         key={i}
-                                        className={`h-4 w-4 ${
-                                          i < review.rating
+                                        className={`h-4 w-4 ${i < review.rating
                                             ? "text-yellow-400 fill-current"
                                             : "text-gray-300"
-                                        }`}
+                                          }`}
                                       />
                                     ))}
                                   </div>
@@ -790,11 +789,10 @@ const ProductDetail = () => {
                             {[...Array(5)].map((_, i) => (
                               <button
                                 key={i}
-                                className={`h-8 w-8 transition-colors ${
-                                  i < reviewRating
+                                className={`h-8 w-8 transition-colors ${i < reviewRating
                                     ? "text-yellow-400"
                                     : "text-gray-300 hover:text-yellow-400"
-                                }`}
+                                  }`}
                                 title={`Đánh giá ${i + 1} sao`}
                                 onClick={() => setReviewRating(i + 1)}
                               >

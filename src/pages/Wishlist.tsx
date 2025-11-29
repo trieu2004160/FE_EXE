@@ -1,24 +1,17 @@
 import { Heart, ShoppingBag, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useToast } from "@/hooks/use-toast";
+import ProductCard from "@/components/ProductCard";
 
 const Wishlist = () => {
-  const { wishlist, removeFromWishlist, clearWishlist } = useWishlist();
+  const { wishlist, clearWishlist } = useWishlist();
   const { toast } = useToast();
 
-  const handleRemoveFromWishlist = (productId: number, productName: string) => {
-    removeFromWishlist(productId);
-    toast({
-      title: "Đã xóa khỏi danh sách yêu thích",
-      description: `${productName} đã được xóa`,
-    });
-  };
+
 
   const handleClearAll = () => {
     clearWishlist();
@@ -102,97 +95,7 @@ const Wishlist = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {wishlist.map((product) => (
-                <Card
-                  key={product.id}
-                  className="group hover:shadow-lg transition-all duration-300"
-                >
-                  <div className="relative">
-                    <Link to={`/product/${product.id}`}>
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="w-full h-48 object-cover rounded-t-lg"
-                      />
-                    </Link>
-
-                    {/* Badges */}
-                    <div className="absolute top-3 left-3 flex flex-col gap-1">
-                      {product.isNew && (
-                        <Badge className="bg-green-500 text-white text-xs">
-                          Mới
-                        </Badge>
-                      )}
-                      {product.isBestSeller && (
-                        <Badge className="bg-orange-500 text-white text-xs">
-                          Bán chạy
-                        </Badge>
-                      )}
-                      {product.originalPrice && (
-                        <Badge className="bg-red-500 text-white text-xs">
-                          -
-                          {Math.round(
-                            ((product.originalPrice - product.price) /
-                              product.originalPrice) *
-                              100
-                          )}
-                          %
-                        </Badge>
-                      )}
-                    </div>
-
-                    {/* Remove from wishlist button */}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute top-3 right-3 bg-white/80 hover:bg-white transition"
-                      onClick={() =>
-                        handleRemoveFromWishlist(product.id, product.name)
-                      }
-                    >
-                      <Heart className="h-4 w-4 text-red-500 fill-current" />
-                    </Button>
-                  </div>
-
-                  <CardContent className="p-4">
-                    <Badge variant="secondary" className="text-xs mb-2">
-                      {product.category}
-                    </Badge>
-
-                    <Link to={`/product/${product.id}`}>
-                      <h3 className="font-medium text-base mb-2 text-foreground line-clamp-2 group-hover:text-primary transition">
-                        {product.name}
-                      </h3>
-                    </Link>
-
-                    <div className="flex items-center gap-2 mb-4">
-                      <span className="text-lg font-semibold text-[#C99F4D]">
-                        {product.price.toLocaleString("vi-VN")}đ
-                      </span>
-                      {product.originalPrice && (
-                        <span className="text-sm text-muted-foreground line-through">
-                          {product.originalPrice.toLocaleString("vi-VN")}đ
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button className="flex-1 h-9 text-sm">
-                        <ShoppingBag className="h-4 w-4 mr-1.5" />
-                        Thêm vào giỏ
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() =>
-                          handleRemoveFromWishlist(product.id, product.name)
-                        }
-                        className="h-9 w-9"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                <ProductCard key={product.id} {...product} />
               ))}
             </div>
           )}

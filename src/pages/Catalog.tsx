@@ -50,7 +50,14 @@ const Catalog = () => {
             ...product,
             imageUrl: getProductImageUrl(product),
           };
-          console.log('Catalog - Product:', product.name, 'Original ImageUrls:', product.ImageUrls, 'Normalized imageUrl:', normalized.imageUrl);
+          console.log(
+            "Catalog - Product:",
+            product.name,
+            "Original ImageUrls:",
+            product.ImageUrls,
+            "Normalized imageUrl:",
+            normalized.imageUrl
+          );
           return normalized;
         });
 

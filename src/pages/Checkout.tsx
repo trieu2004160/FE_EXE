@@ -50,6 +50,8 @@ const Checkout = () => {
   const [selectedAddress, setSelectedAddress] =
     useState<AddressResponseDto | null>(null);
   const [showAddressDialog, setShowAddressDialog] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState<number | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   // Address form
   const [addressForm, setAddressForm] = useState<UpsertAddressDto>({
@@ -154,12 +156,12 @@ const Checkout = () => {
   // Group selected items by shop
   const groupedItems = cartData
     ? cartData.shops
-      .filter((shop) => shop.items.some((item) => item.isSelected))
-      .map((shop) => ({
-        shopId: shop.shopId,
-        shopName: shop.shopName,
-        items: shop.items.filter((item) => item.isSelected),
-      }))
+        .filter((shop) => shop.items.some((item) => item.isSelected))
+        .map((shop) => ({
+          shopId: shop.shopId,
+          shopName: shop.shopName,
+          items: shop.items.filter((item) => item.isSelected),
+        }))
     : [];
 
   // Calculate totals
@@ -176,6 +178,85 @@ const Checkout = () => {
   const handleSelectAddress = (address: AddressResponseDto) => {
     setSelectedAddress(address);
     setShowAddressDialog(false);
+  };
+
+  // Handle edit address
+  const handleEditAddress = (address: AddressResponseDto) => {
+    setIsEditMode(true);
+    setEditingAddressId(address.id);
+    setAddressForm({
+      fullName: address.fullName,
+      phoneNumber: address.phoneNumber,
+      street: address.street,
+      ward: address.ward,
+      district: address.district,
+      city: address.city,
+      isDefault: address.isDefault,
+    });
+  };
+
+  // Handle update address
+  const handleUpdateAddress = async () => {
+    try {
+      if (
+        !addressForm.fullName ||
+        !addressForm.phoneNumber ||
+        !addressForm.street ||
+        !addressForm.ward ||
+        !addressForm.district ||
+        !addressForm.city
+      ) {
+        toast({
+          title: "Vui lòng điền đầy đủ thông tin",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!editingAddressId) return;
+
+      const updatedAddress = await apiService.updateUserAddress(
+        editingAddressId,
+        addressForm
+      );
+
+      // Update addresses list
+      setAddresses(
+        addresses.map((addr) =>
+          addr.id === editingAddressId ? updatedAddress : addr
+        )
+      );
+
+      // Update selected address if it was being edited
+      if (selectedAddress?.id === editingAddressId) {
+        setSelectedAddress(updatedAddress);
+      }
+
+      // Reset form and editing mode
+      setIsEditMode(false);
+      setEditingAddressId(null);
+      setAddressForm({
+        fullName: "",
+        phoneNumber: "",
+        street: "",
+        ward: "",
+        district: "",
+        city: "",
+        isDefault: false,
+      });
+
+      toast({
+        title: "Thành công",
+        description: "Đã cập nhật địa chỉ",
+      });
+    } catch (error: any) {
+      console.error("Error updating address:", error);
+      toast({
+        title: "Lỗi",
+        description: error?.message || "Không thể cập nhật địa chỉ",
+        variant: "destructive",
+      });
+    }
   };
 
   // Handle add new address
@@ -214,6 +295,8 @@ const Checkout = () => {
         isDefault: false,
       });
 
+      // Close the add address form and show address list
+      setShowAddressDialog(true);
 
       toast({
         title: "Thành công",
@@ -403,59 +486,223 @@ const Checkout = () => {
                     </DialogTrigger>
                     <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                       <DialogHeader>
-                        <DialogTitle>Chọn địa chỉ giao hàng</DialogTitle>
+                        <DialogTitle>
+                          {isEditMode
+                            ? "Chỉnh sửa địa chỉ giao hàng"
+                            : "Chọn địa chỉ giao hàng"}
+                        </DialogTitle>
                       </DialogHeader>
                       <div className="space-y-3 mt-4">
-                        {addresses.length > 0 ? (
-                          addresses.map((address) => (
-                            <div
-                              key={address.id}
-                              className={`border rounded-lg p-4 cursor-pointer transition-all ${selectedAddress?.id === address.id
-                                ? "border-[#A67C42] bg-[#A67C42]/5"
-                                : "border-gray-200 hover:border-gray-300"
-                                }`}
-                              onClick={() => handleSelectAddress(address)}
-                            >
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <span className="font-semibold">
-                                      {address.fullName}
-                                    </span>
-                                    {address.isDefault && (
-                                      <span className="text-xs bg-[#A67C42] text-white px-2 py-1 rounded">
-                                        Mặc định
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className="text-sm text-gray-600 mb-1">
-                                    {address.phoneNumber}
-                                  </p>
-                                  <p className="text-sm text-gray-600">
-                                    {address.street}, {address.ward},{" "}
-                                    {address.district}, {address.city}
-                                  </p>
-                                </div>
+                        {isEditMode ? (
+                          // Edit Address Form
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <Label>Họ và tên *</Label>
+                              <Input
+                                className="focus-visible:ring-0 focus-visible:ring-offset-0"
+                                value={addressForm.fullName}
+                                onChange={(e) =>
+                                  setAddressForm({
+                                    ...addressForm,
+                                    fullName: e.target.value,
+                                  })
+                                }
+                                placeholder="Nhập họ và tên"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Số điện thoại *</Label>
+                              <Input
+                                className="focus-visible:ring-0 focus-visible:ring-offset-0"
+                                value={addressForm.phoneNumber}
+                                onChange={(e) =>
+                                  setAddressForm({
+                                    ...addressForm,
+                                    phoneNumber: e.target.value,
+                                  })
+                                }
+                                placeholder="Nhập số điện thoại"
+                              />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label>Số nhà, đường *</Label>
+                                <Input
+                                  className="focus-visible:ring-0 focus-visible:ring-offset-0"
+                                  value={addressForm.street}
+                                  onChange={(e) =>
+                                    setAddressForm({
+                                      ...addressForm,
+                                      street: e.target.value,
+                                    })
+                                  }
+                                  placeholder="Nhập số nhà, đường"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label>Phường/Xã *</Label>
+                                <Input
+                                  className="focus-visible:ring-0 focus-visible:ring-offset-0"
+                                  value={addressForm.ward}
+                                  onChange={(e) =>
+                                    setAddressForm({
+                                      ...addressForm,
+                                      ward: e.target.value,
+                                    })
+                                  }
+                                  placeholder="Nhập phường/xã"
+                                />
                               </div>
                             </div>
-                          ))
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label>Quận/Huyện *</Label>
+                                <Input
+                                  className="focus-visible:ring-0 focus-visible:ring-offset-0"
+                                  value={addressForm.district}
+                                  onChange={(e) =>
+                                    setAddressForm({
+                                      ...addressForm,
+                                      district: e.target.value,
+                                    })
+                                  }
+                                  placeholder="Nhập quận/huyện"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label>Thành phố *</Label>
+                                <Input
+                                  className="focus-visible:ring-0 focus-visible:ring-offset-0"
+                                  value={addressForm.city}
+                                  onChange={(e) =>
+                                    setAddressForm({
+                                      ...addressForm,
+                                      city: e.target.value,
+                                    })
+                                  }
+                                  placeholder="Nhập thành phố"
+                                />
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                id="editIsDefault"
+                                checked={addressForm.isDefault}
+                                onChange={(e) =>
+                                  setAddressForm({
+                                    ...addressForm,
+                                    isDefault: e.target.checked,
+                                  })
+                                }
+                                className="h-4 w-4"
+                              />
+                              <Label
+                                htmlFor="editIsDefault"
+                                className="cursor-pointer"
+                              >
+                                Đặt làm địa chỉ mặc định
+                              </Label>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                  setIsEditMode(false);
+                                  setEditingAddressId(null);
+                                  setAddressForm({
+                                    fullName: "",
+                                    phoneNumber: "",
+                                    street: "",
+                                    ward: "",
+                                    district: "",
+                                    city: "",
+                                    isDefault: false,
+                                  });
+                                }}
+                                className="flex-1"
+                              >
+                                Hủy
+                              </Button>
+                              <Button
+                                type="button"
+                                onClick={handleUpdateAddress}
+                                className="flex-1 bg-[#A67C42] hover:bg-[#8B6835]"
+                              >
+                                Cập nhật địa chỉ
+                              </Button>
+                            </div>
+                          </div>
                         ) : (
-                          <p className="text-sm text-gray-500 text-center py-4">
-                            Chưa có địa chỉ nào
-                          </p>
+                          // Address Selection
+                          <>
+                            {addresses.length > 0 ? (
+                              addresses.map((address) => (
+                                <div
+                                  key={address.id}
+                                  className={`border rounded-lg p-4 transition-all ${
+                                    selectedAddress?.id === address.id
+                                      ? "border-[#A67C42] bg-[#A67C42]/5"
+                                      : "border-gray-200 hover:border-gray-300"
+                                  }`}
+                                >
+                                  <div className="flex items-start justify-between">
+                                    <div
+                                      className="flex-1 cursor-pointer"
+                                      onClick={() =>
+                                        handleSelectAddress(address)
+                                      }
+                                    >
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <span className="font-semibold">
+                                          {address.fullName}
+                                        </span>
+                                        {address.isDefault && (
+                                          <span className="text-xs bg-[#A67C42] text-white px-2 py-1 rounded">
+                                            Mặc định
+                                          </span>
+                                        )}
+                                      </div>
+                                      <p className="text-sm text-gray-600 mb-1">
+                                        {address.phoneNumber}
+                                      </p>
+                                      <p className="text-sm text-gray-600">
+                                        {address.street}, {address.ward},{" "}
+                                        {address.district}, {address.city}
+                                      </p>
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleEditAddress(address)}
+                                      className="ml-2"
+                                    >
+                                      <Edit2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-sm text-gray-500 text-center py-4">
+                                Chưa có địa chỉ nào
+                              </p>
+                            )}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="w-full flex items-center gap-2"
+                              onClick={() => {
+                                setShowAddressDialog(false);
+                                setSelectedAddress(null);
+                              }}
+                            >
+                              <Plus className="h-4 w-4" />
+                              Thêm địa chỉ mới
+                            </Button>
+                          </>
                         )}
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="w-full flex items-center gap-2"
-                          onClick={() => {
-                            setShowAddressDialog(false);
-                            setSelectedAddress(null);
-                          }}
-                        >
-                          <Plus className="h-4 w-4" />
-                          Thêm địa chỉ mới
-                        </Button>
                       </div>
                     </DialogContent>
                   </Dialog>

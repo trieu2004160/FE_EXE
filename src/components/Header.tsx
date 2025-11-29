@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   ShoppingCart,
   Heart,
@@ -11,10 +11,9 @@ import {
   Store,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useWishlist } from "@/contexts/WishlistContext";
-import Search from "@/components/Search";
 import { apiService } from "@/services/apiService";
+import Search from "@/components/Search";
 
 import logoIcon from "@/assets/z7048679417409_951f2312b6a4acf2cd06da22ec333170-removebg-preview.png";
 
@@ -23,8 +22,9 @@ const Header = () => {
   const { wishlist } = useWishlist();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [showSearch, setShowSearch] = useState(false);
   const [cartItemCount, setCartItemCount] = useState(0);
+  const [showSearch, setShowSearch] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   // Fetch cart count from API
   const fetchCartCount = async () => {
@@ -38,10 +38,7 @@ const Header = () => {
       const cart = await apiService.getCart();
       // Calculate total quantity from all shops
       const totalCount = cart.shops.reduce((total, shop) => {
-        return (
-          total +
-          shop.items.reduce((sum, item) => sum + item.quantity, 0)
-        );
+        return total + shop.items.reduce((sum, item) => sum + item.quantity, 0);
       }, 0);
       setCartItemCount(totalCount);
     } catch (error) {
@@ -85,6 +82,26 @@ const Header = () => {
       clearInterval(interval);
     };
   }, []);
+
+  // Handle click outside search dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
+        setShowSearch(false);
+      }
+    };
+
+    if (showSearch) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showSearch]);
 
   const handleLogout = () => {
     localStorage.removeItem("userToken");
@@ -164,31 +181,24 @@ const Header = () => {
 
           {/* Search & Actions */}
           <div className="flex items-center space-x-3">
-            {/* Search Bar */}
-            <div className="hidden sm:flex relative">
-              <Input
-                placeholder="Tìm kiếm sản phẩm..."
-                className="pr-10 w-56 lg:w-64 bg-gray-50/50 focus:bg-white transition-all duration-200 
-    outline-none focus:ring-0 focus:border-gray-300 hover:border-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0"
-                onFocus={() => setShowSearch(true)}
-                readOnly
-              />
-
-              {/* Nút tìm kiếm mới (xám nhẹ, không viền xanh) */}
-              <button
-                type="button"
+            {/* Search Button & Dropdown */}
+            <div className="relative" ref={searchRef}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 hover:bg-gray-50 hover:scale-105 transition-all duration-200"
+                onClick={() => setShowSearch(!showSearch)}
                 title="Tìm kiếm"
-                aria-label="Tìm kiếm"
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center 
-    rounded-md bg-gray-100 hover:bg-gray-200 active:scale-95 
-    transition-all duration-200 shadow-sm hover:shadow-md
-    focus:outline-none focus:ring-0 border-0 outline-0 ring-0"
-                style={{ outline: "none", border: "none", boxShadow: "none" }}
-                onClick={() => setShowSearch(true)}
               >
-                {/* Icon màu xám nhẹ */}
-                <SearchIcon className="h-4 w-4 text-gray-500" />
-              </button>
+                <SearchIcon className="h-5 w-5 text-gray-600" />
+              </Button>
+
+              {/* Search Dropdown */}
+              {showSearch && (
+                <div className="absolute right-0 mt-2 w-96 z-50">
+                  <Search onClose={() => setShowSearch(false)} />
+                </div>
+              )}
             </div>
 
             {/* Action Buttons */}
@@ -287,28 +297,9 @@ const Header = () => {
                 </Button>
               )}
             </div>
-
-            {/* Mobile Search */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="sm:hidden h-10 w-10 hover:bg-gray-100"
-              onClick={() => setShowSearch(true)}
-            >
-              <SearchIcon className="h-5 w-5 text-gray-600" />
-            </Button>
           </div>
         </div>
       </div>
-
-      {/* Search Overlay */}
-      {showSearch && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center pt-20">
-          <div className="w-full max-w-2xl mx-4">
-            <Search onClose={() => setShowSearch(false)} />
-          </div>
-        </div>
-      )}
     </header>
   );
 };
