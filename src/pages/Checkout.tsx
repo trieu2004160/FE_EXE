@@ -876,7 +876,7 @@ const Checkout = () => {
                                 <img
                                   src={
                                     normalizeImageUrl(item.imageUrl) ||
-                                    "https://via.placeholder.com/200?text=No+Image"
+                                    "/placeholder.svg"
                                   }
                                   alt={item.productName}
                                   className="w-20 h-20 object-cover rounded-lg"

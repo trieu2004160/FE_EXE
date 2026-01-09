@@ -406,7 +406,7 @@ const Catalog = () => {
                       <img
                         src={
                           product.imageUrl ||
-                          "https://via.placeholder.com/96x96"
+                          "/placeholder.svg"
                         }
                         alt={product.name}
                         className="w-24 h-24 object-cover rounded-md"

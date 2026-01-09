@@ -363,7 +363,7 @@ const Search = ({ onClose, className = "" }: SearchProps) => {
                               <img
                                 src={
                                   product.imageUrl ||
-                                  "https://via.placeholder.com/64x64?text=No+Image"
+                                  "/placeholder.svg"
                                 }
                                 alt={product.name}
                                 className="w-16 h-16 object-cover rounded-xl shadow-sm

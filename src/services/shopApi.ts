@@ -13,6 +13,25 @@ export interface ShopDashboardDto {
   productsInStock?: number;
   outOfStockProducts?: number;
   pendingOrderItems?: number;
+
+  // Extra fields used by ShopDashboard UI (may not be provided by backend)
+  totalOrders?: number;
+  pendingOrders?: number;
+  monthlyRevenue?: number;
+  recentOrders?: Array<{
+    id: string;
+    orderNumber: string;
+    customerName: string;
+    totalAmount: number;
+    status: string;
+    createdAt: string;
+  }>;
+  recentActivities?: Array<{
+    id: string;
+    type: string;
+    description: string;
+    timestamp: string;
+  }>;
 }
 
 export interface ShopStatisticsDto {
@@ -71,11 +90,16 @@ export const shopApi = {
   // POST /api/shop/products
   createProduct: async (productData: {
     name: string;
-    description: string;
-    price: number;
-    category: string;
-    images?: string[];
-    inStock: boolean;
+    description?: string;
+    features?: string;
+    isPopular: boolean;
+    basePrice: number;
+    maxPrice?: number;
+    stockQuantity: number;
+    productCategoryId: number;
+    specifications?: Record<string, string>;
+    imageUrls?: string[];
+    imageFiles?: File[];
   }) => {
     return await apiService.createShopProduct(productData);
   },
@@ -84,10 +108,16 @@ export const shopApi = {
   updateProduct: async (id: string, productData: {
     name?: string;
     description?: string;
-    price?: number;
-    category?: string;
-    images?: string[];
-    inStock?: boolean;
+    features?: string;
+    isPopular?: boolean;
+    basePrice?: number;
+    maxPrice?: number;
+    stockQuantity?: number;
+    productCategoryId?: number;
+    specifications?: Record<string, string>;
+    keepImageIds?: number[];
+    imageUrls?: string[];
+    imageFiles?: File[];
   }) => {
     return await apiService.updateShopProduct(id, productData);
   },
@@ -128,10 +158,6 @@ export const shopApi = {
     return await apiService.getShopStatistics();
   },
 
-  // Image upload helper
-  uploadImage: async (file: File) => {
-    return await apiService.uploadShopImage(file);
-  },
 };
 
 // Types for API responses

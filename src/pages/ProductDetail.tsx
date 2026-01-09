@@ -318,7 +318,7 @@ const ProductDetail = () => {
                   <img
                     src={
                       product.imageUrl ||
-                      "https://via.placeholder.com/800x800?text=No+Image"
+                      "/placeholder.svg"
                     }
                     alt={product.name}
                     className="w-full h-[450px] object-cover"
@@ -336,7 +336,7 @@ const ProductDetail = () => {
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.src =
-                        "https://via.placeholder.com/800x800?text=No+Image";
+                        "/placeholder.svg";
                     }}
                   />
                 </div>
@@ -347,7 +347,7 @@ const ProductDetail = () => {
                     <img
                       src={
                         product.imageUrl ||
-                        "https://via.placeholder.com/200x200?text=No+Image"
+                        "/placeholder.svg"
                       }
                       alt={product.name}
                       className="w-full h-32 object-cover"
@@ -363,7 +363,7 @@ const ProductDetail = () => {
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
                         target.src =
-                          "https://via.placeholder.com/200x200?text=No+Image";
+                          "/placeholder.svg";
                       }}
                     />
                   </div>

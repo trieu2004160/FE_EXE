@@ -45,6 +45,30 @@ import {
 // Use interfaces from API service
 type Product = ShopProduct;
 
+const normalizeShopProduct = (raw: any): ShopProduct => {
+  const imagesArray = raw?.images ?? raw?.Images ?? [];
+  const firstImageUrl =
+    imagesArray?.[0]?.url ?? imagesArray?.[0]?.Url ?? undefined;
+
+  return {
+    ...raw,
+    id: raw?.id ?? raw?.Id,
+    name: raw?.name ?? raw?.Name,
+    description: raw?.description ?? raw?.Description,
+    features: raw?.features ?? raw?.Features,
+    isPopular: raw?.isPopular ?? raw?.IsPopular ?? false,
+    basePrice: raw?.basePrice ?? raw?.BasePrice ?? 0,
+    maxPrice: raw?.maxPrice ?? raw?.MaxPrice,
+    stockQuantity: raw?.stockQuantity ?? raw?.StockQuantity ?? 0,
+    productCategoryId: raw?.productCategoryId ?? raw?.ProductCategoryId ?? 0,
+    imageUrl:
+      raw?.imageUrl ?? raw?.ImageUrl ?? raw?.primaryImageUrl ?? firstImageUrl,
+    // Keep both keys so existing UI code can read either
+    images: imagesArray,
+    Images: imagesArray,
+  } as ShopProduct;
+};
+
 const ShopDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [products, setProducts] = useState<Product[]>([]);
@@ -134,7 +158,10 @@ const ShopDashboard = () => {
 
         // Load products
         const productsData = await shopApi.getShopProducts();
-        setProducts(productsData as ShopProduct[]);
+        const normalized = Array.isArray(productsData)
+          ? productsData.map(normalizeShopProduct)
+          : [];
+        setProducts(normalized);
 
         // Load shop profile
         const profileData = await shopApi.getShopProfile();
@@ -276,50 +303,53 @@ const ShopDashboard = () => {
 
   const handleSaveProduct = async (formData: ProductFormData) => {
     try {
-      let imageUrl = formData.imageUrl;
-
-      // Upload image if file is provided
-      if (formData.imageFile) {
-        try {
-          const uploadResult = await shopApi.uploadImage(formData.imageFile);
-          imageUrl = uploadResult.url;
-        } catch (uploadErr) {
-          console.error("Error uploading image:", uploadErr);
-          setError("Không thể tải lên hình ảnh. Vui lòng thử lại sau.");
-          return;
-        }
-      }
-
       if (editingProduct) {
+        const existingImages: any[] =
+          (editingProduct as any)?.images ?? (editingProduct as any)?.Images ?? [];
+        const existingImageIds: number[] = existingImages
+          .map((img) => img?.id ?? img?.Id)
+          .filter((v) => typeof v === "number" && !Number.isNaN(v));
+
+        const hasNewImage = !!formData.imageFile || !!formData.imageUrl;
+
         // Update existing product
         const apiProductData = {
           name: formData.name,
           description: formData.description,
-          price: formData.basePrice,
-          category: formData.productCategoryId.toString(),
-          images: imageUrl ? [imageUrl] : [],
-          inStock: formData.stockQuantity > 0,
+          features: formData.features,
+          isPopular: formData.isPopular,
+          basePrice: formData.basePrice,
+          maxPrice: formData.maxPrice,
+          stockQuantity: formData.stockQuantity,
+          productCategoryId: formData.productCategoryId,
+          specifications: (formData.specifications as any) || undefined,
+          keepImageIds: hasNewImage ? [] : existingImageIds,
+          imageUrls: formData.imageUrl ? [formData.imageUrl] : undefined,
+          imageFiles: formData.imageFile ? [formData.imageFile] : undefined,
         };
 
-        const updatedProduct = await shopApi.updateProduct(
-          editingProduct.id.toString(),
-          apiProductData
-        );
+        await shopApi.updateProduct(editingProduct.id.toString(), apiProductData);
         setProducts(
           products.map((p) =>
-            p.id === editingProduct.id ? { ...p, ...formData, imageUrl } : p
+            p.id === editingProduct.id
+              ? { ...p, ...formData, imageUrl: formData.imageUrl }
+              : p
           )
         );
       } else {
         // Add new product
-        // Convert ProductFormData to API format
         const apiProductData = {
           name: formData.name,
           description: formData.description,
-          price: formData.basePrice,
-          category: formData.productCategoryId.toString(),
-          images: imageUrl ? [imageUrl] : [],
-          inStock: formData.stockQuantity > 0,
+          features: formData.features,
+          isPopular: formData.isPopular,
+          basePrice: formData.basePrice,
+          maxPrice: formData.maxPrice,
+          stockQuantity: formData.stockQuantity,
+          productCategoryId: formData.productCategoryId,
+          specifications: (formData.specifications as any) || undefined,
+          imageUrls: formData.imageUrl ? [formData.imageUrl] : undefined,
+          imageFiles: formData.imageFile ? [formData.imageFile] : undefined,
         };
 
         const newProduct = await shopApi.createProduct(apiProductData);
@@ -329,7 +359,18 @@ const ShopDashboard = () => {
       setEditingProduct(null);
     } catch (err) {
       console.error("Error saving product:", err);
-      setError("Không thể lưu sản phẩm. Vui lòng thử lại sau.");
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes("403") || message.toLowerCase().includes("forbidden")) {
+        setError("Bạn không có quyền cập nhật sản phẩm này (403).");
+        return;
+      }
+      if (message.includes("404") || message.toLowerCase().includes("not found")) {
+        setError(
+          "Không tìm thấy sản phẩm hoặc bạn không có quyền cập nhật sản phẩm này."
+        );
+      } else {
+        setError("Không thể lưu sản phẩm. Vui lòng thử lại sau.");
+      }
     }
   };
 
@@ -589,7 +630,7 @@ const ShopDashboard = () => {
                                     product.imageUrl ||
                                     (product.imageFile
                                       ? URL.createObjectURL(product.imageFile)
-                                      : "https://via.placeholder.com/40")
+                                      : "/placeholder.svg")
                                   }
                                   alt={product.name}
                                   className="h-10 w-10 rounded-lg object-cover mr-3"
@@ -722,7 +763,7 @@ const ProductForm = ({
     features: product?.features || "",
     isPopular: product?.isPopular ?? false,
     basePrice: product?.basePrice || 0,
-    maxPrice: product?.maxPrice || 0,
+    maxPrice: product?.maxPrice ?? undefined,
     stockQuantity: product?.stockQuantity || 0,
     productCategoryId: product?.productCategoryId || 1,
     imageUrl: product?.imageUrl || "",
@@ -875,7 +916,7 @@ const ProductForm = ({
                   <Input
                     type="number"
                     min="0"
-                    value={formData.maxPrice || 0}
+                    value={formData.maxPrice ?? ""}
                     onChange={(e) =>
                       setFormData({
                         ...formData,

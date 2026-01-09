@@ -26,6 +26,25 @@ export interface ShopDashboardDto {
   productsInStock?: number;
   outOfStockProducts?: number;
   pendingOrderItems?: number;
+
+  // Extra fields used by ShopDashboard UI (may not be provided by backend)
+  totalOrders?: number;
+  pendingOrders?: number;
+  monthlyRevenue?: number;
+  recentOrders?: Array<{
+    id: string;
+    orderNumber: string;
+    customerName: string;
+    totalAmount: number;
+    status: string;
+    createdAt: string;
+  }>;
+  recentActivities?: Array<{
+    id: string;
+    type: string;
+    description: string;
+    timestamp: string;
+  }>;
 }
 
 // Account Types
@@ -361,11 +380,30 @@ class ApiService {
     this.baseURL = baseURL;
   }
 
+  private buildUrl(endpoint: string): string {
+    const normalizedBase = (this.baseURL || '').replace(/\/+$/, '');
+
+    let normalizedEndpoint = (endpoint || '').trim();
+    if (!normalizedEndpoint.startsWith('/')) {
+      normalizedEndpoint = `/${normalizedEndpoint}`;
+    }
+
+    // Avoid accidental ".../api/api/..." when baseURL already includes /api
+    if (/\/api$/i.test(normalizedBase) && /^\/api\b/i.test(normalizedEndpoint)) {
+      normalizedEndpoint = normalizedEndpoint.replace(/^\/api\b/i, '');
+      if (!normalizedEndpoint.startsWith('/')) {
+        normalizedEndpoint = `/${normalizedEndpoint}`;
+      }
+    }
+
+    return `${normalizedBase}${normalizedEndpoint}`;
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const url = `${this.baseURL}${endpoint}`;
+    const url = this.buildUrl(endpoint);
 
     // Get token from localStorage
     const token = localStorage.getItem('userToken');
@@ -455,7 +493,22 @@ class ApiService {
         throw new Error(errorMessage);
       }
 
-      return await response.json();
+      // Handle empty responses (common for 204 No Content)
+      if (response.status === 204) {
+        return undefined as T;
+      }
+
+      const responseText = await response.text();
+      if (!responseText) {
+        return undefined as T;
+      }
+
+      try {
+        return JSON.parse(responseText) as T;
+      } catch {
+        // Fallback for non-JSON payloads
+        return responseText as unknown as T;
+      }
     } catch (error) {
       // Handle network errors (Failed to fetch)
       if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
@@ -578,7 +631,7 @@ class ApiService {
   async updateProfile(data: UpdateProfileRequest): Promise<ApiResponse> {
     const formData = new FormData();
 
-    // FullName lÃ  required, luÃ´n pháº£i cÃ³
+    // FullName lÃ required, luÃ´n pháº£i cÃ³
     const fullName = (data.fullName || '').trim();
     if (!fullName) {
       throw new Error('FullName is required');
@@ -861,7 +914,7 @@ class ApiService {
    * Get shop dashboard data
    * GET /api/shop/dashboard
    * Quyá»n: Chá»‰ Shop
-   * Nhiá»‡m vá»¥ & TÃ¡c dá»¥ng: Láº¥y dá»¯ liá»‡u cho trang Dashboard (Tá»•ng SP, SP háº¿t hÃ ng, ÄÆ¡n hÃ ng chá» xá»­ lÃ½)
+   * Nhiá»‡m vá»¥ & TÃ¡c dá»¥ng: Láº¥y dá»¯ liá»‡u cho trang Dashboard (Tá»•ng SP, SP háº¿t hÃng, ÄÆ¡n hÃng chá» xá»­ lÃ½)
    * Backend tráº£ vá» PascalCase (TotalProducts, ProductsInStock, etc.) - ASP.NET default
    */
   async getShopDashboard(): Promise<ShopDashboardDto> {
@@ -899,7 +952,7 @@ class ApiService {
    * Get shop profile
    * GET /api/shop/profile
    * Quyá»n: Chá»‰ Shop
-   * Nhiá»‡m vá»¥ & TÃ¡c dá»¥ng: Láº¥y thÃ´ng tin chi tiáº¿t cá»§a cá»­a hÃ ng (TÃªn, MÃ´ táº£, SÄT, áº¢nh) Ä‘á»ƒ hiá»ƒn thá»‹ trong trang "CÃ i Ä‘áº·t"
+   * Nhiá»‡m vá»¥ & TÃ¡c dá»¥ng: Láº¥y thÃ´ng tin chi tiáº¿t cá»§a cá»­a hÃng (TÃªn, MÃ´ táº£, SÄT, áº¢nh) Ä‘á»ƒ hiá»ƒn thá»‹ trong trang "CÃi Ä‘áº·t"
    */
   async getShopProfile() {
     return this.request('/shop/profile', {
@@ -911,7 +964,7 @@ class ApiService {
    * Update shop profile
    * PUT /api/shop/profile
    * Quyá»n: Chá»‰ Shop
-   * Nhiá»‡m vá»¥ & TÃ¡c dá»¥ng: Láº¥y danh sÃ¡ch chá»‰ nhá»¯ng sáº£n pháº©m mÃ  Shop nÃ y sá»Ÿ há»¯u
+   * Nhiá»‡m vá»¥ & TÃ¡c dá»¥ng: Láº¥y danh sÃ¡ch chá»‰ nhá»¯ng sáº£n pháº©m mÃ Shop nÃy sá»Ÿ há»¯u
    */
   async getShopProducts(params?: {
     page?: number;
@@ -937,19 +990,54 @@ class ApiService {
    * Create a new product
    * POST /api/shop/products
    * Quyá»n: Chá»‰ Shop
-   * Nhiá»‡m vá»¥ & TÃ¡c dá»¥ng: Táº¡o má»™t sáº£n pháº©m má»›i (há»— trá»£ cáº£ URL vÃ  upload áº£nh)
+   * Nhiá»‡m vá»¥ & TÃ¡c dá»¥ng: Táº¡o má»™t sáº£n pháº©m má»›i (há»— trá»£ cáº£ URL vÃupload áº£nh)
    */
   async createShopProduct(productData: {
     name: string;
-    description: string;
-    price: number;
-    category: string;
-    images?: string[];
-    inStock: boolean;
+    description?: string;
+    features?: string;
+    isPopular: boolean;
+    basePrice: number;
+    maxPrice?: number;
+    stockQuantity: number;
+    specifications?: Record<string, string>;
+    productCategoryId: number;
+    imageUrls?: string[];
+    imageFiles?: File[];
   }) {
+    // Backend expects [FromForm] CreateProductDto
+    const formData = new FormData();
+    formData.append('Name', productData.name);
+    if (productData.description !== undefined) formData.append('Description', productData.description);
+    if (productData.features !== undefined) formData.append('Features', productData.features);
+    formData.append('IsPopular', String(productData.isPopular));
+    formData.append('BasePrice', String(productData.basePrice));
+    if (productData.maxPrice !== undefined) formData.append('MaxPrice', String(productData.maxPrice));
+    formData.append('StockQuantity', String(productData.stockQuantity));
+    if (productData.specifications) {
+      for (const [key, value] of Object.entries(productData.specifications)) {
+        if (value !== undefined && value !== null && String(value).trim() !== '') {
+          formData.append(`Specifications[${key}]`, String(value));
+        }
+      }
+    }
+    formData.append('ProductCategoryId', String(productData.productCategoryId));
+
+    if (productData.imageUrls?.length) {
+      for (const url of productData.imageUrls) {
+        formData.append('ImageUrls', url);
+      }
+    }
+
+    if (productData.imageFiles?.length) {
+      for (const file of productData.imageFiles) {
+        formData.append('ImageFiles', file);
+      }
+    }
+
     return this.request('/shop/products', {
       method: 'POST',
-      body: JSON.stringify(productData),
+      body: formData,
     });
   }
 
@@ -962,14 +1050,56 @@ class ApiService {
   async updateShopProduct(id: string, productData: {
     name?: string;
     description?: string;
-    price?: number;
-    category?: string;
-    images?: string[];
-    inStock?: boolean;
+    features?: string;
+    isPopular?: boolean;
+    basePrice?: number;
+    maxPrice?: number;
+    stockQuantity?: number;
+    specifications?: Record<string, string>;
+    productCategoryId?: number;
+    keepImageIds?: number[];
+    imageUrls?: string[];
+    imageFiles?: File[];
   }) {
-    return this.request(`/api/shop/products/${id}`, {
+    // Backend expects [FromForm] UpdateProductDto
+    const formData = new FormData();
+    if (productData.name !== undefined) formData.append('Name', productData.name);
+    if (productData.description !== undefined) formData.append('Description', productData.description);
+    if (productData.features !== undefined) formData.append('Features', productData.features);
+    if (productData.isPopular !== undefined) formData.append('IsPopular', String(productData.isPopular));
+    if (productData.basePrice !== undefined) formData.append('BasePrice', String(productData.basePrice));
+    if (productData.maxPrice !== undefined) formData.append('MaxPrice', String(productData.maxPrice));
+    if (productData.stockQuantity !== undefined) formData.append('StockQuantity', String(productData.stockQuantity));
+    if (productData.specifications) {
+      for (const [key, value] of Object.entries(productData.specifications)) {
+        if (value !== undefined && value !== null && String(value).trim() !== '') {
+          formData.append(`Specifications[${key}]`, String(value));
+        }
+      }
+    }
+    if (productData.productCategoryId !== undefined) formData.append('ProductCategoryId', String(productData.productCategoryId));
+
+    if (productData.keepImageIds) {
+      for (const keepId of productData.keepImageIds) {
+        formData.append('KeepImageIds', String(keepId));
+      }
+    }
+
+    if (productData.imageUrls?.length) {
+      for (const url of productData.imageUrls) {
+        formData.append('ImageUrls', url);
+      }
+    }
+
+    if (productData.imageFiles?.length) {
+      for (const file of productData.imageFiles) {
+        formData.append('ImageFiles', file);
+      }
+    }
+
+    return this.request<void>(`/shop/products/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(productData),
+      body: formData,
     });
   }
 
@@ -980,16 +1110,16 @@ class ApiService {
    * Nhiá»‡m vá»¥ & TÃ¡c dá»¥ng: XÃ³a sáº£n pháº©m cá»§a Shop (BE kiá»ƒm tra quyá»n sá»Ÿ há»¯u)
    */
   async deleteShopProduct(id: string) {
-    return this.request(`/api/shop/products/${id}`, {
+    return this.request<void>(`/shop/products/${id}`, {
       method: 'DELETE',
     });
   }
 
-  /**
+  /*
    * Get shop orders
    * GET /api/shop/orders
    * Quyá»n: Chá»‰ Shop
-   * Nhiá»‡m vá»¥ & TÃ¡c dá»¥ng: Láº¥y danh sÃ¡ch cÃ¡c mÃ³n hÃ ng (OrderItems) thuá»™c vá» Shop, kÃ¨m thÃ´ng tin khÃ¡ch hÃ ng, tráº¡ng thÃ¡i xá»­ lÃ½
+   *Nhiá»‡m vá»¥ & TÃ¡c dá»¥ng: Láº¥y danh sÃ¡ch cÃ¡c mÃ³n hÃng (OrderItems) thuá»™c vá» Shop, kÃ¨m thÃ´ng tin khÃ¡ch hÃng, tráº¡ng thÃ¡i xá»­ lÃ½
    */
   async getShopOrders(params?: {
     page?: number;
@@ -1013,12 +1143,12 @@ class ApiService {
    * Update order status
    * PUT /api/shop/orders/items/{orderItemId}/status
    * Quyá»n: Chá»‰ Shop
-   * Nhiá»‡m vá»¥ & TÃ¡c dá»¥ng: Shop cáº­p nháº­t tráº¡ng thÃ¡i xá»­ lÃ½ cá»§a má»™t mÃ³n hÃ ng (Pending -> Preparing -> Shipped...)
+   * Nhiá»‡m vá»¥ & TÃ¡c dá»¥ng: Shop cáº­p nháº­t tráº¡ng thÃ¡i xá»­ lÃ½ cá»§a má»™t mÃ³n hÃng (Pending -> Preparing -> Shipped...)
    */
   async updateOrderStatus(orderItemId: string, status: string) {
-    return this.request(`/api/shop/orders/items/${orderItemId}/status`, {
+    return this.request<void>(`/shop/orders/items/${orderItemId}/status`, {
       method: 'PUT',
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ newStatus: status }),
     });
   }
 
@@ -1050,7 +1180,7 @@ class ApiService {
    * Get shop statistics
    * GET /api/shop/statistics
    * Quyá»n: Chá»‰ Shop
-   * Nhiá»‡m vá»¥ & TÃ¡c dá»¥ng: Láº¥y dá»¯ liá»‡u thá»‘ng kÃª doanh thu cÆ¡ báº£n (doanh thu thÃ¡ng nÃ y, sá»‘ Ä‘Æ¡n...) cho Shop
+   * Nhiá»‡m vá»¥ & TÃ¡c dá»¥ng: Láº¥y dá»¯ liá»‡u thá»‘ng kÃª doanh thu cÆ¡ báº£n (doanh thu thÃ¡ng nÃy, sá»‘ Ä‘Æ¡n...) cho Shop
    */
   async getShopStatistics() {
     return this.request('/shop/statistics', {

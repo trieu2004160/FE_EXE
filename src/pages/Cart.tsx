@@ -719,14 +719,14 @@ const Cart = () => {
                                     );
                                     return (
                                       normalizedUrl ||
-                                      "https://via.placeholder.com/200?text=No+Image"
+                                      "/placeholder.svg"
                                     );
                                   })()}
                                   alt={item.name}
                                   className="w-24 h-24 object-cover rounded-xl shadow-md"
                                   onError={(e) => {
                                     e.currentTarget.src =
-                                      "https://via.placeholder.com/200?text=No+Image";
+                                      "/placeholder.svg";
                                   }}
                                 />
                                 <div className="flex-1">
