@@ -40,6 +40,27 @@ export interface OrderItemDto {
   shopName: string;
 }
 
+type ErrorWithMessage = { message?: unknown };
+
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (error instanceof Error && typeof error.message === 'string' && error.message.trim() !== '') {
+    return error.message;
+  }
+
+  if (typeof error === 'string' && error.trim() !== '') {
+    return error;
+  }
+
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const maybe = (error as ErrorWithMessage).message;
+    if (typeof maybe === 'string' && maybe.trim() !== '') {
+      return maybe;
+    }
+  }
+
+  return fallback;
+};
+
 // Axios error type for API errors
 export interface AxiosErrorResponse {
   response?: {
@@ -60,9 +81,9 @@ class OrdersApi {
       const response = await apiService.createOrder(orderData);
       console.log('[OrdersApi] Order created successfully:', response);
       return response;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[OrdersApi] Error creating order:', error);
-      throw new Error(error.message || 'Không thể tạo đơn hàng. Vui lòng thử lại.');
+      throw new Error(getErrorMessage(error, 'Không thể tạo đơn hàng. Vui lòng thử lại.'));
     }
   }
 
@@ -80,14 +101,25 @@ class OrdersApi {
     }
   }
 
+  // Create PayOS link for an existing orderId
+  async createPayOSPayment(orderId: number): Promise<{ checkoutUrl: string }> {
+    try {
+      return await apiService.createPayOSPaymentLink(orderId);
+    } catch (error: unknown) {
+      console.error('[OrdersApi] Error creating PayOS payment link:', error);
+      throw new Error(getErrorMessage(error, 'Không thể tạo liên kết thanh toán PayOS. Vui lòng thử lại.'));
+    }
+  }
+
   // Get order by ID from API
   async getOrderById(orderId: number): Promise<OrderResponseDto | null> {
     try {
       const response = await apiService.getOrderById(orderId);
       return response;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error getting order:', error);
-      if (error.message?.includes('404') || error.message?.includes('Not Found')) {
+      const msg = getErrorMessage(error, '');
+      if (msg.includes('404') || msg.includes('Not Found')) {
         return null;
       }
       throw error;
@@ -96,4 +128,3 @@ class OrdersApi {
 }
 
 export const ordersApi = new OrdersApi();
-

@@ -6,16 +6,39 @@ import { CheckCircle, ShoppingBag, ArrowRight, Home } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import AIAssistant from "@/components/AIAssistant";
+import { apiService } from "@/services/apiService";
 
 const PaymentSuccess = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const orderId = searchParams.get("orderId");
+  const orderId = searchParams.get("orderId") ?? searchParams.get("orderCode");
 
   useEffect(() => {
     // Optional: Fire confetti or analytics event here
     window.scrollTo(0, 0);
   }, []);
+
+  useEffect(() => {
+    const sync = async () => {
+      if (!orderId) return;
+
+      const numericOrderId = Number(orderId);
+      if (!Number.isFinite(numericOrderId)) return;
+
+      try {
+        // Fallback: update order/cart immediately after returning from PayOS
+        const res = await apiService.syncPayOSPayment(numericOrderId);
+        if (res?.updated) {
+          window.dispatchEvent(new Event("cartUpdated"));
+        }
+      } catch (e) {
+        // Ignore (user may not be logged in, or payment still processing)
+        console.warn("[PaymentSuccess] PayOS sync failed:", e);
+      }
+    };
+
+    void sync();
+  }, [orderId]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
