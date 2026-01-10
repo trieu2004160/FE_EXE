@@ -35,6 +35,7 @@ import {
 import { ordersApi, CreateOrderRequest } from "@/services/ordersApi";
 import { normalizeImageUrl } from "@/utils/imageUtils";
 
+
 const Checkout = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -253,11 +254,13 @@ const Checkout = () => {
         title: "Thành công",
         description: "Đã cập nhật địa chỉ",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error updating address:", error);
       toast({
         title: "Lỗi",
-        description: error?.message || "Không thể cập nhật địa chỉ",
+        description:
+          (error instanceof Error ? error.message : undefined) ||
+          "Không thể cập nhật địa chỉ",
         variant: "destructive",
       });
     }
@@ -315,11 +318,13 @@ const Checkout = () => {
         title: "Thành công",
         description: "Đã thêm địa chỉ mới",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error adding address:", error);
       toast({
         title: "Lỗi",
-        description: error?.message || "Không thể thêm địa chỉ",
+        description:
+          (error instanceof Error ? error.message : undefined) ||
+          "Không thể thêm địa chỉ",
         variant: "destructive",
       });
     }
@@ -397,22 +402,30 @@ const Checkout = () => {
       const order = await ordersApi.create(orderData);
       console.log("[Checkout] Order created successfully:", order);
 
+      if (paymentMethod === "payos") {
+        const payosRes = await ordersApi.createPayOSPayment(order.id);
+
+        // Redirect sang PayOS
+        window.location.href = payosRes.checkoutUrl;
+        return;
+      }
       toast({
         title: "Đặt hàng thành công!",
         description: `Đơn hàng #${order.id} đã được tạo thành công`,
       });
 
-      // Dispatch event to update cart count
-      window.dispatchEvent(new Event("cartUpdated"));
 
       // Navigate to payment success page
+      window.dispatchEvent(new Event("cartUpdated"));
+
+      // Redirect success
       navigate(`/payment-success?orderId=${order.id}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[Checkout] Error creating order:", error);
       toast({
         title: "Lỗi đặt hàng",
         description:
-          error?.message || "Không thể tạo đơn hàng. Vui lòng thử lại.",
+          (error instanceof Error ? error.message : undefined) || "Không thể tạo đơn hàng. Vui lòng thử lại.",
         variant: "destructive",
       });
     } finally {
@@ -655,8 +668,8 @@ const Checkout = () => {
                                 <div
                                   key={address.id}
                                   className={`border rounded-lg p-4 transition-all ${selectedAddress?.id === address.id
-                                      ? "border-[#A67C42] bg-[#A67C42]/5"
-                                      : "border-gray-200 hover:border-gray-300"
+                                    ? "border-[#A67C42] bg-[#A67C42]/5"
+                                    : "border-gray-200 hover:border-gray-300"
                                     }`}
                                 >
                                   <div className="flex items-start justify-between">
@@ -929,7 +942,9 @@ const Checkout = () => {
                       name="paymentMethod"
                       value="cash_on_delivery"
                       checked={paymentMethod === "cash_on_delivery"}
-                      onChange={(e) => setPaymentMethod(e.target.value as any)}
+                      onChange={(e) =>
+                        setPaymentMethod(e.target.value as "cash_on_delivery" | "payos")
+                      }
                       className="h-4 w-4 text-[#A67C42]"
                     />
                     <div className="flex-1">
@@ -938,6 +953,27 @@ const Checkout = () => {
                       </div>
                       <div className="text-sm text-gray-600 mt-1">
                         Bạn sẽ thanh toán khi nhận được hàng
+                      </div>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center space-x-3 cursor-pointer p-4 border-2 border-gray-200 rounded-lg hover:border-[#A67C42] transition-colors">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="payos"
+                      checked={paymentMethod === "payos"}
+                      onChange={(e) =>
+                        setPaymentMethod(e.target.value as "cash_on_delivery" | "payos")
+                      }
+                      className="h-4 w-4 text-[#A67C42]"
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-800">
+                        Thanh toán online (PayOS)
+                      </div>
+                      <div className="text-sm text-gray-600 mt-1">
+                        Bạn sẽ được chuyển sang PayOS để thanh toán
                       </div>
                     </div>
                   </label>

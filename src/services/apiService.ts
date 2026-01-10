@@ -458,13 +458,34 @@ class ApiService {
       if (!response.ok) {
         // Try to get error message from response
         let errorMessage = `HTTP error! status: ${response.status}`;
-        let errorData: { message?: string; error?: string } = {};
+        let errorData: unknown = {};
 
         try {
           const responseText = await response.text();
           if (responseText) {
-            errorData = JSON.parse(responseText) as { message?: string; error?: string };
-            errorMessage = errorData.message || errorData.error || errorMessage;
+            errorData = JSON.parse(responseText) as unknown;
+
+            if (typeof errorData === 'object' && errorData !== null) {
+              const maybeMessage = (errorData as { message?: unknown }).message;
+              const maybeError = (errorData as { error?: unknown }).error;
+
+              if (typeof maybeMessage === 'string' && maybeMessage.trim() !== '') {
+                errorMessage = maybeMessage;
+              } else if (typeof maybeError === 'string' && maybeError.trim() !== '') {
+                errorMessage = maybeError;
+              } else {
+                // ASP.NET Core validation errors (ValidationProblemDetails)
+                const maybeErrors = (errorData as { errors?: unknown }).errors;
+                if (typeof maybeErrors === 'object' && maybeErrors !== null) {
+                  const errorsObj = maybeErrors as Record<string, unknown>;
+                  const firstKey = Object.keys(errorsObj)[0];
+                  const firstVal = firstKey ? errorsObj[firstKey] : undefined;
+                  if (Array.isArray(firstVal) && typeof firstVal[0] === 'string') {
+                    errorMessage = firstVal[0];
+                  }
+                }
+              }
+            }
           }
         } catch {
           // If response is not JSON, use status text
@@ -1334,10 +1355,48 @@ class ApiService {
     };
     paymentMethod?: 'cash_on_delivery' | 'payos';
   }): Promise<OrderResponseDto> {
-    console.log('[apiService] Creating order:', data);
+    // Backend expects PaymentMethod enum as number: COD=0, PayOS=1
+    const payload: {
+      shippingAddress?: typeof data.shippingAddress;
+      paymentMethod?: 0 | 1;
+    } = {};
+
+    if (data.shippingAddress) {
+      payload.shippingAddress = data.shippingAddress;
+    }
+
+    if (data.paymentMethod) {
+      payload.paymentMethod = data.paymentMethod === 'payos' ? 1 : 0;
+    }
+
+    console.log('[apiService] Creating order:', payload);
     return this.request<OrderResponseDto>('/orders', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  /**
+   * Create PayOS payment link for an existing order
+   * POST /api/payments/payos/create-link
+   * Requires authentication
+   */
+  async createPayOSPaymentLink(orderId: number): Promise<{ checkoutUrl: string }> {
+    return this.request<{ checkoutUrl: string }>('/payments/payos/create-link', {
+      method: 'POST',
+      body: JSON.stringify({ orderId }),
+    });
+  }
+
+  /**
+   * Sync PayOS payment status for an order.
+   * POST /api/payments/payos/sync
+   * Requires authentication
+   */
+  async syncPayOSPayment(orderId: number): Promise<{ updated: boolean }> {
+    return this.request<{ updated: boolean }>('/payments/payos/sync', {
+      method: 'POST',
+      body: JSON.stringify({ orderId }),
     });
   }
 
