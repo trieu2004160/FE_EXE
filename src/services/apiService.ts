@@ -52,6 +52,7 @@ export interface RegisterRequest {
   fullName: string;
   email: string;
   password: string;
+  phoneNumber?: string;
 }
 
 export interface LoginRequest {
@@ -70,6 +71,21 @@ export interface ChangePasswordRequest {
 
 export interface DeleteAccountRequest {
   password: string;
+}
+
+export interface SendOtpRequest {
+  email: string;
+}
+
+export interface VerifyOtpRequest {
+  email: string;
+  otp: string;
+}
+
+export interface ResetPasswordRequest {
+  email: string;
+  otp: string;
+  newPassword: string;
 }
 
 // Profile Types
@@ -627,6 +643,50 @@ class ApiService {
   async deleteAccount(data: DeleteAccountRequest): Promise<ApiResponse> {
     return this.request<ApiResponse>('/accounts/deleteme', {
       method: 'DELETE',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * Resend email verification OTP
+   * POST /api/accounts/resend-verification-otp
+   */
+  async resendVerificationOtp(data: SendOtpRequest): Promise<ApiResponse> {
+    return this.request<ApiResponse>('/accounts/resend-verification-otp', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * Verify email with OTP
+   * POST /api/accounts/verify-email
+   */
+  async verifyEmail(data: VerifyOtpRequest): Promise<ApiResponse> {
+    return this.request<ApiResponse>('/accounts/verify-email', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * Forgot password (send OTP)
+   * POST /api/accounts/forgot-password
+   */
+  async forgotPassword(data: SendOtpRequest): Promise<ApiResponse> {
+    return this.request<ApiResponse>('/accounts/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * Reset password with OTP
+   * POST /api/accounts/reset-password
+   */
+  async resetPassword(data: ResetPasswordRequest): Promise<ApiResponse> {
+    return this.request<ApiResponse>('/accounts/reset-password', {
+      method: 'POST',
       body: JSON.stringify(data),
     });
   }
