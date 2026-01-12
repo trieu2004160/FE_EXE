@@ -105,10 +105,11 @@ const Register = () => {
           fullName: formData.fullName,
           email: formData.email,
           password: formData.password,
+          phoneNumber: formData.phone,
         });
 
         setSuccessMessage(
-          "Đăng ký thành công! Chuyển hướng đến trang đăng nhập..."
+          "Đăng ký thành công! Vui lòng kiểm tra email để lấy OTP xác minh."
         );
 
         // Clear form
@@ -120,10 +121,9 @@ const Register = () => {
           phone: "",
         });
 
-        // Redirect to login after 2 seconds
         setTimeout(() => {
-          navigate("/login");
-        }, 2000);
+          navigate(`/verify-email?email=${encodeURIComponent(formData.email)}`);
+        }, 500);
         return;
       } catch (apiError: unknown) {
         const errorMessage =
