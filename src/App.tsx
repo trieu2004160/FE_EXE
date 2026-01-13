@@ -32,6 +32,7 @@ import ShopDashboard from "./pages/ShopDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
 import PaymentSuccess from "./pages/PaymentSuccess";
+import PaymentCancel from "./pages/PaymentCancel";
 import OrderDetail from "./pages/OrderDetail";
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const App = () => (
             <Route path="/cart" element={<Cart />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
+            <Route path="/payment-cancel" element={<PaymentCancel />} />
             <Route path="/orders/:id" element={<OrderDetail />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />

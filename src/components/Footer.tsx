@@ -123,15 +123,15 @@ const Footer = () => {
             <ul className="space-y-3 text-sm">
               <li className="flex items-center gap-2 text-stone-600">
                 <Phone className="h-4 w-4" />
-                <span>0123 456 789</span>
+                <span>0389 560 964</span>
               </li>
               <li className="flex items-center gap-2 text-stone-600">
                 <Mail className="h-4 w-4" />
-                <span>info@hoatotnghiep.vn</span>
+                <span>teamnova.company@gmail.com</span>
               </li>
               <li className="flex items-start gap-2 text-stone-600">
                 <MapPin className="h-4 w-4 mt-0.5" />
-                <span>123 Đường Hoa, Quận 1, TP.HCM</span>
+                <span>Đại Học FPT Quy Nhơn, Khu đô thị mới An Phú Thịnh, Quy Nhơn, Gia Lai</span>
               </li>
             </ul>
           </div>

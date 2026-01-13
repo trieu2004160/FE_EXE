@@ -326,9 +326,20 @@ export interface OrderResponseDto {
   status: string;
   total: number;
   subtotal: number;
-  createdAt: string;
+  orderDate: string;
+  paymentMethod?: string;
   shippingAddress: ShippingAddressDto;
   items: OrderItemResponseDto[];
+}
+
+export interface OrderHistoryResponseDto {
+  id: number;
+  orderDate: string;
+  status: string;
+  total: number;
+  totalItems: number;
+  primaryProductName: string;
+  primaryProductImage?: string;
 }
 
 // Admin Types
@@ -1461,6 +1472,18 @@ class ApiService {
   }
 
   /**
+   * Cancel a pending PayOS payment and delete the unpaid order
+   * POST /api/payments/payos/cancel
+   * Requires authentication
+   */
+  async cancelPayOSPayment(orderId: number): Promise<{ deleted: boolean }> {
+    return this.request<{ deleted: boolean }>('/payments/payos/cancel', {
+      method: 'POST',
+      body: JSON.stringify({ orderId }),
+    });
+  }
+
+  /**
    * Get order by ID
    * GET /api/orders/{id}
    * Requires authentication
@@ -1476,9 +1499,9 @@ class ApiService {
    * GET /api/orders
    * Requires authentication
    */
-  async getUserOrders(): Promise<OrderResponseDto[]> {
+  async getUserOrders(): Promise<OrderHistoryResponseDto[]> {
     console.log('[apiService] Fetching user orders...');
-    const result = await this.request<OrderResponseDto[]>('/orders', {
+    const result = await this.request<OrderHistoryResponseDto[]>('/orders', {
       method: 'GET',
     });
     console.log('[apiService] User orders response:', result);

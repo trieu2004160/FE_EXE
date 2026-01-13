@@ -10,6 +10,7 @@ import { ArrowLeft, MapPin, Calendar, CreditCard, Package } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useToast } from "@/components/ui/use-toast";
+import { formatOrderStatus, formatPaymentMethod } from "@/utils/orderUtils";
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat("vi-VN", {
@@ -42,7 +43,8 @@ const OrderDetail = () => {
             status: "delivered",
             total: 1500000,
             subtotal: 1500000,
-            createdAt: new Date("2023-11-20").toISOString(),
+            orderDate: new Date("2023-11-20").toISOString(),
+            paymentMethod: "COD",
             shippingAddress: {
               fullName: "Nguyễn Văn A",
               phoneNumber: "0901234567",
@@ -70,7 +72,8 @@ const OrderDetail = () => {
             status: "processing",
             total: 850000,
             subtotal: 850000,
-            createdAt: new Date("2023-11-25").toISOString(),
+            orderDate: new Date("2023-11-25").toISOString(),
+            paymentMethod: "COD",
             shippingAddress: {
               fullName: "Nguyễn Văn A",
               phoneNumber: "0901234567",
@@ -125,36 +128,22 @@ const OrderDetail = () => {
   }
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "pending":
+    const s = (status || "").trim();
+    switch (s) {
+      case "PendingPayment":
         return "bg-yellow-100 text-yellow-800";
-      case "processing":
-        return "bg-blue-100 text-blue-800";
-      case "shipped":
-        return "bg-purple-100 text-purple-800";
-      case "delivered":
+      case "Paid":
         return "bg-green-100 text-green-800";
-      case "cancelled":
+      case "Shipping":
+        return "bg-purple-100 text-purple-800";
+      case "Completed":
+        return "bg-green-100 text-green-800";
+      case "Cancelled":
         return "bg-red-100 text-red-800";
+      case "Pending":
+        return "bg-blue-100 text-blue-800";
       default:
         return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "pending":
-        return "Chờ xử lý";
-      case "processing":
-        return "Đang xử lý";
-      case "shipped":
-        return "Đang giao hàng";
-      case "delivered":
-        return "Đã giao hàng";
-      case "cancelled":
-        return "Đã hủy";
-      default:
-        return status;
     }
   };
 
@@ -180,7 +169,7 @@ const OrderDetail = () => {
                   Chi tiết đơn hàng #{order.id}
                 </CardTitle>
                 <Badge className={getStatusColor(order.status)}>
-                  {getStatusText(order.status)}
+                  {formatOrderStatus(order.status).label}
                 </Badge>
               </CardHeader>
               <CardContent>
@@ -282,7 +271,9 @@ const OrderDetail = () => {
                   <div className="text-sm">
                     <p className="text-gray-500">Ngày đặt hàng</p>
                     <p>
-                      {new Date(order.createdAt).toLocaleDateString("vi-VN")}
+                      {order.orderDate && !isNaN(new Date(order.orderDate).getTime())
+                        ? new Date(order.orderDate).toLocaleDateString("vi-VN")
+                        : "Chưa có thông tin"}
                     </p>
                   </div>
                 </div>
@@ -290,7 +281,7 @@ const OrderDetail = () => {
                   <CreditCard className="h-5 w-5 text-gray-400" />
                   <div className="text-sm">
                     <p className="text-gray-500">Phương thức thanh toán</p>
-                    <p>Thanh toán khi nhận hàng (COD)</p>
+                    <p>{formatPaymentMethod(order.paymentMethod)}</p>
                   </div>
                 </div>
               </CardContent>
