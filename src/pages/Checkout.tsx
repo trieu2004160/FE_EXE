@@ -970,10 +970,10 @@ const Checkout = () => {
                     />
                     <div className="flex-1">
                       <div className="font-medium text-gray-800">
-                        Thanh toán online (PayOS)
+                        Thanh toán bằng ngân hàng
                       </div>
                       <div className="text-sm text-gray-600 mt-1">
-                        Bạn sẽ được chuyển sang PayOS để thanh toán
+                        Bạn sẽ được chuyển sang trang thanh toán để tiến hành thanh toán
                       </div>
                     </div>
                   </label>

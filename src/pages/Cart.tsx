@@ -21,12 +21,13 @@ import {
   CartResponseDto,
   CartItemDto,
   ShopInCartDto,
-  OrderResponseDto,
+  OrderHistoryResponseDto,
 } from "@/services/apiService";
 
 import { normalizeImageUrl } from "@/utils/imageUtils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Package, Clock } from "lucide-react";
+import { formatOrderStatus } from "@/utils/orderUtils";
 
 interface CartItem {
   id: number;
@@ -52,7 +53,7 @@ const Cart = () => {
   const [promoCode, setPromoCode] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [orders, setOrders] = useState<OrderResponseDto[]>([]);
+  const [orders, setOrders] = useState<OrderHistoryResponseDto[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [activeTab, setActiveTab] = useState(initialTab);
 
@@ -187,7 +188,7 @@ const Cart = () => {
       // Sort by date descending
       const sortedOrders = data.sort(
         (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()
       );
       setOrders(sortedOrders);
     } catch (err) {
@@ -197,55 +198,23 @@ const Cart = () => {
       setOrders([
         {
           id: 101,
-          status: "delivered",
+          status: "Completed",
           total: 1500000,
-          subtotal: 1500000,
-          createdAt: new Date("2023-11-20").toISOString(),
-          shippingAddress: {
-            fullName: "Nguyễn Văn A",
-            phoneNumber: "0901234567",
-            street: "123 Đường ABC",
-            ward: "Phường 1",
-            district: "Quận 1",
-            city: "TP.HCM",
-          },
-          items: [
-            {
-              productId: 101,
-              productName: "Mâm Cúng Thôi Nôi Bé Trai",
-              price: 1500000,
-              quantity: 1,
-              imageUrl:
-                "https://docungviet.vn/wp-content/uploads/2023/06/mam-cung-thoi-noi-be-trai-goi-vip-1.jpg",
-              shopName: "Đồ Cúng Việt",
-            },
-          ],
+          orderDate: new Date("2023-11-20").toISOString(),
+          totalItems: 1,
+          primaryProductName: "Mâm Cúng Thôi Nôi Bé Trai",
+          primaryProductImage:
+            "https://docungviet.vn/wp-content/uploads/2023/06/mam-cung-thoi-noi-be-trai-goi-vip-1.jpg",
         },
         {
           id: 102,
-          status: "processing",
+          status: "Shipping",
           total: 850000,
-          subtotal: 850000,
-          createdAt: new Date("2023-11-25").toISOString(),
-          shippingAddress: {
-            fullName: "Nguyễn Văn A",
-            phoneNumber: "0901234567",
-            street: "123 Đường ABC",
-            ward: "Phường 1",
-            district: "Quận 1",
-            city: "TP.HCM",
-          },
-          items: [
-            {
-              productId: 102,
-              productName: "Heo Quay Sữa",
-              price: 850000,
-              quantity: 1,
-              imageUrl:
-                "https://heoquay.com/wp-content/uploads/2019/07/heo-quay-sua-nguyen-con.jpg",
-              shopName: "Heo Quay Ngon",
-            },
-          ],
+          orderDate: new Date("2023-11-25").toISOString(),
+          totalItems: 1,
+          primaryProductName: "Heo Quay Sữa",
+          primaryProductImage:
+            "https://heoquay.com/wp-content/uploads/2019/07/heo-quay-sua-nguyen-con.jpg",
         },
       ]);
     } finally {
@@ -922,10 +891,10 @@ const Cart = () => {
                               </CardTitle>
                               <div className="flex items-center text-sm text-gray-500 mt-1">
                                 <Clock className="h-3 w-3 mr-1" />
-                                {order.createdAt &&
-                                !isNaN(new Date(order.createdAt).getTime())
+                                {order.orderDate &&
+                                !isNaN(new Date(order.orderDate).getTime())
                                   ? new Date(
-                                      order.createdAt
+                                      order.orderDate
                                     ).toLocaleDateString("vi-VN")
                                   : "Chưa có thông tin"}
                               </div>
@@ -933,27 +902,9 @@ const Cart = () => {
                           </div>
                           <Badge
                             variant="outline"
-                            className={`${
-                              order.status === "pending"
-                                ? "bg-yellow-50 text-yellow-700 border-yellow-200"
-                                : order.status === "processing"
-                                ? "bg-blue-50 text-blue-700 border-blue-200"
-                                : order.status === "shipped"
-                                ? "bg-purple-50 text-purple-700 border-purple-200"
-                                : order.status === "delivered"
-                                ? "bg-green-50 text-green-700 border-green-200"
-                                : "bg-gray-50 text-gray-700 border-gray-200"
-                            }`}
+                            className={formatOrderStatus(order.status).badgeClassName}
                           >
-                            {order.status === "pending"
-                              ? "Chờ xử lý"
-                              : order.status === "processing"
-                              ? "Đang xử lý"
-                              : order.status === "shipped"
-                              ? "Đang giao"
-                              : order.status === "delivered"
-                              ? "Đã giao"
-                              : order.status}
+                            {formatOrderStatus(order.status).label}
                           </Badge>
                         </div>
                       </CardHeader>
@@ -966,9 +917,9 @@ const Cart = () => {
                             </p>
                           </div>
                           <div className="text-right">
-                            {order.items && order.items.length > 0 && (
+                            {typeof order.totalItems === "number" && (
                               <p className="text-sm text-gray-500 mb-2">
-                                {order.items.length} sản phẩm
+                                {order.totalItems} sản phẩm
                               </p>
                             )}
                             <Button

@@ -52,19 +52,19 @@ const Contact = () => {
     {
       icon: MapPin,
       title: "Địa chỉ",
-      details: ["123 Đường Lê Lợi, Quận 1", "TP. Hồ Chí Minh, Việt Nam"],
+      details: ["Đại Học FPT Quy Nhơn, Khu đô thị mới An Phú Thịnh, Quy Nhơn, Gia Lai"],
       color: "text-[#C99F4D]",
     },
     {
       icon: Phone,
       title: "Điện thoại",
-      details: ["Hotline: 1900 1234", "Mobile: 0123 456 789"],
+      details: ["Hotline: 0389560964"],
       color: "text-[#C99F4D]",
     },
     {
       icon: Mail,
       title: "Email",
-      details: ["contact@docungonline.com", "support@docungonline.com"],
+      details: ["teamnova.company@gmail.com"],
       color: "text-[#C99F4D]",
     },
     {
@@ -290,7 +290,7 @@ const Contact = () => {
                       Thời gian giao hàng?
                     </h4>
                     <p className="text-muted-foreground text-sm">
-                      Chúng tôi giao hàng trong ngày tại TP.HCM và 1-2 ngày cho
+                      Chúng tôi giao hàng trong ngày tại Quy Nhơn và 1-2 ngày cho
                       các tỉnh thành khác.
                     </p>
                   </div>
