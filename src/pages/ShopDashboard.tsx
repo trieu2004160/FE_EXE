@@ -33,6 +33,7 @@ import {
   Eye,
   EyeOff,
   Loader2,
+  X,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -47,6 +48,7 @@ import {
 } from "@/services/shopApi";
 import { apiService, type Category } from "@/services/apiService";
 import { useToast } from "@/hooks/use-toast";
+import { normalizeImageUrl } from "@/utils/imageUtils";
 import {
   clearAuthData,
 } from "@/utils/tokenUtils";
@@ -697,6 +699,14 @@ const ShopDashboard = () => {
 
   const handleSaveProduct = async (formData: ProductFormData) => {
     try {
+      const refreshProducts = async () => {
+        const productsData = await shopApi.getShopProducts();
+        const normalized = Array.isArray(productsData)
+          ? productsData.map(normalizeShopProduct)
+          : [];
+        setProducts(normalized);
+      };
+
       if (editingProduct) {
         const existingImages: any[] =
           (editingProduct as any)?.images ?? (editingProduct as any)?.Images ?? [];
@@ -704,9 +714,15 @@ const ShopDashboard = () => {
           .map((img) => img?.id ?? img?.Id)
           .filter((v) => typeof v === "number" && !Number.isNaN(v));
 
-        const hasNewImage = !!formData.imageFile || !!formData.imageUrl;
-
         // Update existing product
+        const imageUrls = (formData.imageUrls ?? [])
+          .map((u) => String(u).trim())
+          .filter((u) => u.length > 0);
+        const imageFiles = (formData.imageFiles ?? []).filter(Boolean);
+
+        const keepImageIds =
+          formData.keepImageIds ?? (existingImageIds.length ? existingImageIds : undefined);
+
         const apiProductData = {
           name: formData.name,
           description: formData.description,
@@ -717,21 +733,20 @@ const ShopDashboard = () => {
           stockQuantity: formData.stockQuantity,
           productCategoryId: formData.productCategoryId,
           specifications: (formData.specifications as any) || undefined,
-          keepImageIds: hasNewImage ? [] : existingImageIds,
-          imageUrls: formData.imageUrl ? [formData.imageUrl] : undefined,
-          imageFiles: formData.imageFile ? [formData.imageFile] : undefined,
+          keepImageIds,
+          imageUrls: imageUrls.length ? imageUrls : undefined,
+          imageFiles: imageFiles.length ? imageFiles : undefined,
         };
 
         await shopApi.updateProduct(editingProduct.id.toString(), apiProductData);
-        setProducts(
-          products.map((p) =>
-            p.id === editingProduct.id
-              ? { ...p, ...formData, imageUrl: formData.imageUrl }
-              : p
-          )
-        );
+        await refreshProducts();
       } else {
         // Add new product
+        const imageUrls = (formData.imageUrls ?? [])
+          .map((u) => String(u).trim())
+          .filter((u) => u.length > 0);
+        const imageFiles = (formData.imageFiles ?? []).filter(Boolean);
+
         const apiProductData = {
           name: formData.name,
           description: formData.description,
@@ -742,12 +757,12 @@ const ShopDashboard = () => {
           stockQuantity: formData.stockQuantity,
           productCategoryId: formData.productCategoryId,
           specifications: (formData.specifications as any) || undefined,
-          imageUrls: formData.imageUrl ? [formData.imageUrl] : undefined,
-          imageFiles: formData.imageFile ? [formData.imageFile] : undefined,
+          imageUrls: imageUrls.length ? imageUrls : undefined,
+          imageFiles: imageFiles.length ? imageFiles : undefined,
         };
 
-        const newProduct = await shopApi.createProduct(apiProductData);
-        setProducts([...products, newProduct as Product]);
+        await shopApi.createProduct(apiProductData);
+        await refreshProducts();
       }
       setShowAddForm(false);
       setEditingProduct(null);
@@ -1633,7 +1648,7 @@ const ShopDashboard = () => {
                           />
                         ) : shopProfile?.avatarBase64 ? (
                           <img
-                            src={`data:image/*;base64,${shopProfile.avatarBase64}`}
+                            src={normalizeImageUrl(shopProfile.avatarBase64)}
                             alt="avatar"
                             className="max-h-28 rounded-md object-contain"
                           />
@@ -1912,6 +1927,25 @@ const ProductForm = ({
   categories: Category[];
   onCancel: () => void;
 }) => {
+  const rawExistingImages: any[] =
+    (product as any)?.images ?? (product as any)?.Images ?? [];
+  const existingImages: Array<{ id: number; url: string }> = Array.isArray(
+    rawExistingImages
+  )
+    ? rawExistingImages
+        .map((img: any) => ({
+          id: img?.id ?? img?.Id,
+          url: img?.url ?? img?.Url,
+        }))
+        .filter(
+          (img: any) =>
+            typeof img?.id === "number" &&
+            !Number.isNaN(img.id) &&
+            typeof img?.url === "string" &&
+            img.url.trim().length > 0
+        )
+    : [];
+
   const [formData, setFormData] = useState<ProductFormData>({
     name: product?.name || "",
     description: product?.description || "",
@@ -1921,7 +1955,9 @@ const ProductForm = ({
     maxPrice: product?.maxPrice ?? undefined,
     stockQuantity: product?.stockQuantity || 0,
     productCategoryId: product?.productCategoryId ?? 0,
-    imageUrl: product?.imageUrl || "",
+    imageUrls: [],
+    imageFiles: [],
+    keepImageIds: existingImages.map((i) => i.id),
     specifications: {
       xuatXu: product?.specifications?.xuatXu || "",
       baoQuan: product?.specifications?.baoQuan || "",
@@ -1930,9 +1966,73 @@ const ProductForm = ({
   });
 
   const [imageMethod, setImageMethod] = useState<"url" | "file">("url");
+  const [urlDraft, setUrlDraft] = useState<string>("");
+  const [filePreviewUrls, setFilePreviewUrls] = useState<string[]>([]);
+
+  useEffect(() => {
+    const urls = (formData.imageFiles ?? []).map((f) => URL.createObjectURL(f));
+    setFilePreviewUrls(urls);
+    return () => {
+      for (const u of urls) URL.revokeObjectURL(u);
+    };
+  }, [formData.imageFiles]);
+
+  const toggleKeepExisting = (id: number) => {
+    setFormData((prev) => {
+      const current = prev.keepImageIds ?? [];
+      const has = current.includes(id);
+      return {
+        ...prev,
+        keepImageIds: has ? current.filter((x) => x !== id) : [...current, id],
+      };
+    });
+  };
+
+  const addImageUrl = () => {
+    const url = urlDraft.trim();
+    if (!url) return;
+    setFormData((prev) => ({
+      ...prev,
+      imageUrls: [...(prev.imageUrls ?? []), url],
+    }));
+    setUrlDraft("");
+  };
+
+  const removeImageUrlAt = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      imageUrls: (prev.imageUrls ?? []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const addImageFiles = (files: File[]) => {
+    if (!files.length) return;
+    setFormData((prev) => ({
+      ...prev,
+      imageFiles: [...(prev.imageFiles ?? []), ...files],
+    }));
+  };
+
+  const removeImageFileAt = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      imageFiles: (prev.imageFiles ?? []).filter((_, i) => i !== index),
+    }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const keptExistingCount = (formData.keepImageIds ?? []).length;
+    const newCount =
+      (formData.imageUrls ?? []).length + (formData.imageFiles ?? []).length;
+    if (product && existingImages.length > 0 && keptExistingCount === 0 && newCount === 0) {
+      alert(
+        "Bạn đã bỏ hết ảnh hiện có. Vui lòng thêm ít nhất 1 ảnh mới (URL hoặc file)."
+      );
+      return;
+    }
+
     onSave(formData);
   };
 
@@ -2116,6 +2216,50 @@ const ProductForm = ({
                 Hình ảnh sản phẩm
               </h3>
 
+              {existingImages.length > 0 ? (
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-gray-700">
+                    Ảnh hiện có
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {existingImages.map((img) => {
+                      const kept = (formData.keepImageIds ?? []).includes(img.id);
+                      return (
+                        <div
+                          key={img.id}
+                          className="relative rounded-md border border-gray-200 overflow-hidden"
+                        >
+                          <img
+                            src={normalizeImageUrl(img.url)}
+                            alt=""
+                            className={`h-24 w-full object-cover ${
+                              kept ? "opacity-100" : "opacity-40"
+                            }`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => toggleKeepExisting(img.id)}
+                            className={`absolute top-1 right-1 inline-flex items-center justify-center rounded-full h-7 w-7 border text-xs ${
+                              kept
+                                ? "bg-white/90 border-gray-200 hover:bg-white"
+                                : "bg-red-600 text-white border-red-600 hover:bg-red-700"
+                            }`}
+                            title={kept ? "Bỏ ảnh này" : "Giữ lại ảnh này"}
+                          >
+                            {kept ? <X className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                          </button>
+                          {!kept ? (
+                            <div className="absolute inset-x-0 bottom-0 bg-red-600/80 text-white text-xs px-2 py-1">
+                              Sẽ bị xóa
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
               <div className="flex space-x-4 mb-4">
                 <button
                   type="button"
@@ -2144,42 +2288,90 @@ const ProductForm = ({
               </div>
 
               {imageMethod === "url" ? (
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    URL hình ảnh
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium">
+                    Thêm URL hình ảnh (có thể nhiều URL)
                   </label>
-                  <Input
-                    value={formData.imageUrl || ""}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        imageUrl: e.target.value,
-                        imageFile: undefined,
-                      })
-                    }
-                    placeholder="https://example.com/anh_cu.jpg"
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      value={urlDraft}
+                      onChange={(e) => setUrlDraft(e.target.value)}
+                      placeholder="https://example.com/anh.jpg"
+                    />
+                    <Button type="button" variant="outline" onClick={addImageUrl}>
+                      Thêm
+                    </Button>
+                  </div>
+
+                  {(formData.imageUrls ?? []).length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {(formData.imageUrls ?? []).map((u, idx) => (
+                        <div
+                          key={`${u}-${idx}`}
+                          className="relative rounded-md border border-gray-200 overflow-hidden"
+                        >
+                          <img
+                            src={normalizeImageUrl(u)}
+                            alt=""
+                            className="h-24 w-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImageUrlAt(idx)}
+                            className="absolute top-1 right-1 inline-flex items-center justify-center rounded-full h-7 w-7 bg-white/90 border border-gray-200 hover:bg-white"
+                            title="Xóa URL này"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               ) : (
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Chọn file ảnh
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium">
+                    Upload file ảnh (có thể chọn nhiều)
                   </label>
                   <input
                     type="file"
                     accept="image/*"
+                    multiple
                     title="Chọn file ảnh"
                     placeholder="Chọn file ảnh"
                     onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      setFormData({
-                        ...formData,
-                        imageFile: file,
-                        imageUrl: undefined,
-                      });
+                      const files = Array.from(e.target.files ?? []);
+                      addImageFiles(files);
+                      // allow re-selecting same file
+                      e.currentTarget.value = "";
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
+
+                  {(formData.imageFiles ?? []).length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {(formData.imageFiles ?? []).map((file, idx) => (
+                        <div
+                          key={`${file.name}-${idx}`}
+                          className="relative rounded-md border border-gray-200 overflow-hidden"
+                        >
+                          <img
+                            src={filePreviewUrls[idx]}
+                            alt=""
+                            className="h-24 w-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImageFileAt(idx)}
+                            className="absolute top-1 right-1 inline-flex items-center justify-center rounded-full h-7 w-7 bg-white/90 border border-gray-200 hover:bg-white"
+                            title="Xóa file này"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               )}
             </div>

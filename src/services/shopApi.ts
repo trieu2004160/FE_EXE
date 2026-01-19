@@ -62,6 +62,8 @@ export const shopApi = {
   // GET /api/shop/profile
   getShopProfile: async (): Promise<ShopProfile> => {
     const raw: any = await apiService.getShopProfile();
+    const avatarRaw = raw?.avatarBase64 ?? raw?.AvatarBase64;
+    const avatarBase64 = typeof avatarRaw === "string" ? avatarRaw.trim() : undefined;
     return {
       id: raw?.id ?? raw?.Id ?? 0,
       name: raw?.name ?? raw?.Name ?? "",
@@ -72,7 +74,7 @@ export const shopApi = {
       contactPhoneNumber:
         raw?.contactPhoneNumber ?? raw?.ContactPhoneNumber ?? raw?.phone ?? raw?.Phone,
       joinDate: raw?.joinDate ?? raw?.JoinDate,
-      avatarBase64: raw?.avatarBase64 ?? raw?.AvatarBase64,
+      avatarBase64,
     };
   },
 
@@ -247,8 +249,11 @@ export interface ProductFormData {
   maxPrice?: number;
   stockQuantity: number;
   productCategoryId: number;
-  imageUrl?: string;
-  imageFile?: File;
+  // Multi-image support (Shop endpoints accept ImageUrls/ImageFiles arrays)
+  imageUrls?: string[];
+  imageFiles?: File[];
+  // Only used when editing: which existing image IDs to keep
+  keepImageIds?: number[];
   specifications?: {
     xuatXu?: string;
     baoQuan?: string;
