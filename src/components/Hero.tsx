@@ -129,7 +129,7 @@ const Hero = () => {
               <div className="flex items-center gap-2">
                 <div className="flex -space-x-2"></div>
                 <span className="text-amber-100/80 text-sm ml-2">
-                  1000+ đánh giá 5 sao
+                  Sản Phẩm Chất Lượng Cao
                 </span>
               </div>
               <div className="w-px h-6 bg-amber-300/30" />

@@ -7,7 +7,6 @@ const categories = [
     id: 1,
     name: "Hoa Tươi",
     icon: Flower,
-    count: 45,
     color: "text-green-600",
     bgColor: "bg-green-50 dark:bg-green-900/20",
   },
@@ -15,7 +14,6 @@ const categories = [
     id: 2,
     name: "Hương Nến",
     icon: Flame,
-    count: 32,
     color: "text-orange-600",
     bgColor: "bg-orange-50 dark:bg-orange-900/20",
   },
@@ -23,7 +21,6 @@ const categories = [
     id: 3,
     name: "Hoa Quả",
     icon: Apple,
-    count: 28,
     color: "text-red-600",
     bgColor: "bg-red-50 dark:bg-red-900/20",
   },
@@ -31,7 +28,6 @@ const categories = [
     id: 4,
     name: "Xôi – Chè",
     icon: Droplets,
-    count: 18,
     color: "text-blue-600",
     bgColor: "bg-blue-50 dark:bg-blue-900/20",
   },
@@ -47,7 +43,6 @@ const categories = [
     id: 7,
     name: "Chụp Ảnh Lễ",
     icon: Camera,
-    count: 12,
     color: "text-amber-600",
     bgColor: "bg-amber-50 dark:bg-amber-900/20",
   },
@@ -102,9 +97,6 @@ const Categories = () => {
                     <h3 className="font-semibold text-foreground mb-1 group-hover:text-primary transition-smooth">
                       {category.name}
                     </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {category.count} sản phẩm
-                    </p>
                   </CardContent>
                 </Card>
               </Link>

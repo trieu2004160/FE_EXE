@@ -11,7 +11,8 @@ import { apiService } from "@/services/apiService";
 const PaymentSuccess = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const orderId = searchParams.get("orderId") ?? searchParams.get("orderCode");
+  const orderIdParam = searchParams.get("orderId");
+  const orderCodeParam = searchParams.get("orderCode");
 
   useEffect(() => {
     // Optional: Fire confetti or analytics event here
@@ -20,9 +21,9 @@ const PaymentSuccess = () => {
 
   useEffect(() => {
     const sync = async () => {
-      if (!orderId) return;
+      if (!orderIdParam) return;
 
-      const numericOrderId = Number(orderId);
+      const numericOrderId = Number(orderIdParam);
       if (!Number.isFinite(numericOrderId)) return;
 
       try {
@@ -38,7 +39,7 @@ const PaymentSuccess = () => {
     };
 
     void sync();
-  }, [orderId]);
+  }, [orderIdParam]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
@@ -57,17 +58,16 @@ const PaymentSuccess = () => {
           <CardContent className="text-center space-y-6 pt-4">
             <div className="space-y-2">
               <p className="text-gray-600 text-lg">
-                Cảm ơn bạn đã mua hàng tại Cúng Ai Để Dành.
+                Cảm ơn bạn đã mua hàng tại
+              </p><p className="text-gray-600 text-lg">
+                Sàn Thương Mại Đồ Cúng NoVa
               </p>
-              {orderId && (
+              {orderCodeParam && (
                 <p className="text-gray-500">
-                  Mã đơn hàng của bạn là:{" "}
-                  <span className="font-bold text-gray-800">#{orderId}</span>
+                  Mã thanh toán của bạn là:{" "}
+                  <span className="font-bold text-gray-800">#{orderCodeParam}</span>
                 </p>
               )}
-              <p className="text-sm text-gray-500">
-                Chúng tôi sẽ sớm liên hệ để xác nhận và giao hàng cho bạn.
-              </p>
             </div>
 
             <div className="flex flex-col gap-3 pt-4">
@@ -88,16 +88,14 @@ const PaymentSuccess = () => {
                   <Home className="mr-2 h-4 w-4" />
                   Trang chủ
                 </Button>
-                {orderId && (
-                  <Button
-                    variant="outline"
-                    className="w-full border-gray-300 hover:bg-gray-50 py-6"
-                    onClick={() => navigate(`/orders/${orderId}`)} // Assuming this route exists or will exist
-                  >
-                    Xem đơn hàng
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                )}
+                <Button
+                  variant="outline"
+                  className="w-full border-gray-300 hover:bg-gray-50 py-6"
+                  onClick={() => navigate(`/cart?tab=history`)}
+                >
+                  Lịch sử đơn hàng
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
               </div>
             </div>
           </CardContent>

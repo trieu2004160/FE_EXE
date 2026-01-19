@@ -118,8 +118,10 @@ const Header = () => {
       navigate("/login");
     } else if (userRole === "admin") {
       navigate("/admin");
+    } else if (userRole === "shop") {
+      navigate("/shop-dashboard?tab=settings");
     } else {
-      navigate("/profile");
+      navigate("/settings");
     }
   };
 
@@ -268,8 +270,8 @@ const Header = () => {
                     ? userRole === "admin"
                       ? "Thông tin admin"
                       : userRole === "shop"
-                      ? "Thông tin shop"
-                      : "Trang cá nhân"
+                      ? "Cài đặt cửa hàng"
+                      : "Cài đặt tài khoản"
                     : "Đăng nhập"
                 }
               >

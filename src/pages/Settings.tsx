@@ -27,6 +27,8 @@ const Settings = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const mustChangePassword = localStorage.getItem("mustChangePassword") === "true";
+
   // Password change state
   const [passwordData, setPasswordData] = useState({
     oldPassword: "",
@@ -114,6 +116,10 @@ const Settings = () => {
 
       await apiService.changePassword(request);
 
+      if (mustChangePassword) {
+        localStorage.removeItem("mustChangePassword");
+      }
+
       toast({
         title: "Thành công!",
         description: "Mật khẩu đã được thay đổi thành công",
@@ -125,6 +131,14 @@ const Settings = () => {
         newPassword: "",
         confirmPassword: "",
       });
+
+      // If this was a forced change, route user back to their role home
+      if (mustChangePassword) {
+        const role = (localStorage.getItem("userRole") || "user").toLowerCase();
+        if (role === "admin") navigate("/admin", { replace: true });
+        else if (role === "shop") navigate("/shop-dashboard", { replace: true });
+        else navigate("/", { replace: true });
+      }
     } catch (error) {
       console.error("Error changing password:", error);
       toast({
@@ -198,6 +212,14 @@ const Settings = () => {
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto space-y-8">
+            {mustChangePassword && (
+              <Alert className="border-amber-200 bg-amber-50">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Đây là lần đăng nhập đầu tiên với mật khẩu khởi tạo. Vui lòng đổi mật khẩu để tiếp tục.
+                </AlertDescription>
+              </Alert>
+            )}
             {/* Change Password Card */}
             <Card>
               <CardHeader>

@@ -5,18 +5,6 @@ import { Input } from "@/components/ui/input";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { apiService } from "@/services/apiService";
-import { offlineAuthService } from "@/services/offlineAuthService";
-import { OfflineStatus } from "@/components/OfflineStatus";
-
-interface User {
-  id: string;
-  fullName: string;
-  email: string;
-  phone: string;
-  role: string;
-  createdAt: string;
-  password: string;
-}
 
 const Register = () => {
   const navigate = useNavigate();
@@ -99,80 +87,15 @@ const Register = () => {
     setSuccessMessage("");
 
     try {
-      // Try backend API registration first
-      try {
-        await apiService.register({
-          fullName: formData.fullName,
-          email: formData.email,
-          password: formData.password,
-          phoneNumber: formData.phone,
-        });
-
-        setSuccessMessage(
-          "Đăng ký thành công! Vui lòng kiểm tra email để lấy OTP xác minh."
-        );
-
-        // Clear form
-        setFormData({
-          fullName: "",
-          email: "",
-          password: "",
-          confirmPassword: "",
-          phone: "",
-        });
-
-        setTimeout(() => {
-          navigate(`/verify-email?email=${encodeURIComponent(formData.email)}`);
-        }, 500);
-        return;
-      } catch (apiError: unknown) {
-        const errorMessage =
-          apiError instanceof Error ? apiError.message : "Unknown error";
-        console.warn("Backend API not available:", errorMessage);
-
-        // If backend shows email already exists, show the error
-        if (
-          errorMessage.includes("already exists") ||
-          errorMessage.includes("Email already exists")
-        ) {
-          setErrors({ email: "Email này đã được đăng ký" });
-          return;
-        }
-      }
-
-      // Use enhanced offline registration service
-      const offlineResult = await offlineAuthService.registerOffline({
+      await apiService.register({
         fullName: formData.fullName,
         email: formData.email,
         password: formData.password,
-        phone: formData.phone,
+        phoneNumber: formData.phone,
       });
 
-      if (!offlineResult.success) {
-        setErrors({ email: offlineResult.message });
-        return;
-      }
-
-      // Also keep backward compatibility with old localStorage format
-      const existingUsers: User[] = JSON.parse(
-        localStorage.getItem("registeredUsers") || "[]"
-      );
-
-      const newUser = {
-        id: offlineResult.user?.id || Date.now().toString(),
-        fullName: formData.fullName,
-        email: formData.email,
-        phone: formData.phone,
-        role: "user",
-        createdAt: new Date().toISOString(),
-        password: formData.password,
-      };
-
-      const updatedUsers = [...existingUsers, newUser];
-      localStorage.setItem("registeredUsers", JSON.stringify(updatedUsers));
-
       setSuccessMessage(
-        "Đăng ký thành công! Chuyển hướng đến trang đăng nhập..."
+        "Đăng ký thành công! Vui lòng kiểm tra email để lấy OTP xác minh."
       );
 
       // Clear form
@@ -184,13 +107,17 @@ const Register = () => {
         phone: "",
       });
 
-      // Redirect to login after 2 seconds
       setTimeout(() => {
-        navigate("/login");
-      }, 2000);
-    } catch (error) {
+        navigate(`/verify-email?email=${encodeURIComponent(formData.email)}`);
+      }, 500);
+    } catch (error: unknown) {
       console.error("Registration error:", error);
-      setErrors({ general: "Có lỗi xảy ra. Vui lòng thử lại." });
+      const message = error instanceof Error ? error.message : "";
+      if (message.includes("already exists") || message.includes("Email already exists")) {
+        setErrors({ email: "Email này đã được đăng ký" });
+      } else {
+        setErrors({ general: "Không thể kết nối đến máy chủ. Vui lòng thử lại." });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -273,9 +200,6 @@ const Register = () => {
           <p className="text-sm text-gray-400 mb-8">
             Tạo tài khoản mới để mua sắm tại NOVA
           </p>
-
-          {/* Offline Status */}
-          <OfflineStatus />
 
           {successMessage && (
             <Alert className="border-green-200 bg-green-50 mb-4 text-left max-w-md mx-auto">

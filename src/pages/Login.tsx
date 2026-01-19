@@ -4,18 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Eye, EyeOff } from "lucide-react";
 import { apiService, authUtils } from "@/services/apiService";
-import { offlineAuthService } from "@/services/offlineAuthService";
-import { OfflineStatus } from "@/components/OfflineStatus";
-
-interface User {
-  id: string;
-  fullName: string;
-  email: string;
-  phone: string;
-  role: string;
-  createdAt: string;
-  password: string;
-}
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -31,125 +19,88 @@ const Login = () => {
     setError("");
 
     try {
-      // Try backend API login
-      try {
-        const response = await apiService.login({ email, password });
+      const response = await apiService.login({ email, password });
 
-        if (response.token) {
-          // Store JWT token
-          authUtils.setToken(response.token);
-
-          // Decode JWT to get user roles
-          const tokenPayload = JSON.parse(atob(response.token.split(".")[1]));
-          const roles = tokenPayload.role || [];
-          const primaryRole = Array.isArray(roles)
-            ? roles.includes("Admin")
-              ? "admin"
-              : roles.includes("Shop")
-              ? "shop"
-              : "user"
-            : roles === "Admin"
-            ? "admin"
-            : roles === "Shop"
-            ? "shop"
-            : "user";
-
-          // Store user data and role from JWT
-          localStorage.setItem("userRole", primaryRole);
-          localStorage.setItem(
-            "userData",
-            JSON.stringify({
-              email: tokenPayload.email || email,
-              name: "User", // We'll get this from profile API later
-              role: primaryRole,
-            })
-          );
-
-          // Navigate based on role
-          if (primaryRole === "admin") {
-            navigate("/");
-          } else if (primaryRole === "shop") {
-            navigate("/shop-dashboard");
-          } else {
-            navigate("/profile");
-          }
-          return;
-        }
-      } catch (apiError) {
-        console.warn(
-          "Backend API not available, using offline mode:",
-          apiError
-        );
-      }
-
-      // Use enhanced offline authentication service
-      const offlineResult = await offlineAuthService.loginOffline(
-        email,
-        password
-      );
-
-      if (offlineResult.success && offlineResult.user) {
-        // Store offline user data
-        localStorage.setItem(
-          "userToken",
-          offlineResult.token || "authenticated"
-        );
-        localStorage.setItem("userRole", offlineResult.user.role);
-        localStorage.setItem(
-          "userData",
-          JSON.stringify({
-            email: offlineResult.user.email,
-            name: offlineResult.user.fullName,
-            role: offlineResult.user.role,
-            isOffline: true,
-          })
-        );
-
-        // Navigate based on role
-        if (offlineResult.user.role === "admin") {
-          navigate("/");
-        } else if (offlineResult.user.role === "shop") {
-          navigate("/shop-dashboard");
-        } else {
-          navigate("/profile");
-        }
+      if (!response.token) {
+        setError("Email hoặc mật khẩu không đúng!");
         return;
       }
 
-      // Fallback to old localStorage users for backward compatibility
-      const registeredUsers: User[] = JSON.parse(
-        localStorage.getItem("registeredUsers") || "[]"
-      );
-      const user = registeredUsers.find(
-        (u: User) => u.email === email && u.password === password
-      );
+      // Store JWT token
+      authUtils.setToken(response.token);
 
-      if (user) {
-        localStorage.setItem("userToken", "authenticated");
-        localStorage.setItem("userRole", user.role);
-        localStorage.setItem(
-          "userData",
-          JSON.stringify({
-            email: user.email,
-            name: user.fullName,
-            role: user.role,
-            phone: user.phone,
-          })
-        );
-
-        if (user.role === "admin") {
-          navigate("/");
-        } else if (user.role === "shop") {
-          navigate("/shop-dashboard");
-        } else {
-          navigate("/user/profile");
-        }
+      // Force password change flow (admin-created shop accounts)
+      if (response.mustChangePassword) {
+        localStorage.setItem("mustChangePassword", "true");
       } else {
-        setError("Email hoặc mật khẩu không đúng!");
+        localStorage.removeItem("mustChangePassword");
+      }
+
+      // Decode JWT to get user roles
+      const rawPayload = response.token.split(".")[1];
+      const paddedPayload = rawPayload + "=".repeat((4 - (rawPayload.length % 4)) % 4);
+      const tokenPayload = JSON.parse(atob(paddedPayload));
+
+      // Role/email can come from custom fields or standard claim URIs
+      const roleClaim =
+        tokenPayload.role ||
+        tokenPayload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
+        [];
+
+      const rawRoles = Array.isArray(roleClaim)
+        ? roleClaim
+        : typeof roleClaim === "string"
+        ? roleClaim.split(",").map((r: string) => r.trim()).filter(Boolean)
+        : [];
+
+      const normalizedRoles = rawRoles.map((r: string) => r.toLowerCase());
+      const primaryRole = normalizedRoles.includes("admin")
+        ? "admin"
+        : normalizedRoles.includes("shop")
+        ? "shop"
+        : "user";
+
+      const userEmail =
+        tokenPayload.email ||
+        tokenPayload[
+          "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"
+        ] ||
+        email;
+
+      // Store user data and role from JWT
+      localStorage.setItem("userRole", primaryRole);
+      localStorage.setItem(
+        "userData",
+        JSON.stringify({
+          email: userEmail,
+          name: "User", // We'll get this from profile API later
+          role: primaryRole,
+        })
+      );
+
+      // Navigate based on role
+      if (localStorage.getItem("mustChangePassword") === "true") {
+        if (primaryRole === "shop") {
+          navigate("/shop-dashboard?tab=settings", {
+            replace: true,
+            state: { forcePasswordChange: true },
+          });
+        } else {
+          navigate("/settings", {
+            replace: true,
+            state: { forcePasswordChange: true },
+          });
+        }
+      } else if (primaryRole === "admin") {
+        navigate("/admin");
+      } else if (primaryRole === "shop") {
+        navigate("/shop-dashboard");
+      } else {
+        navigate("/");
       }
     } catch (error) {
       console.error("Login error:", error);
-      setError("Có lỗi xảy ra khi đăng nhập. Vui lòng thử lại.");
+      setError("Không thể kết nối đến máy chủ. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
@@ -230,9 +181,6 @@ const Login = () => {
           <p className="text-sm text-gray-400 mb-8">
             Đăng nhập để truy cập vào hệ thống NOVA
           </p>
-
-          {/* Offline Status */}
-          <OfflineStatus />
 
           {error && (
             <div className="text-red-500 text-sm text-center bg-red-900/20 p-3 rounded-md mb-4 max-w-md mx-auto">

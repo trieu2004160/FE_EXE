@@ -62,6 +62,7 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   token: string;
+  mustChangePassword?: boolean;
 }
 
 export interface ChangePasswordRequest {
@@ -116,14 +117,23 @@ export interface Category {
 
 export interface CreateCategoryRequest {
   name: string;
+  bannerTitle?: string;
   description?: string;
   imageUrl?: string;
+  imageFile?: File;
 }
 
 export interface UpdateCategoryRequest {
   name: string;
+  bannerTitle?: string;
   description?: string;
   imageUrl?: string;
+  imageFile?: File;
+}
+
+// Display Category Mapping Types
+export interface DisplayCategoryMappingResponse {
+  mappings: Record<string, number | null>;
 }
 
 // Product Types
@@ -318,6 +328,7 @@ export interface OrderItemResponseDto {
   price: number;
   quantity: number;
   shopName: string;
+  shopStatus?: string;
 }
 
 export interface OrderResponseDto {
@@ -336,6 +347,8 @@ export interface OrderHistoryResponseDto {
   id: number;
   orderDate: string;
   status: string;
+  paymentMethod?: string;
+  isPaid?: boolean;
   total: number;
   totalItems: number;
   primaryProductName: string;
@@ -782,6 +795,16 @@ class ApiService {
   }
 
   /**
+   * Get mapping from hardcoded display categories to DB categories
+   * GET /api/categories/display-mapping
+   */
+  async getDisplayCategoryMapping(): Promise<DisplayCategoryMappingResponse> {
+    return this.request<DisplayCategoryMappingResponse>('/categories/display-mapping', {
+      method: 'GET',
+    });
+  }
+
+  /**
    * Create a new category
    * POST /api/categories
    */
@@ -1053,6 +1076,42 @@ class ApiService {
   }
 
   /**
+   * Update shop profile (settings)
+   * PUT /api/shop/profile
+   * Backend expects [FromForm] UpdateShopProfileDto
+   */
+  async updateShopProfile(data: {
+    name: string;
+    ownerFullName?: string;
+    ownerEmail?: string;
+    description?: string;
+    address?: string;
+    contactPhoneNumber?: string;
+    avatarFile?: File;
+    avatarUrl?: string;
+  }): Promise<void> {
+    const formData = new FormData();
+    formData.append('Name', (data.name || '').trim());
+
+    if (data.ownerFullName !== undefined) formData.append('OwnerFullName', data.ownerFullName);
+    if (data.ownerEmail !== undefined) formData.append('OwnerEmail', data.ownerEmail);
+    if (data.description !== undefined) formData.append('Description', data.description);
+    if (data.address !== undefined) formData.append('Address', data.address);
+    if (data.contactPhoneNumber !== undefined) formData.append('ContactPhoneNumber', data.contactPhoneNumber);
+
+    if (data.avatarFile) {
+      formData.append('AvatarFile', data.avatarFile);
+    } else if (data.avatarUrl) {
+      formData.append('AvatarUrl', data.avatarUrl);
+    }
+
+    return this.request<void>('/shop/profile', {
+      method: 'PUT',
+      body: formData,
+    });
+  }
+
+  /**
    * Update shop profile
    * PUT /api/shop/profile
    * Quyá»n: Chá»‰ Shop
@@ -1231,6 +1290,63 @@ class ApiService {
     });
   }
 
+  /*
+   * Get shop orders (V2 - grouped by Order)
+   * GET /api/shop/orders/v2
+   */
+  async getShopOrdersV2(params?: {
+    status?: string;
+  }) {
+    const searchParams = new URLSearchParams();
+    if (params?.status) searchParams.append('status', params.status);
+
+    const queryString = searchParams.toString();
+    const endpoint = queryString ? `/shop/orders/v2?${queryString}` : '/shop/orders/v2';
+
+    return this.request(endpoint, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Update order status (V2 - order-based)
+   * PUT /api/shop/orders/{orderId}/status
+   */
+  async updateShopOrderStatus(orderId: string, status: string) {
+    // Backend enum Core.Enums.OrderStatus:
+    // Pending=0, PendingPayment=1, Paid=2, Shipping=3, Completed=4, Cancelled=5,
+    // Processing=6, Received=7, Preparing=8, Delivering=9, Delivered=10
+    const statusToEnumValue: Record<string, number> = {
+      Pending: 0,
+      PendingPayment: 1,
+      Paid: 2,
+      Shipping: 3,
+      Completed: 4,
+      Cancelled: 5,
+      Processing: 6,
+      Received: 7,
+      Preparing: 8,
+      Delivering: 9,
+      Delivered: 10,
+    };
+
+    const newStatusValue = statusToEnumValue[String(status)];
+    if (newStatusValue === undefined) {
+      throw new Error(`Invalid order status: ${status}`);
+    }
+
+    console.log('[apiService] updateShopOrderStatus payload:', {
+      orderId,
+      status,
+      newStatus: newStatusValue,
+    });
+
+    return this.request<void>(`/shop/orders/${orderId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ newStatus: newStatusValue }),
+    });
+  }
+
   /**
    * Update order status
    * PUT /api/shop/orders/items/{orderItemId}/status
@@ -1238,9 +1354,24 @@ class ApiService {
    * Nhiá»‡m vá»¥ & TÃ¡c dá»¥ng: Shop cáº­p nháº­t tráº¡ng thÃ¡i xá»­ lÃ½ cá»§a má»™t mÃ³n hÃng (Pending -> Preparing -> Shipped...)
    */
   async updateOrderStatus(orderItemId: string, status: string) {
+    // Backend expects OrderItemShopStatus enum value (number), not string.
+    // Enum order in BE: Pending=0, Preparing=1, ReadyToShip=2, Shipped=3, Cancelled=4
+    const statusToEnumValue: Record<string, number> = {
+      Pending: 0,
+      Preparing: 1,
+      ReadyToShip: 2,
+      Shipped: 3,
+      Cancelled: 4,
+    };
+
+    const newStatusValue = statusToEnumValue[String(status)];
+    if (newStatusValue === undefined) {
+      throw new Error(`Invalid order status: ${status}`);
+    }
+
     return this.request<void>(`/shop/orders/items/${orderItemId}/status`, {
       method: 'PUT',
-      body: JSON.stringify({ newStatus: status }),
+      body: JSON.stringify({ newStatus: newStatusValue }),
     });
   }
 
@@ -1515,13 +1646,41 @@ class ApiService {
   }
 
   /**
+   * Admin: Get mapping (hardcoded display -> DB category)
+   * GET /api/admin/display-categories/mapping
+   */
+  async getAdminDisplayCategoryMapping(): Promise<DisplayCategoryMappingResponse> {
+    return this.request<DisplayCategoryMappingResponse>('/admin/display-categories/mapping', {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Admin: Update mapping for one display category
+   * PUT /api/admin/display-categories/mapping
+   */
+  async updateAdminDisplayCategoryMapping(displayKey: string, categoryId: number | null): Promise<void> {
+    return this.request<void>('/admin/display-categories/mapping', {
+      method: 'PUT',
+      body: JSON.stringify({ displayKey, categoryId }),
+    });
+  }
+
+  /**
    * Create category (Admin)
    * POST /api/admin/categories
    */
   async createAdminCategory(data: CreateCategoryRequest): Promise<AdminCategoryDto> {
+    const form = new FormData();
+    form.append('Name', data.name);
+    if (data.bannerTitle) form.append('BannerTitle', data.bannerTitle);
+    if (data.description) form.append('Description', data.description);
+    if (data.imageUrl) form.append('ImageUrl', data.imageUrl);
+    if (data.imageFile) form.append('ImageFile', data.imageFile);
+
     return this.request<AdminCategoryDto>('/admin/categories', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: form,
     });
   }
 
@@ -1530,9 +1689,16 @@ class ApiService {
    * PUT /api/admin/categories/{id}
    */
   async updateAdminCategory(id: number, data: UpdateCategoryRequest): Promise<void> {
+    const form = new FormData();
+    form.append('Name', data.name);
+    if (data.bannerTitle) form.append('BannerTitle', data.bannerTitle);
+    if (data.description) form.append('Description', data.description);
+    if (data.imageUrl) form.append('ImageUrl', data.imageUrl);
+    if (data.imageFile) form.append('ImageFile', data.imageFile);
+
     return this.request<void>(`/admin/categories/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: form,
     });
   }
 
@@ -1553,7 +1719,7 @@ class ApiService {
   async toggleCategoryVisibility(id: number, isVisible: boolean): Promise<void> {
     return this.request<void>(`/admin/categories/${id}/visibility`, {
       method: 'PUT',
-      body: JSON.stringify({ isVisible }),
+      body: JSON.stringify({ isHidden: !isVisible }),
     });
   }
 
@@ -1585,7 +1751,6 @@ class ApiService {
   async createShopAccount(data: {
     email: string;
     fullName: string;
-    password: string;
     shopName: string;
   }): Promise<AdminShopDto> {
     return this.request<AdminShopDto>('/admin/shops/create-new', {
@@ -1709,8 +1874,27 @@ class ApiService {
    * Get revenue statistics (Admin)
    * GET /api/admin/dashboard/revenue-stats
    */
-  async getRevenueStats(): Promise<RevenueStats> {
-    return this.request<RevenueStats>('/admin/dashboard/revenue-stats', {
+  async getRevenueStats(
+    params?:
+      | 'daily'
+      | 'weekly'
+      | 'monthly'
+      | 'yearly'
+      | { period?: 'daily' | 'weekly' | 'monthly' | 'yearly'; date?: string }
+  ): Promise<RevenueStats> {
+    const period = typeof params === 'string' ? params : params?.period;
+    const date = typeof params === 'string' ? undefined : params?.date;
+
+    const searchParams = new URLSearchParams();
+    if (period) searchParams.append('period', period);
+    if (date) searchParams.append('date', date);
+
+    const queryString = searchParams.toString();
+    const endpoint = queryString
+      ? `/admin/dashboard/revenue-stats?${queryString}`
+      : '/admin/dashboard/revenue-stats';
+
+    return this.request<RevenueStats>(endpoint, {
       method: 'GET',
     });
   }
@@ -1719,8 +1903,27 @@ class ApiService {
    * Get revenue by shop (Admin)
    * GET /api/admin/dashboard/revenue-by-shop
    */
-  async getRevenueByShop(): Promise<RevenueByShop[]> {
-    return this.request<RevenueByShop[]>('/admin/dashboard/revenue-by-shop', {
+  async getRevenueByShop(
+    params?:
+      | 'daily'
+      | 'weekly'
+      | 'monthly'
+      | 'yearly'
+      | { period?: 'daily' | 'weekly' | 'monthly' | 'yearly'; date?: string }
+  ): Promise<RevenueByShop[]> {
+    const period = typeof params === 'string' ? params : params?.period;
+    const date = typeof params === 'string' ? undefined : params?.date;
+
+    const searchParams = new URLSearchParams();
+    if (period) searchParams.append('period', period);
+    if (date) searchParams.append('date', date);
+
+    const queryString = searchParams.toString();
+    const endpoint = queryString
+      ? `/admin/dashboard/revenue-by-shop?${queryString}`
+      : '/admin/dashboard/revenue-by-shop';
+
+    return this.request<RevenueByShop[]>(endpoint, {
       method: 'GET',
     });
   }

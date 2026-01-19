@@ -55,6 +55,7 @@ const Cart = () => {
   const [error, setError] = useState("");
   const [orders, setOrders] = useState<OrderHistoryResponseDto[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [historyError, setHistoryError] = useState("");
   const [activeTab, setActiveTab] = useState(initialTab);
 
   // Check for tab parameter in URL and load orders if needed
@@ -132,35 +133,8 @@ const Cart = () => {
             err.message || "Không thể tải giỏ hàng. Vui lòng thử lại sau."
           );
         }
-        // MOCK DATA FOR VERIFICATION/DEMO if backend is down
-        console.log("[Cart] Using mock data due to error");
-        const mockItems: CartItem[] = [
-          {
-            id: 1,
-            name: "Mâm Cúng Thôi Nôi (Mock)",
-            price: 1500000,
-            quantity: 1,
-            category: "Mâm Cúng",
-            shopId: 1,
-            selected: true,
-            isSelected: true,
-            imageUrl:
-              "https://docungviet.vn/wp-content/uploads/2023/06/mam-cung-thoi-noi-be-trai-goi-vip-1.jpg",
-          },
-        ];
-        setCartItems(mockItems);
-        setCartData({
-          id: 1,
-          totalPrice: 1500000,
-          shops: [
-            {
-              shopId: 1,
-              shopName: "Đồ Cúng Việt (Mock)",
-              items: [], // items are flattened into cartItems state
-            },
-          ],
-        });
-        setError(""); // Clear error to allow UI to render
+        setCartItems([]);
+        setCartData(null);
       } finally {
         setLoading(false);
       }
@@ -171,6 +145,7 @@ const Cart = () => {
 
   const fetchOrders = async () => {
     setLoadingHistory(true);
+    setHistoryError("");
     try {
       console.log("[Cart] Fetching orders...");
       const data = await apiService.getUserOrders();
@@ -193,30 +168,10 @@ const Cart = () => {
       setOrders(sortedOrders);
     } catch (err) {
       console.error("[Cart] Failed to fetch orders:", err);
-      // Fallback to mock data if backend is unavailable
-      console.log("[Cart] Using mock data for orders due to error");
-      setOrders([
-        {
-          id: 101,
-          status: "Completed",
-          total: 1500000,
-          orderDate: new Date("2023-11-20").toISOString(),
-          totalItems: 1,
-          primaryProductName: "Mâm Cúng Thôi Nôi Bé Trai",
-          primaryProductImage:
-            "https://docungviet.vn/wp-content/uploads/2023/06/mam-cung-thoi-noi-be-trai-goi-vip-1.jpg",
-        },
-        {
-          id: 102,
-          status: "Shipping",
-          total: 850000,
-          orderDate: new Date("2023-11-25").toISOString(),
-          totalItems: 1,
-          primaryProductName: "Heo Quay Sữa",
-          primaryProductImage:
-            "https://heoquay.com/wp-content/uploads/2019/07/heo-quay-sua-nguyen-con.jpg",
-        },
-      ]);
+      setOrders([]);
+      setHistoryError(
+        "Không thể tải lịch sử đơn hàng. Vui lòng kiểm tra backend đang chạy và thử lại."
+      );
     } finally {
       setLoadingHistory(false);
     }
@@ -454,87 +409,8 @@ const Cart = () => {
         <section className="py-16">
           <div className="container mx-auto px-4 text-center">
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-12 max-w-2xl mx-auto">
-              <p className="text-red-500 mb-4 text-lg font-semibold">
-                Không thể tải giỏ hàng
-              </p>
               <p className="text-gray-600 mb-4 whitespace-pre-line">{error}</p>
               <div className="flex gap-2 justify-center mt-6">
-                <Button
-                  onClick={() => {
-                    setError("");
-                    setLoading(true);
-                    const fetchCart = async () => {
-                      try {
-                        const cartResponse = await apiService.getCart();
-                        setCartData(cartResponse);
-                        const flattenedItems: CartItem[] = [];
-                        if (
-                          cartResponse &&
-                          cartResponse.shops &&
-                          Array.isArray(cartResponse.shops)
-                        ) {
-                          cartResponse.shops.forEach((shop: ShopInCartDto) => {
-                            if (shop.items && Array.isArray(shop.items)) {
-                              shop.items.forEach((item: CartItemDto) => {
-                                flattenedItems.push({
-                                  id: item.id,
-                                  name: item.productName,
-                                  price: item.price,
-                                  imageUrl: item.imageUrl,
-                                  quantity: item.quantity,
-                                  category: "",
-                                  shopId: shop.shopId,
-                                  selected: item.isSelected,
-                                  isSelected: item.isSelected,
-                                });
-                              });
-                            }
-                          });
-                        }
-                        setCartItems(flattenedItems);
-                        setError("");
-                      } catch (err: any) {
-                        // MOCK DATA FOR VERIFICATION/DEMO if backend is down
-                        console.log(
-                          "[Cart] Using mock data due to error (Retry)"
-                        );
-                        const mockItems: CartItem[] = [
-                          {
-                            id: 1,
-                            name: "Mâm Cúng Thôi Nôi (Mock)",
-                            price: 1500000,
-                            quantity: 1,
-                            category: "Mâm Cúng",
-                            shopId: 1,
-                            selected: true,
-                            isSelected: true,
-                            imageUrl:
-                              "https://docungviet.vn/wp-content/uploads/2023/06/mam-cung-thoi-noi-be-trai-goi-vip-1.jpg",
-                          },
-                        ];
-                        setCartItems(mockItems);
-                        setCartData({
-                          id: 1,
-                          totalPrice: 1500000,
-                          shops: [
-                            {
-                              shopId: 1,
-                              shopName: "Đồ Cúng Việt (Mock)",
-                              items: [],
-                            },
-                          ],
-                        });
-                        setError("");
-                      } finally {
-                        setLoading(false);
-                      }
-                    };
-                    fetchCart();
-                  }}
-                  className="bg-[#A67C42] hover:bg-[#8B6835] text-white"
-                >
-                  Thử lại
-                </Button>
                 {error.includes("đăng nhập") && (
                   <Button
                     variant="outline"
@@ -868,6 +744,20 @@ const Cart = () => {
                     <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-[#A67C42]" />
                     <p>Đang tải lịch sử đơn hàng...</p>
                   </div>
+                ) : historyError ? (
+                  <div className="text-center py-12 bg-white/80 rounded-2xl shadow-sm">
+                    <Package className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                    <p className="text-gray-700 font-medium mb-2">
+                      Không thể tải lịch sử đơn hàng
+                    </p>
+                    <p className="text-gray-500 mb-6">{historyError}</p>
+                    <Button
+                      onClick={fetchOrders}
+                      className="bg-[#A67C42] hover:bg-[#8B6835] text-white"
+                    >
+                      Thử lại
+                    </Button>
+                  </div>
                 ) : !orders || orders.length === 0 ? (
                   <div className="text-center py-12 bg-white/80 rounded-2xl shadow-sm">
                     <Package className="h-16 w-16 mx-auto mb-4 text-gray-300" />
@@ -887,7 +777,7 @@ const Cart = () => {
                             </div>
                             <div>
                               <CardTitle className="text-lg">
-                                Đơn hàng #{order.id}
+                                Đơn hàng {order.orderCode || `#${order.id}`}
                               </CardTitle>
                               <div className="flex items-center text-sm text-gray-500 mt-1">
                                 <Clock className="h-3 w-3 mr-1" />
@@ -900,12 +790,43 @@ const Cart = () => {
                               </div>
                             </div>
                           </div>
-                          <Badge
-                            variant="outline"
-                            className={formatOrderStatus(order.status).badgeClassName}
-                          >
-                            {formatOrderStatus(order.status).label}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant="outline"
+                              className={formatOrderStatus(order.status).badgeClassName}
+                            >
+                              {formatOrderStatus(order.status).label}
+                            </Badge>
+
+                            {(() => {
+                              const paymentMethod = String(order.paymentMethod || "");
+                              const isPaid = typeof order.isPaid === "boolean" ? order.isPaid : undefined;
+
+                              if (isPaid === undefined && !paymentMethod) return null;
+
+                              const paidLabel =
+                                isPaid === true
+                                  ? "Đã thanh toán"
+                                  : isPaid === false
+                                    ? "Chưa thanh toán"
+                                    : "Không rõ";
+
+                              const paidClass =
+                                isPaid === true
+                                  ? "bg-green-50 text-green-700 border-green-200"
+                                  : "bg-yellow-50 text-yellow-700 border-yellow-200";
+
+                              return (
+                                <Badge
+                                  variant="outline"
+                                  className={paidClass}
+                                  title={paymentMethod ? `Phương thức: ${paymentMethod}` : undefined}
+                                >
+                                  {paidLabel}
+                                </Badge>
+                              );
+                            })()}
+                          </div>
                         </div>
                       </CardHeader>
                       <CardContent className="p-6 bg-white">

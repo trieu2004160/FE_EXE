@@ -411,7 +411,7 @@ const Checkout = () => {
       }
       toast({
         title: "Đặt hàng thành công!",
-        description: `Đơn hàng #${order.id} đã được tạo thành công`,
+        description: "Đơn hàng đã được tạo (có thể được tách theo từng shop).",
       });
 
 

@@ -1,6 +1,5 @@
 // Auth API - Handles authentication and user shipping info
 import { apiService, UserProfile, authUtils } from './apiService';
-import { offlineAuthService, OfflineUser } from './offlineAuthService';
 
 export interface AuthUser {
   id: string;
@@ -20,7 +19,7 @@ export interface ShippingAddress {
 }
 
 class AuthApi {
-  // Get current user (online or offline)
+  // Get current user (online)
   getCurrentUser(): AuthUser | null {
     // Try to get from online profile first
     try {
@@ -38,25 +37,12 @@ class AuthApi {
       console.warn('Error getting online user:', error);
     }
 
-    // Fallback to offline user
-    const offlineUser = offlineAuthService.getCurrentUser();
-    if (offlineUser) {
-      return {
-        id: offlineUser.id,
-        email: offlineUser.email,
-        fullName: offlineUser.fullName,
-        phone: offlineUser.phone,
-        role: offlineUser.role,
-      };
-    }
-
     return null;
   }
 
   // Logout
   logout(): void {
     authUtils.removeToken();
-    offlineAuthService.logout();
   }
 
   // Save shipping info to localStorage
@@ -105,8 +91,8 @@ class AuthApi {
     return { savedShippingInfo: null };
   }
 
-  // Get user profile (try online first, then offline)
-  async getProfile(): Promise<UserProfile | OfflineUser | null> {
+  // Get user profile (online)
+  async getProfile(): Promise<UserProfile | null> {
     try {
       if (authUtils.isAuthenticated()) {
         const profile = await apiService.getProfile();
@@ -116,8 +102,7 @@ class AuthApi {
       console.warn('Error fetching online profile:', error);
     }
 
-    // Fallback to offline user
-    return offlineAuthService.getCurrentUser();
+    return null;
   }
 }
 

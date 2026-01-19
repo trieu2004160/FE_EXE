@@ -17,11 +17,14 @@ import ProductCard from "@/components/ProductCard";
 import { apiService, Product } from "@/services/apiService";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import type { DisplayCategoryKey } from "@/config/displayCategories";
 
 const XoiCheCategory = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const displayKey: DisplayCategoryKey = "xoi-che";
 
   useEffect(() => {
     const fetchData = async () => {
@@ -29,33 +32,46 @@ const XoiCheCategory = () => {
       setError(null);
 
       try {
+        const mapping = await apiService.getDisplayCategoryMapping();
+        const mappedCategoryId = mapping?.mappings?.[displayKey];
+
+        if (typeof mappedCategoryId === "number" && mappedCategoryId > 0) {
+          const mappedProducts = await apiService.getProductsByCategory(
+            mappedCategoryId
+          );
+          setProducts(mappedProducts);
+          return;
+        }
+
         const [allProducts, categories] = await Promise.all([
           apiService.getProducts(),
           apiService.getCategories(),
         ]);
 
-        // Find xôi chè category
+        // Fallback: try to find xôi chè category by name
         const xoiCheCategory = categories.find(
           (cat) =>
             cat.name.toLowerCase().includes("xôi") ||
-            cat.name.toLowerCase().includes("chè") ||
-            cat.name.toLowerCase().includes("combo")
+            cat.name.toLowerCase().includes("chè")
         );
 
         if (xoiCheCategory) {
-          const xoiCheProducts = allProducts.filter(
-            (product) => product.productCategoryId === xoiCheCategory.id
+          setProducts(
+            allProducts.filter(
+              (product) => product.productCategoryId === xoiCheCategory.id
+            )
           );
-          setProducts(xoiCheProducts);
-        } else {
-          // If no category found, filter by name
-          const xoiCheProducts = allProducts.filter(
+          return;
+        }
+
+        // Last fallback: filter by product name
+        setProducts(
+          allProducts.filter(
             (product) =>
               product.name.toLowerCase().includes("xôi") ||
               product.name.toLowerCase().includes("chè")
-          );
-          setProducts(xoiCheProducts);
-        }
+          )
+        );
       } catch (apiError) {
         console.error("Error fetching products:", apiError);
         setError("Không thể tải sản phẩm. Vui lòng thử lại sau.");
