@@ -47,6 +47,9 @@ const ProductDetail = () => {
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
 
+  // Image gallery state
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+
   // Review form state
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
@@ -93,6 +96,9 @@ const ProductDetail = () => {
 
         setProduct(normalizedProduct);
         setRelatedProducts(normalizedRelatedProducts);
+
+        // Reset image gallery when loading a new product
+        setActiveImageIndex(0);
 
         // Fetch reviews separately
         try {
@@ -287,6 +293,9 @@ const ProductDetail = () => {
     );
   }
 
+  const allImages = getAllProductImages(product);
+  const mainImage = allImages[activeImageIndex] || product.imageUrl || "/placeholder.svg";
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Header />
@@ -316,10 +325,7 @@ const ProductDetail = () => {
                 {/* Ảnh chính */}
                 <div className="w-full overflow-hidden rounded-lg border border-border bg-white relative">
                   <img
-                    src={
-                      product.imageUrl ||
-                      "/placeholder.svg"
-                    }
+                    src={mainImage}
                     alt={product.name}
                     className="w-full h-[450px] object-cover"
                     style={
@@ -335,39 +341,48 @@ const ProductDetail = () => {
                     fetchPriority="high"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
-                      target.src =
-                        "/placeholder.svg";
+                      target.src = "/placeholder.svg";
                     }}
                   />
                 </div>
 
-                {/* Ảnh nhỏ (hiện tại chỉ 1 ảnh, nhưng để sẵn grid cho mở rộng sau này) */}
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-                  <div className="overflow-hidden rounded-lg border-2 border-red-500 bg-white cursor-pointer hover:border-primary transition-colors">
-                    <img
-                      src={
-                        product.imageUrl ||
-                        "/placeholder.svg"
-                      }
-                      alt={product.name}
-                      className="w-full h-32 object-cover"
-                      style={
-                        {
-                          imageRendering: "crisp-edges",
-                          backfaceVisibility: "hidden",
-                          transform: "translateZ(0)",
-                        } as React.CSSProperties
-                      }
-                      loading="lazy"
-                      decoding="async"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src =
-                          "/placeholder.svg";
-                      }}
-                    />
+                {/* Ảnh nhỏ */}
+                {allImages.length > 1 ? (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                    {allImages.map((img, idx) => (
+                      <button
+                        type="button"
+                        key={`${img}-${idx}`}
+                        onClick={() => setActiveImageIndex(idx)}
+                        className={`overflow-hidden rounded-lg bg-white cursor-pointer transition-colors border-2 ${
+                          idx === activeImageIndex
+                            ? "border-red-500"
+                            : "border-border hover:border-primary"
+                        }`}
+                        title={`Ảnh ${idx + 1}`}
+                      >
+                        <img
+                          src={img}
+                          alt={product.name}
+                          className="w-full h-32 object-cover"
+                          style={
+                            {
+                              imageRendering: "crisp-edges",
+                              backfaceVisibility: "hidden",
+                              transform: "translateZ(0)",
+                            } as React.CSSProperties
+                          }
+                          loading="lazy"
+                          decoding="async"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = "/placeholder.svg";
+                          }}
+                        />
+                      </button>
+                    ))}
                   </div>
-                </div>
+                ) : null}
               </div>
 
               {/* Product Info */}

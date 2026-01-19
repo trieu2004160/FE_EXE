@@ -113,6 +113,14 @@ const Header = () => {
     navigate("/");
   };
 
+  const handleLoginOrLogout = () => {
+    if (!isLoggedIn) {
+      navigate("/login");
+      return;
+    }
+    handleLogout();
+  };
+
   const handleUserAction = () => {
     if (!isLoggedIn) {
       navigate("/login");
@@ -286,18 +294,18 @@ const Header = () => {
                 )}
               </Button>
 
-              {/* Logout Button - Only show when logged in */}
-              {isLoggedIn && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10 hover:bg-red-50 hover:scale-105 transition-all duration-200 group"
-                  onClick={handleLogout}
-                  title="Đăng xuất"
-                >
-                  <LogOut className="h-5 w-5 text-gray-600 group-hover:text-red-600" />
-                </Button>
-              )}
+              {/* Explicit Login/Logout button */}
+              <Button
+                variant={isLoggedIn ? "destructive" : "default"}
+                className={
+                  isLoggedIn
+                    ? "h-10 px-4"
+                    : "h-10 px-4 bg-[#C99F4D] hover:bg-[#B8904A]"
+                }
+                onClick={handleLoginOrLogout}
+              >
+                {isLoggedIn ? "Logout" : "Login"}
+              </Button>
             </div>
           </div>
         </div>
