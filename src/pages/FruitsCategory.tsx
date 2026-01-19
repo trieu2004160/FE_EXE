@@ -22,11 +22,14 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import fruitsHeroImage from "@/assets/flowers-hero.jpg"; // Sẽ thay bằng ảnh hoa quả
 import fruitsBannerImage from "@/assets/traditional-flowers.jpg"; // Sẽ thay bằng ảnh hoa quả truyền thống
+import type { DisplayCategoryKey } from "@/config/displayCategories";
 
 const FruitsCategory = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const displayKey: DisplayCategoryKey = "hoa-qua";
 
   useEffect(() => {
     const fetchData = async () => {
@@ -34,12 +37,23 @@ const FruitsCategory = () => {
       setError(null);
 
       try {
+        const mapping = await apiService.getDisplayCategoryMapping();
+        const mappedCategoryId = mapping?.mappings?.[displayKey];
+
+        if (typeof mappedCategoryId === "number" && mappedCategoryId > 0) {
+          const mappedProducts = await apiService.getProductsByCategory(
+            mappedCategoryId
+          );
+          setProducts(mappedProducts);
+          return;
+        }
+
         const [allProducts, categories] = await Promise.all([
           apiService.getProducts(),
           apiService.getCategories(),
         ]);
 
-        // Find fruit category
+        // Fallback: Find fruit category
         const fruitCategory = categories.find(
           (cat) =>
             cat.name.toLowerCase().includes("hoa quả") ||
@@ -48,20 +62,23 @@ const FruitsCategory = () => {
         );
 
         if (fruitCategory) {
-          const fruitProducts = allProducts.filter(
-            (product) => product.productCategoryId === fruitCategory.id
+          setProducts(
+            allProducts.filter(
+              (product) => product.productCategoryId === fruitCategory.id
+            )
           );
-          setProducts(fruitProducts);
-        } else {
-          // If no fruit category found, filter by name containing fruit keywords
-          const fruitProducts = allProducts.filter(
+          return;
+        }
+
+        // Last fallback: filter by product name
+        setProducts(
+          allProducts.filter(
             (product) =>
               product.name.toLowerCase().includes("quả") ||
               product.name.toLowerCase().includes("trái cây") ||
               product.name.toLowerCase().includes("fruit")
-          );
-          setProducts(fruitProducts);
-        }
+          )
+        );
       } catch (apiError) {
         console.error("Error fetching products:", apiError);
         setError("Không thể tải sản phẩm. Vui lòng thử lại sau.");

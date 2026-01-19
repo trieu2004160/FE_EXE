@@ -260,7 +260,23 @@ export const shopApiService = {
     orderItemId: number, 
     status: 'pending' | 'preparing' | 'shipped' | 'delivered' | 'cancelled'
   ): Promise<void> => {
-    await shopApi.put(`/shop/orders/items/${orderItemId}/status`, { status });
+    // Backend expects UpdateOrderItemStatusDto { newStatus: OrderItemShopStatus }
+    // Enum order in BE: Pending=0, Preparing=1, ReadyToShip=2, Shipped=3, Cancelled=4
+    const statusToEnumValue: Record<string, number> = {
+      pending: 0,
+      preparing: 1,
+      // No "delivered" in BE enum; treat as Shipped for now
+      shipped: 3,
+      delivered: 3,
+      cancelled: 4,
+    };
+
+    const newStatusValue = statusToEnumValue[String(status)];
+    if (newStatusValue === undefined) {
+      throw new Error(`Invalid order status: ${status}`);
+    }
+
+    await shopApi.put(`/shop/orders/items/${orderItemId}/status`, { newStatus: newStatusValue });
   },
 
   // Review Management

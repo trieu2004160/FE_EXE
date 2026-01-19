@@ -18,11 +18,14 @@ import { apiService, Product } from "@/services/apiService";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import flowersHeroImage from "@/assets/flowers-hero.jpg";
+import type { DisplayCategoryKey } from "@/config/displayCategories";
 
 const FlowersCategory = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const displayKey: DisplayCategoryKey = "hoa-tuoi";
 
   useEffect(() => {
     const fetchData = async () => {
@@ -30,13 +33,23 @@ const FlowersCategory = () => {
       setError(null);
 
       try {
-        // Only use API data - no fallback to mock data
+        const mapping = await apiService.getDisplayCategoryMapping();
+        const mappedCategoryId = mapping?.mappings?.[displayKey];
+
+        if (typeof mappedCategoryId === "number" && mappedCategoryId > 0) {
+          const mappedProducts = await apiService.getProductsByCategory(
+            mappedCategoryId
+          );
+          setProducts(mappedProducts);
+          return;
+        }
+
+        // Fallback to keyword-based matching
         const [allProducts, categories] = await Promise.all([
           apiService.getProducts(),
           apiService.getCategories(),
         ]);
 
-        // Find flower category
         const flowerCategory = categories.find(
           (cat) =>
             cat.name.toLowerCase().includes("hoa") ||
@@ -44,20 +57,21 @@ const FlowersCategory = () => {
         );
 
         if (flowerCategory) {
-          // Filter products by flower category
-          const flowerProducts = allProducts.filter(
-            (product) => product.productCategoryId === flowerCategory.id
+          setProducts(
+            allProducts.filter(
+              (product) => product.productCategoryId === flowerCategory.id
+            )
           );
-          setProducts(flowerProducts);
-        } else {
-          // If no flower category found, filter by name containing "hoa"
-          const flowerProducts = allProducts.filter(
+          return;
+        }
+
+        setProducts(
+          allProducts.filter(
             (product) =>
               product.name.toLowerCase().includes("hoa") ||
               product.name.toLowerCase().includes("flower")
-          );
-          setProducts(flowerProducts);
-        }
+          )
+        );
       } catch (apiError) {
         console.error("Error fetching products:", apiError);
         setError("Không thể tải sản phẩm. Vui lòng thử lại sau.");

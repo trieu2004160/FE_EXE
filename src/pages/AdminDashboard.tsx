@@ -56,7 +56,6 @@ import {
   TrendingUp,
   Activity,
   DollarSign,
-  Percent,
   Key,
   Lock,
   Unlock,
@@ -76,12 +75,12 @@ import {
   RevenueStats,
   RevenueByShop,
 } from "@/services/apiService";
+import { DISPLAY_CATEGORIES } from "@/config/displayCategories";
 
 // Types
 interface CategoryFormData {
   name: string;
   description?: string;
-  imageUrl?: string;
   isVisible: boolean;
   displayOrder: number;
 }
@@ -107,8 +106,88 @@ interface SystemLog {
 }
 
 const AdminDashboard = () => {
+  const toNumber = (value: unknown, fallback: number = 0): number => {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string") {
+      const normalized = value.replace(/,/g, "").trim();
+      const parsed = Number(normalized);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    }
+    return fallback;
+  };
+
+  const normalizeCommissionConfig = (
+    raw: unknown
+  ): { defaultRate: number; shopRates: Record<number, number> } => {
+    // Frontend shape: { defaultCommissionRate, shopCommissionRates }
+    if (raw && typeof raw === "object") {
+      const obj = raw as Record<string, unknown>;
+      if (
+        (obj.defaultCommissionRate !== undefined ||
+          obj.shopCommissionRates !== undefined) &&
+        obj.shopCommissionRates &&
+        typeof obj.shopCommissionRates === "object" &&
+        !Array.isArray(obj.shopCommissionRates)
+      ) {
+        const defaultRate = toNumber(obj.defaultCommissionRate, 10);
+        const shopRates: Record<number, number> = {};
+        for (const [key, value] of Object.entries(
+          obj.shopCommissionRates as Record<string, unknown>
+        )) {
+          const shopId = toNumber(key);
+          if (shopId) shopRates[shopId] = toNumber(value, defaultRate);
+        }
+        return { defaultRate, shopRates };
+      }
+
+      // Backend DTO shape (ASP.NET typically camelCases JSON):
+      // { defaultCommissionRate, shopSpecificRates: [{ shopId, commissionRate }] }
+      // Also support PascalCase: { DefaultCommissionRate, ShopSpecificRates: [{ ShopId, CommissionRate }] }
+      const defaultRate = toNumber(
+        obj.defaultCommissionRate ?? obj.DefaultCommissionRate,
+        10
+      );
+      const shopRates: Record<number, number> = {};
+      const list = obj.shopSpecificRates ?? obj.ShopSpecificRates;
+
+      if (Array.isArray(list)) {
+        for (const item of list) {
+          if (!item || typeof item !== "object") continue;
+          const itemObj = item as Record<string, unknown>;
+          const shopId = toNumber(itemObj.shopId ?? itemObj.ShopId);
+          if (!shopId) continue;
+
+          const rate = toNumber(
+            itemObj.commissionRate ?? itemObj.CommissionRate,
+            defaultRate
+          );
+
+          // Only keep explicit overrides (avoid marking all shops as "Tùy chỉnh")
+          if (Math.abs(rate - defaultRate) > 1e-9) {
+            shopRates[shopId] = rate;
+          }
+        }
+      }
+
+      return { defaultRate, shopRates };
+    }
+
+    return { defaultRate: 10, shopRates: {} };
+  };
+
+  const formatDateInput = (d: Date) => {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
   const [activeTab, setActiveTab] = useState("dashboard");
   const [loading, setLoading] = useState(false);
+  const [displayCategoryMapping, setDisplayCategoryMapping] = useState<
+    Record<string, number | null>
+  >({});
+  const [mappingLoading, setMappingLoading] = useState(false);
   const navigate = useNavigate();
 
   // State for categories
@@ -151,6 +230,14 @@ const AdminDashboard = () => {
     "daily" | "weekly" | "monthly" | "yearly"
   >("daily");
 
+  // Revenue filters (Admin)
+  const [revenueShopFilter, setRevenueShopFilter] = useState<string>("all");
+  // Default view: show Today via date picker
+  const [revenueUseDate, setRevenueUseDate] = useState<boolean>(true);
+  const [revenueDate, setRevenueDate] = useState<string>(() =>
+    formatDateInput(new Date())
+  ); // YYYY-MM-DD
+
   // State for system logs
   const [systemLogs, setSystemLogs] = useState<SystemLog[]>([]);
 
@@ -177,20 +264,23 @@ const AdminDashboard = () => {
       loadCommissionConfig();
       loadShops();
     } else if (activeTab === "revenue") {
-      loadRevenueStats();
-      loadRevenueByShop();
+      // Revenue data is loaded by the dedicated revenue effect below.
+      if (shops.length === 0) loadShops();
     } else if (activeTab === "logs") {
       loadSystemLogs();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
-  // Reload revenue data when period changes
+  // Reload revenue data when filters change
   useEffect(() => {
     if (activeTab === "revenue") {
+      if (shops.length === 0) loadShops();
       loadRevenueStats();
       loadRevenueByShop();
     }
-  }, [activeTab, revenuePeriod]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, revenuePeriod, revenueDate, revenueUseDate]);
 
   // Data loading functions
   const loadDashboardData = async () => {
@@ -213,7 +303,11 @@ const AdminDashboard = () => {
       // Also load commission config
       try {
         const commissionData = await apiService.getCommissionConfig();
-        setCommissionConfig(commissionData);
+        const normalized = normalizeCommissionConfig(commissionData);
+        setCommissionConfig({
+          defaultCommissionRate: normalized.defaultRate,
+          shopCommissionRates: normalized.shopRates,
+        });
       } catch (error) {
         console.log("Commission config not available:", error);
       }
@@ -234,6 +328,16 @@ const AdminDashboard = () => {
       setLoading(true);
       const data = await apiService.getAdminCategories();
       setCategories(data);
+      // Load display mapping (hardcoded display -> DB category)
+      try {
+        setMappingLoading(true);
+        const mapping = await apiService.getAdminDisplayCategoryMapping();
+        setDisplayCategoryMapping(mapping.mappings || {});
+      } catch (e) {
+        console.error("[AdminDashboard] Failed to load display mapping", e);
+      } finally {
+        setMappingLoading(false);
+      }
     } catch (error) {
       console.error("Failed to load categories:", error);
       toast({
@@ -243,6 +347,30 @@ const AdminDashboard = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const updateDisplayMapping = async (displayKey: string, categoryId: number | null) => {
+    setDisplayCategoryMapping((prev) => ({ ...prev, [displayKey]: categoryId }));
+    try {
+      await apiService.updateAdminDisplayCategoryMapping(displayKey, categoryId);
+      toast({
+        title: "Đã cập nhật danh mục hiển thị",
+        description: "Đã liên kết danh mục hiển thị với danh mục trong CSDL.",
+      });
+    } catch (e) {
+      console.error("[AdminDashboard] Failed to update display mapping", e);
+      toast({
+        title: "Lỗi",
+        description: "Không thể cập nhật liên kết danh mục. Vui lòng thử lại.",
+        variant: "destructive",
+      });
+      try {
+        const mapping = await apiService.getAdminDisplayCategoryMapping();
+        setDisplayCategoryMapping(mapping.mappings || {});
+      } catch {
+        // ignore
+      }
     }
   };
 
@@ -291,7 +419,11 @@ const AdminDashboard = () => {
     try {
       setLoading(true);
       const data = await apiService.getCommissionConfig();
-      setCommissionConfig(data);
+      const normalized = normalizeCommissionConfig(data);
+      setCommissionConfig({
+        defaultCommissionRate: normalized.defaultRate,
+        shopCommissionRates: normalized.shopRates,
+      });
     } catch (error) {
       console.error("Failed to load commission config:", error);
       toast({
@@ -307,8 +439,27 @@ const AdminDashboard = () => {
   const loadRevenueStats = async () => {
     try {
       setLoading(true);
-      const stats = await apiService.getRevenueStats();
-      setRevenueStats(stats);
+      const stats = await apiService.getRevenueStats({
+        period: revenuePeriod,
+        date: revenueUseDate ? revenueDate || undefined : undefined,
+      });
+      const statsUnknown: unknown = stats;
+      const getStat = (key: string): unknown => {
+        if (statsUnknown && typeof statsUnknown === "object") {
+          return (statsUnknown as Record<string, unknown>)[key];
+        }
+        return undefined;
+      };
+      setRevenueStats({
+        totalRevenue: toNumber(getStat("totalRevenue")),
+        totalCommission: toNumber(getStat("totalCommission")),
+        totalOrders: toNumber(getStat("totalOrders")),
+        activeShops: toNumber(getStat("activeShops")),
+        revenueToday: toNumber(getStat("revenueToday")),
+        revenueThisWeek: toNumber(getStat("revenueThisWeek")),
+        revenueThisMonth: toNumber(getStat("revenueThisMonth")),
+        revenueThisYear: toNumber(getStat("revenueThisYear")),
+      });
     } catch (error) {
       console.error("Failed to load revenue stats:", error);
       toast({
@@ -324,8 +475,32 @@ const AdminDashboard = () => {
   const loadRevenueByShop = async () => {
     try {
       setLoading(true);
-      const byShop = await apiService.getRevenueByShop();
-      setRevenueByShop(byShop);
+      const byShop = await apiService.getRevenueByShop({
+        period: revenuePeriod,
+        date: revenueUseDate ? revenueDate || undefined : undefined,
+      });
+      const normalized = (Array.isArray(byShop) ? byShop : []).map(
+        (raw: unknown): RevenueByShop => {
+          const row =
+            raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+          return {
+            shopId: toNumber(row.shopId ?? row.id ?? row.shopID),
+            shopName: String(row.shopName ?? row.name ?? row.shop ?? "(Unknown)"),
+            revenue: toNumber(
+              row.revenue ?? row.totalRevenue ?? row.revenueAmount ?? row.amount
+            ),
+            commission: toNumber(
+              row.commission ?? row.totalCommission ?? row.commissionAmount
+            ),
+            orderCount: toNumber(row.orderCount ?? row.orders ?? row.totalOrders),
+            commissionRate: toNumber(
+              row.commissionRate ?? row.rate ?? row.commissionPercent
+            ),
+          };
+        }
+      );
+
+      setRevenueByShop(normalized);
     } catch (error) {
       console.error("Failed to load revenue by shop:", error);
       toast({
@@ -337,6 +512,27 @@ const AdminDashboard = () => {
       setLoading(false);
     }
   };
+
+  const selectedShopId = revenueShopFilter === "all" ? null : Number(revenueShopFilter);
+  const filteredRevenueByShop = selectedShopId
+    ? revenueByShop.filter((x) => x.shopId === selectedShopId)
+    : revenueByShop;
+
+  const revenueTotalsForView = {
+    totalRevenue: filteredRevenueByShop.reduce((sum, x) => sum + (x.revenue ?? 0), 0),
+    totalCommission: filteredRevenueByShop.reduce((sum, x) => sum + (x.commission ?? 0), 0),
+    totalOrders: filteredRevenueByShop.reduce((sum, x) => sum + (x.orderCount ?? 0), 0),
+    activeShops: selectedShopId
+      ? filteredRevenueByShop.length > 0
+        ? 1
+        : 0
+      : filteredRevenueByShop.filter((x) => (x.orderCount ?? 0) > 0 || (x.revenue ?? 0) > 0).length,
+  };
+
+  const revenueShopOptions: Array<{ id: number; name: string }> =
+    shops.length > 0
+      ? shops.map((s) => ({ id: s.id, name: s.name }))
+      : revenueByShop.map((x) => ({ id: x.shopId, name: x.shopName }));
 
   const loadSystemLogs = async () => {
     try {
@@ -493,12 +689,12 @@ const AdminDashboard = () => {
         await apiService.createShopAccount({
           email: formData.ownerEmail,
           fullName: formData.ownerFullName,
-          password: "Shop123456", // Default password
           shopName: formData.shopName,
         });
         toast({
           title: "Thành công",
-          description: "Tạo shop mới thành công. Mật khẩu mặc định: Shop123456",
+          description:
+            "Tạo shop mới thành công. Mật khẩu khởi tạo đã được gửi qua email cho chủ shop.",
         });
       }
       setShowShopForm(false);
@@ -640,28 +836,6 @@ const AdminDashboard = () => {
     }
   };
 
-  // Commission config functions
-  const handleSetDefaultCommission = async (rate: number) => {
-    try {
-      setLoading(true);
-      await apiService.setDefaultCommission(rate);
-      toast({
-        title: "Thành công",
-        description: "Cập nhật hoa hồng mặc định thành công",
-      });
-      loadCommissionConfig();
-    } catch (error) {
-      console.error("Failed to set default commission:", error);
-      toast({
-        title: "Lỗi",
-        description: "Không thể cập nhật hoa hồng mặc định",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSetShopCommission = async (shopId: number, rate: number) => {
     try {
       setLoading(true);
@@ -688,7 +862,7 @@ const AdminDashboard = () => {
     { id: "categories", label: "Quản lý Danh Mục", icon: Package },
     { id: "shops", label: "Quản lý Shop", icon: Store },
     { id: "products", label: "Quản lý Sản Phẩm", icon: Package },
-    { id: "config", label: "Cấu Hình", icon: Settings },
+    { id: "config", label: "Hoa Hồng", icon: Settings },
     { id: "revenue", label: "Doanh Thu", icon: DollarSign },
     { id: "logs", label: "Nhật Ký", icon: Activity },
   ];
@@ -777,19 +951,6 @@ const AdminDashboard = () => {
                     </div>
                   </CardContent>
                 </Card>
-                <Card className="hover:shadow-lg transition-shadow">
-                  <CardContent className="p-6 flex items-center">
-                    <div className="p-3 rounded-full bg-purple-500 text-white mr-4">
-                      <Percent className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Hoa Hồng Mặc Định</p>
-                      <p className="text-2xl font-bold text-gray-800">
-                        {commissionConfig.defaultCommissionRate}%
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
               </div>
 
               {/* Recent Activity */}
@@ -839,6 +1000,60 @@ const AdminDashboard = () => {
                   Thêm Danh Mục
                 </Button>
               </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Danh mục hiển thị (Hardcoded)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {DISPLAY_CATEGORIES.map((dc) => {
+                      const selectedId = displayCategoryMapping[dc.key] ?? null;
+                      return (
+                        <div
+                          key={dc.key}
+                          className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-3 rounded-lg border"
+                        >
+                          <div>
+                            <div className="font-medium text-gray-800">{dc.name}</div>
+                            <div className="text-sm text-gray-500">Danh mục hiển thị</div>
+                          </div>
+
+                          <div className="w-full md:w-80">
+                            <Select
+                              value={selectedId === null ? "__none__" : String(selectedId)}
+                              onValueChange={(val) =>
+                                updateDisplayMapping(
+                                  dc.key,
+                                  val === "__none__" ? null : Number(val)
+                                )
+                              }
+                              disabled={mappingLoading}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Chọn danh mục CSDL" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">(Không liên kết)</SelectItem>
+                                {categories.map((c) => (
+                                  <SelectItem key={c.id} value={String(c.id)}>
+                                    {c.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {selectedId
+                                ? `Đang hiển thị theo danh mục ID: ${selectedId}`
+                                : "Chưa chọn danh mục trong CSDL"}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
 
               {loading ? (
                 <div className="flex items-center justify-center py-12">
@@ -911,20 +1126,13 @@ const AdminDashboard = () => {
                                 </TableCell>
                                 <TableCell>
                                   <div className="flex items-center gap-3">
-                                    {category.imageUrl && (
-                                      <img
-                                        src={category.imageUrl}
-                                        alt={category.name}
-                                        className="h-10 w-10 rounded-lg object-cover"
-                                      />
-                                    )}
                                     <div className="font-medium">
                                       {category.name}
                                     </div>
                                   </div>
                                 </TableCell>
                                 <TableCell>
-                                  <div className="text-sm text-gray-500 truncate max-w-xs">
+                                  <div className="text-sm text-gray-500 whitespace-pre-wrap break-words">
                                     {category.description || "—"}
                                   </div>
                                 </TableCell>
@@ -1201,7 +1409,6 @@ const AdminDashboard = () => {
                             <TableHead>Shop</TableHead>
                             <TableHead>Danh Mục</TableHead>
                             <TableHead>Giá</TableHead>
-                            <TableHead>Tồn Kho</TableHead>
                             <TableHead>Trạng Thái</TableHead>
                             <TableHead className="w-64">Thao Tác</TableHead>
                           </TableRow>
@@ -1210,7 +1417,7 @@ const AdminDashboard = () => {
                           {products.length === 0 ? (
                             <TableRow>
                               <TableCell
-                                colSpan={7}
+                                colSpan={6}
                                 className="text-center py-12 text-gray-500"
                               >
                                 Chưa có sản phẩm nào trong hệ thống
@@ -1240,19 +1447,6 @@ const AdminDashboard = () => {
                                 <TableCell>
                                   <div className="font-medium">
                                     {product.basePrice.toLocaleString("vi-VN")}đ
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="text-sm">
-                                    {product.stockQuantity > 0 ? (
-                                      <span className="text-green-600">
-                                        {product.stockQuantity}
-                                      </span>
-                                    ) : (
-                                      <span className="text-red-600">
-                                        Hết hàng
-                                      </span>
-                                    )}
                                   </div>
                                 </TableCell>
                                 <TableCell>
@@ -1315,45 +1509,14 @@ const AdminDashboard = () => {
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <div>
-                  <h3 className="text-xl font-semibold">Quản Lý Cấu Hình</h3>
-                  <p className="text-gray-600">
-                    Cấu hình hoa hồng mặc định và hoa hồng theo shop
-                  </p>
+                  <h3 className="text-xl font-semibold">Quản Lý Hoa Hồng</h3>
                 </div>
               </div>
-
-              {/* Default Commission */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Hoa Hồng Mặc Định</CardTitle>
-                  <CardDescription>
-                    Phần trăm hoa hồng mặc định áp dụng cho tất cả shop (trừ
-                    shop có cấu hình riêng)
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {loading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <RefreshCw className="h-6 w-6 animate-spin text-[#C99F4D] mr-3" />
-                      <span className="text-gray-600">Đang tải...</span>
-                    </div>
-                  ) : (
-                    <DefaultCommissionForm
-                      defaultRate={commissionConfig.defaultCommissionRate || 0}
-                      onSave={handleSetDefaultCommission}
-                    />
-                  )}
-                </CardContent>
-              </Card>
 
               {/* Shop Commissions */}
               <Card>
                 <CardHeader>
                   <CardTitle>Hoa Hồng Theo Shop</CardTitle>
-                  <CardDescription>
-                    Cấu hình phần trăm hoa hồng riêng cho từng shop (nếu không
-                    có sẽ dùng mặc định)
-                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {loading ? (
@@ -1382,22 +1545,75 @@ const AdminDashboard = () => {
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="text-xl font-semibold">Báo Cáo Doanh Thu</h3>
-                  <p className="text-gray-600">
-                    Theo dõi doanh thu theo thời gian và shop
-                  </p>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant={revenuePeriod === "daily" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setRevenuePeriod("daily")}
-                  >
-                    Hôm Nay
-                  </Button>
+                <div className="flex flex-wrap gap-2 items-center justify-end">
+                  <Select value={revenueShopFilter} onValueChange={setRevenueShopFilter}>
+                    <SelectTrigger className="w-[220px]">
+                      <SelectValue placeholder="Chọn shop" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tất cả shop</SelectItem>
+                      {revenueShopOptions
+                        .filter((s) => !!s.id)
+                        .map((s) => (
+                          <SelectItem key={String(s.id)} value={String(s.id)}>
+                            {s.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Ngày</span>
+                    <Input
+                      type="date"
+                      value={revenueDate}
+                      onChange={(e) => {
+                        setRevenueUseDate(true);
+                        setRevenuePeriod("daily");
+                        setRevenueDate(e.target.value);
+                      }}
+                      className="w-[160px]"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!revenueUseDate || !revenueDate}
+                      onClick={() => {
+                        if (!revenueDate) return;
+                        const d = new Date(`${revenueDate}T00:00:00`);
+                        d.setDate(d.getDate() - 1);
+                        setRevenueUseDate(true);
+                        setRevenuePeriod("daily");
+                        setRevenueDate(formatDateInput(d));
+                      }}
+                    >
+                      Trước
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!revenueUseDate || !revenueDate}
+                      onClick={() => {
+                        if (!revenueDate) return;
+                        const d = new Date(`${revenueDate}T00:00:00`);
+                        d.setDate(d.getDate() + 1);
+                        setRevenueUseDate(true);
+                        setRevenuePeriod("daily");
+                        setRevenueDate(formatDateInput(d));
+                      }}
+                    >
+                      Sau
+                    </Button>
+                  </div>
                   <Button
                     variant={revenuePeriod === "weekly" ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setRevenuePeriod("weekly")}
+                    onClick={() => {
+                      setRevenueUseDate(false);
+                      setRevenueDate("");
+                      setRevenuePeriod("weekly");
+                    }}
                   >
                     Tuần Này
                   </Button>
@@ -1406,14 +1622,22 @@ const AdminDashboard = () => {
                       revenuePeriod === "monthly" ? "default" : "outline"
                     }
                     size="sm"
-                    onClick={() => setRevenuePeriod("monthly")}
+                    onClick={() => {
+                      setRevenueUseDate(false);
+                      setRevenueDate("");
+                      setRevenuePeriod("monthly");
+                    }}
                   >
                     Tháng Này
                   </Button>
                   <Button
                     variant={revenuePeriod === "yearly" ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setRevenuePeriod("yearly")}
+                    onClick={() => {
+                      setRevenueUseDate(false);
+                      setRevenueDate("");
+                      setRevenuePeriod("yearly");
+                    }}
                   >
                     Năm Này
                   </Button>
@@ -1437,8 +1661,8 @@ const AdminDashboard = () => {
                               Tổng Doanh Thu
                             </p>
                             <p className="text-2xl font-bold text-[#C99F4D]">
-                              {revenueStats?.totalRevenue
-                                ? `${revenueStats.totalRevenue.toLocaleString(
+                              {revenueTotalsForView?.totalRevenue
+                                ? `${revenueTotalsForView.totalRevenue.toLocaleString(
                                     "vi-VN"
                                   )}đ`
                                 : "0đ"}
@@ -1458,8 +1682,8 @@ const AdminDashboard = () => {
                               Hoa Hồng
                             </p>
                             <p className="text-2xl font-bold text-green-600">
-                              {revenueStats?.totalCommission
-                                ? `${revenueStats.totalCommission.toLocaleString(
+                              {revenueTotalsForView?.totalCommission
+                                ? `${revenueTotalsForView.totalCommission.toLocaleString(
                                     "vi-VN"
                                   )}đ`
                                 : "0đ"}
@@ -1479,7 +1703,7 @@ const AdminDashboard = () => {
                               Đơn Hàng
                             </p>
                             <p className="text-2xl font-bold text-blue-600">
-                              {revenueStats?.totalOrders || 0}
+                              {revenueTotalsForView?.totalOrders || 0}
                             </p>
                           </div>
                           <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
@@ -1496,7 +1720,7 @@ const AdminDashboard = () => {
                               Shop Hoạt Động
                             </p>
                             <p className="text-2xl font-bold text-purple-600">
-                              {revenueStats?.activeShops || 0}
+                              {revenueTotalsForView?.activeShops || 0}
                             </p>
                           </div>
                           <div className="h-8 w-8 bg-purple-100 rounded-full flex items-center justify-center">
@@ -1528,9 +1752,15 @@ const AdminDashboard = () => {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {revenueByShop && revenueByShop.length > 0 ? (
-                              revenueByShop.map((item) => (
-                                <TableRow key={item.shopId}>
+                            {filteredRevenueByShop && filteredRevenueByShop.length > 0 ? (
+                              filteredRevenueByShop.map((item, index) => (
+                                <TableRow
+                                  key={
+                                    item.shopId && item.shopId !== 0
+                                      ? item.shopId
+                                      : `${item.shopName}-${index}`
+                                  }
+                                >
                                   <TableCell>
                                     <div className="font-medium">
                                       {item.shopName}
@@ -1538,22 +1768,22 @@ const AdminDashboard = () => {
                                   </TableCell>
                                   <TableCell>
                                     <div className="font-medium text-[#C99F4D]">
-                                      {item.revenue.toLocaleString("vi-VN")}đ
+                                      {(item.revenue ?? 0).toLocaleString("vi-VN")}đ
                                     </div>
                                   </TableCell>
                                   <TableCell>
                                     <div className="font-medium text-green-600">
-                                      {item.commission.toLocaleString("vi-VN")}đ
+                                      {(item.commission ?? 0).toLocaleString("vi-VN")}đ
                                     </div>
                                   </TableCell>
                                   <TableCell>
                                     <div className="text-gray-600">
-                                      {item.orderCount}
+                                      {item.orderCount ?? 0}
                                     </div>
                                   </TableCell>
                                   <TableCell>
                                     <Badge variant="outline">
-                                      {item.commissionRate}%
+                                      {item.commissionRate ?? 0}%
                                     </Badge>
                                   </TableCell>
                                 </TableRow>
@@ -1564,7 +1794,9 @@ const AdminDashboard = () => {
                                   colSpan={5}
                                   className="text-center py-8 text-gray-500"
                                 >
-                                  Chưa có dữ liệu doanh thu trong kỳ này
+                                  {revenueDate
+                                    ? "Chưa có dữ liệu doanh thu trong ngày này"
+                                    : "Chưa có dữ liệu doanh thu trong kỳ này"}
                                 </TableCell>
                               </TableRow>
                             )}
@@ -1615,18 +1847,15 @@ const AdminDashboard = () => {
                         <TableHeader>
                           <TableRow>
                             <TableHead>Thời Gian</TableHead>
-                            <TableHead>Người Dùng</TableHead>
-                            <TableHead>Loại</TableHead>
                             <TableHead>Hành Động</TableHead>
                             <TableHead>Chi Tiết</TableHead>
-                            <TableHead>IP</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {systemLogs.length === 0 ? (
                             <TableRow>
                               <TableCell
-                                colSpan={6}
+                                colSpan={3}
                                 className="text-center py-12 text-gray-500"
                               >
                                 Chưa có nhật ký nào trong hệ thống
@@ -1647,39 +1876,14 @@ const AdminDashboard = () => {
                                 </TableCell>
                                 <TableCell>
                                   <div className="font-medium">
-                                    {log.userName}
-                                  </div>
-                                  <div className="text-sm text-gray-500">
-                                    {log.userEmail}
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <Badge
-                                    className={
-                                      log.userType === "Admin"
-                                        ? "bg-red-100 text-red-800"
-                                        : "bg-blue-100 text-blue-800"
-                                    }
-                                  >
-                                    {log.userType}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="font-medium">
                                     {log.action}
                                   </div>
                                 </TableCell>
                                 <TableCell>
                                   <div
-                                    className="text-sm max-w-xs truncate"
-                                    title={log.details}
+                                    className="text-sm whitespace-pre-wrap break-words"
                                   >
                                     {log.details}
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="text-sm text-gray-500">
-                                    {log.ipAddress}
                                   </div>
                                 </TableCell>
                               </TableRow>
@@ -1756,7 +1960,6 @@ const CategoryForm = ({
   const [formData, setFormData] = useState<CategoryFormData>({
     name: category?.name || "",
     description: category?.description || "",
-    imageUrl: category?.imageUrl || "",
     isVisible: category?.isVisible !== false,
     displayOrder: category?.displayOrder || 0,
   });
@@ -1806,32 +2009,6 @@ const CategoryForm = ({
                 rows={3}
                 className="mt-1"
               />
-            </div>
-
-            <div>
-              <Label htmlFor="categoryImageUrl">URL hình ảnh</Label>
-              <Input
-                id="categoryImageUrl"
-                value={formData.imageUrl || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, imageUrl: e.target.value })
-                }
-                placeholder="https://example.com/image.jpg"
-                className="mt-1"
-              />
-              {formData.imageUrl && (
-                <div className="mt-2">
-                  <img
-                    src={formData.imageUrl}
-                    alt="Preview"
-                    className="h-20 w-20 object-cover rounded-lg border"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = "none";
-                    }}
-                  />
-                </div>
-              )}
             </div>
 
             <div className="flex items-center gap-4">
@@ -2293,67 +2470,6 @@ const ProductChangeCategoryDialog = ({
 };
 
 // Default Commission Form Component
-const DefaultCommissionForm = ({
-  defaultRate,
-  onSave,
-}: {
-  defaultRate: number;
-  onSave: (rate: number) => Promise<void>;
-}) => {
-  const [rate, setRate] = useState<number>(defaultRate);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    setRate(defaultRate);
-  }, [defaultRate]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (rate < 0 || rate > 100) {
-      alert("Phần trăm hoa hồng phải từ 0 đến 100");
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      await onSave(rate);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="flex items-end gap-4">
-        <div className="flex-1">
-          <Label htmlFor="defaultRate">Phần trăm hoa hồng mặc định (%)</Label>
-          <Input
-            id="defaultRate"
-            type="number"
-            min="0"
-            max="100"
-            step="0.1"
-            value={rate}
-            onChange={(e) => setRate(Number(e.target.value))}
-            className="mt-1"
-            placeholder="Nhập phần trăm (0-100)"
-          />
-          <p className="text-sm text-gray-500 mt-1">
-            Ví dụ: {rate}% = {((rate / 100) * 10000000).toLocaleString("vi-VN")}
-            đ từ đơn hàng 10 triệu
-          </p>
-        </div>
-        <Button
-          type="submit"
-          className="bg-[#C99F4D] hover:bg-[#B8904A]"
-          disabled={isSubmitting || rate === defaultRate}
-        >
-          {isSubmitting ? "Đang lưu..." : "Lưu"}
-        </Button>
-      </div>
-    </form>
-  );
-};
-
 // Shop Commission Table Component
 const ShopCommissionTable = ({
   shops,
@@ -2408,14 +2524,12 @@ const ShopCommissionTable = ({
             <TableHead>Tên Shop</TableHead>
             <TableHead>Email Chủ Shop</TableHead>
             <TableHead>Hoa Hồng Hiện Tại</TableHead>
-            <TableHead>Loại</TableHead>
             <TableHead className="w-64">Thao Tác</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {shops.map((shop) => {
             const currentRate = shopCommissionRates[shop.id] ?? defaultRate;
-            const isCustom = shopCommissionRates[shop.id] !== undefined;
             const isEditing = editingShopId === shop.id;
 
             return (
@@ -2443,21 +2557,7 @@ const ShopCommissionTable = ({
                   ) : (
                     <div className="font-medium">
                       {currentRate.toFixed(1)}%
-                      {isCustom && (
-                        <Badge variant="outline" className="ml-2">
-                          Tùy chỉnh
-                        </Badge>
-                      )}
                     </div>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {isCustom ? (
-                    <Badge className="bg-blue-100 text-blue-800">
-                      Tùy chỉnh
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline">Mặc định</Badge>
                   )}
                 </TableCell>
                 <TableCell>

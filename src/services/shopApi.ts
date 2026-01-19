@@ -60,18 +60,32 @@ export const shopApi = {
 
   // Shop profile
   // GET /api/shop/profile
-  getShopProfile: async () => {
-    return await apiService.getShopProfile();
+  getShopProfile: async (): Promise<ShopProfile> => {
+    const raw: any = await apiService.getShopProfile();
+    return {
+      id: raw?.id ?? raw?.Id ?? 0,
+      name: raw?.name ?? raw?.Name ?? "",
+      ownerFullName: raw?.ownerFullName ?? raw?.OwnerFullName ?? "",
+      ownerEmail: raw?.ownerEmail ?? raw?.OwnerEmail ?? "",
+      description: raw?.description ?? raw?.Description,
+      address: raw?.address ?? raw?.Address,
+      contactPhoneNumber:
+        raw?.contactPhoneNumber ?? raw?.ContactPhoneNumber ?? raw?.phone ?? raw?.Phone,
+      joinDate: raw?.joinDate ?? raw?.JoinDate,
+      avatarBase64: raw?.avatarBase64 ?? raw?.AvatarBase64,
+    };
   },
 
   // PUT /api/shop/profile
   updateShopProfile: async (profileData: {
-    name?: string;
-    description?: string;
+    name: string;
+    ownerFullName?: string;
+    ownerEmail?: string;
+    contactPhoneNumber?: string;
     address?: string;
-    phone?: string;
-    email?: string;
-    logo?: string;
+    description?: string;
+    avatarFile?: File;
+    avatarUrl?: string;
   }) => {
     return await apiService.updateShopProfile(profileData);
   },
@@ -134,12 +148,14 @@ export const shopApi = {
     limit?: number;
     status?: string;
   }) => {
-    return await apiService.getShopOrders(params);
+    // V2 backend supports order-level management via /shop/orders/v2.
+    // We keep params signature but forward only status.
+    return await apiService.getShopOrdersV2({ status: params?.status });
   },
 
-  // PUT /api/shop/orders/items/{orderItemId}/status
-  updateOrderStatus: async (orderItemId: string, status: string) => {
-    return await apiService.updateOrderStatus(orderItemId, status);
+  // PUT /api/shop/orders/{orderId}/status
+  updateOrderStatus: async (orderId: string, status: string) => {
+    return await apiService.updateShopOrderStatus(orderId, status);
   },
 
   // Reviews management
@@ -185,15 +201,15 @@ export interface ShopDashboardData {
 }
 
 export interface ShopProfile {
-  id: string;
+  id: number;
   name: string;
-  description: string;
-  address: string;
-  phone: string;
-  email: string;
-  logo: string;
-  createdAt: string;
-  updatedAt: string;
+  ownerFullName: string;
+  ownerEmail: string;
+  description?: string;
+  address?: string;
+  contactPhoneNumber?: string;
+  joinDate?: string;
+  avatarBase64?: string;
 }
 
 export interface ShopProduct {

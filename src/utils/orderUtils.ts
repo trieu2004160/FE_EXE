@@ -5,6 +5,11 @@ export type OrderStatusKey =
   | "Shipping"
   | "Completed"
   | "Cancelled"
+  | "Processing"
+  | "Received"
+  | "Preparing"
+  | "Delivering"
+  | "Delivered"
   | string;
 
 export function formatOrderStatus(status: string): {
@@ -19,17 +24,44 @@ export function formatOrderStatus(status: string): {
         label: "Đang chờ thanh toán",
         badgeClassName: "bg-yellow-50 text-yellow-700 border-yellow-200",
       };
+    // Payment-state should be shown separately via IsPaid badge.
+    // Keep legacy "Paid" mapped to processing.
     case "Paid":
       return {
-        label: "Đã thanh toán",
-        badgeClassName: "bg-green-50 text-green-700 border-green-200",
+        label: "Đang xử lý",
+        badgeClassName: "bg-blue-50 text-blue-700 border-blue-200",
+      };
+    case "Processing":
+      return {
+        label: "Đang xử lý",
+        badgeClassName: "bg-blue-50 text-blue-700 border-blue-200",
+      };
+    case "Received":
+      return {
+        label: "Đã tiếp nhận",
+        badgeClassName: "bg-indigo-50 text-indigo-700 border-indigo-200",
+      };
+    case "Preparing":
+      return {
+        label: "Đang chuẩn bị",
+        badgeClassName: "bg-orange-50 text-orange-700 border-orange-200",
       };
     case "Shipping":
       return {
         label: "Đang giao hàng",
         badgeClassName: "bg-purple-50 text-purple-700 border-purple-200",
       };
+    case "Delivering":
+      return {
+        label: "Đang giao hàng",
+        badgeClassName: "bg-purple-50 text-purple-700 border-purple-200",
+      };
     case "Completed":
+      return {
+        label: "Đã giao hàng",
+        badgeClassName: "bg-green-50 text-green-700 border-green-200",
+      };
+    case "Delivered":
       return {
         label: "Đã giao hàng",
         badgeClassName: "bg-green-50 text-green-700 border-green-200",
@@ -41,7 +73,7 @@ export function formatOrderStatus(status: string): {
       };
     case "Pending":
       return {
-        label: "Đang chờ xử lý",
+        label: "Đang xử lý",
         badgeClassName: "bg-blue-50 text-blue-700 border-blue-200",
       };
     default:

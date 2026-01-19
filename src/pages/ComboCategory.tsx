@@ -9,10 +9,13 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import man1 from "../assets/man1.jpg";
 import man2 from "../assets/mam2.jpg";
+import type { DisplayCategoryKey } from "@/config/displayCategories";
 const ComboCategory = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const displayKey: DisplayCategoryKey = "combo";
 
   useEffect(() => {
     const fetchData = async () => {
@@ -20,15 +23,23 @@ const ComboCategory = () => {
       setError(null);
 
       try {
+        const mapping = await apiService.getDisplayCategoryMapping();
+        const mappedCategoryId = mapping?.mappings?.[displayKey];
+
+        if (typeof mappedCategoryId === "number" && mappedCategoryId > 0) {
+          const mappedProducts = await apiService.getProductsByCategory(
+            mappedCategoryId
+          );
+          setProducts(mappedProducts);
+          return;
+        }
+
         const [allProducts, categories] = await Promise.all([
           apiService.getProducts(),
           apiService.getCategories(),
         ]);
 
-        console.log("[ComboCategory] All products:", allProducts);
-        console.log("[ComboCategory] Sample product:", allProducts[0]);
-
-        // Find combo category
+        // Fallback: Find combo category
         const comboCategory = categories.find(
           (cat) =>
             cat.name.toLowerCase().includes("combo") ||
@@ -36,19 +47,22 @@ const ComboCategory = () => {
         );
 
         if (comboCategory) {
-          const comboProducts = allProducts.filter(
-            (product) => product.productCategoryId === comboCategory.id
+          setProducts(
+            allProducts.filter(
+              (product) => product.productCategoryId === comboCategory.id
+            )
           );
-          setProducts(comboProducts);
-        } else {
-          // If no combo category found, filter by name
-          const comboProducts = allProducts.filter(
+          return;
+        }
+
+        // Last fallback: filter by name
+        setProducts(
+          allProducts.filter(
             (product) =>
               product.name.toLowerCase().includes("combo") ||
               product.name.toLowerCase().includes("bộ")
-          );
-          setProducts(comboProducts);
-        }
+          )
+        );
       } catch (apiError) {
         console.error("Error fetching products:", apiError);
         setError("Không thể tải sản phẩm. Vui lòng thử lại sau.");

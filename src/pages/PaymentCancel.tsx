@@ -15,6 +15,7 @@ function useQueryParam(name: string): string {
 const PaymentCancel = () => {
   const navigate = useNavigate();
   const orderIdParam = useQueryParam("orderId");
+  const orderCodeParam = useQueryParam("orderCode");
 
   const [status, setStatus] = useState<"idle" | "working" | "done" | "error">("idle");
   const [message, setMessage] = useState<string>("");
@@ -26,7 +27,11 @@ const PaymentCancel = () => {
       const orderId = Number(orderIdParam);
       if (!orderIdParam || Number.isNaN(orderId) || orderId <= 0) {
         setStatus("error");
-        setMessage("Thiếu orderId từ PayOS. Vui lòng quay lại giỏ hàng.");
+        setMessage(
+          orderCodeParam
+            ? "Thiếu orderId từ PayOS (chỉ có orderCode). Vui lòng quay lại giỏ hàng."
+            : "Thiếu orderId từ PayOS. Vui lòng quay lại giỏ hàng."
+        );
         return;
       }
 
@@ -35,10 +40,10 @@ const PaymentCancel = () => {
         await apiService.cancelPayOSPayment(orderId);
         if (cancelled) return;
         setStatus("done");
-        setMessage("Bạn đã hủy thanh toán. Đơn hàng tạm đã được xóa.");
+        setMessage("Bạn đã hủy thanh toán. Các đơn hàng chờ thanh toán đã được xóa.");
 
         // Take user back to checkout/cart to continue.
-        setTimeout(() => navigate("/checkout"), 800);
+        setTimeout(() => navigate("/cart?tab=history"), 800);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : "Có lỗi xảy ra";
         if (cancelled) return;
@@ -51,7 +56,7 @@ const PaymentCancel = () => {
     return () => {
       cancelled = true;
     };
-  }, [navigate, orderIdParam]);
+  }, [navigate, orderCodeParam, orderIdParam]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black text-white px-4">

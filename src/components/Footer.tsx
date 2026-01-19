@@ -74,7 +74,6 @@ const Footer = () => {
                   href="#"
                   className="text-stone-600 hover:text-stone-800 transition-colors"
                 >
-                  Chính Sách
                 </a>
               </li>
             </ul>
@@ -88,7 +87,7 @@ const Footer = () => {
                   href="#"
                   className="text-stone-600 hover:text-stone-800 transition-colors"
                 >
-                  Giao Hoa Tận Nơi
+                  Giao Hàng Tận Nơi
                 </a>
               </li>
               <li>
@@ -97,14 +96,6 @@ const Footer = () => {
                   className="text-stone-600 hover:text-stone-800 transition-colors"
                 >
                   Tư Vấn Miễn Phí
-                </a>
-              </li>
-              <li>
-                <a
-                  href="#"
-                  className="text-stone-600 hover:text-stone-800 transition-colors"
-                >
-                  Đặt Hoa Online
                 </a>
               </li>
               <li>

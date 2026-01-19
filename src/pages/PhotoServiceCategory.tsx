@@ -18,11 +18,14 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Loader2 } from "lucide-react";
 import { getProductImageUrl } from "@/utils/imageUtils";
+import type { DisplayCategoryKey } from "@/config/displayCategories";
 
 const PhotoServiceCategory = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const displayKey: DisplayCategoryKey = "chup-anh-le";
 
   useEffect(() => {
     const fetchData = async () => {
@@ -30,12 +33,23 @@ const PhotoServiceCategory = () => {
       setError(null);
 
       try {
+        const mapping = await apiService.getDisplayCategoryMapping();
+        const mappedCategoryId = mapping?.mappings?.[displayKey];
+
+        if (typeof mappedCategoryId === "number" && mappedCategoryId > 0) {
+          const mappedProducts = await apiService.getProductsByCategory(
+            mappedCategoryId
+          );
+          setProducts(mappedProducts);
+          return;
+        }
+
         const [allProducts, categories] = await Promise.all([
           apiService.getProducts(),
           apiService.getCategories(),
         ]);
 
-        // Find photo service category
+        // Fallback: Find photo service category
         const photoCategory = categories.find(
           (cat) =>
             cat.name.toLowerCase().includes("chụp ảnh") ||
@@ -45,20 +59,23 @@ const PhotoServiceCategory = () => {
         );
 
         if (photoCategory) {
-          const photoProducts = allProducts.filter(
-            (product) => product.productCategoryId === photoCategory.id
+          setProducts(
+            allProducts.filter(
+              (product) => product.productCategoryId === photoCategory.id
+            )
           );
-          setProducts(photoProducts);
-        } else {
-          // If no photo category found, filter by name
-          const photoProducts = allProducts.filter(
+          return;
+        }
+
+        // Last fallback: filter by name
+        setProducts(
+          allProducts.filter(
             (product) =>
               product.name.toLowerCase().includes("chụp ảnh") ||
               product.name.toLowerCase().includes("photo") ||
               product.name.toLowerCase().includes("dịch vụ")
-          );
-          setProducts(photoProducts);
-        }
+          )
+        );
       } catch (apiError) {
         console.error("Error fetching products:", apiError);
         setError("Không thể tải sản phẩm. Vui lòng thử lại sau.");

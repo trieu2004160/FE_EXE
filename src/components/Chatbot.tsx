@@ -15,7 +15,7 @@ const Chatbot: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
-      text: "Xin chào! Tôi là AI Assistant. Tôi có thể giúp bạn tư vấn về hương nến và các sản phẩm lễ tốt nghiệp. Bạn cần hỗ trợ gì?",
+      text: "Xin chào! Tôi là Trợ Lý AI. Tôi có thể tư vấn về các sản phầm trên cửa hàng và các dịch vụ chụp ảnh cho các ngày lễ. Bạn cần hỗ trợ gì?",
       sender: "bot",
       timestamp: new Date(),
     },

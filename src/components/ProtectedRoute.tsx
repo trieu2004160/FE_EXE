@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { Navigate, useLocation } from "react-router-dom";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -6,6 +7,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
+  const location = useLocation();
   // Very lenient - allow access if ANY auth info exists
   // Let the page component handle validation and show errors
   const token = localStorage.getItem("userToken");
@@ -14,6 +16,27 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
 
   // Only block if absolutely no auth info
   const hasAnyAuth = token || userRole || userData;
+
+  // Enforce first-login password change if flagged
+  const mustChangePassword = localStorage.getItem("mustChangePassword") === "true";
+  const isOnSettings = location.pathname === "/settings";
+  const isOnShopDashboard = location.pathname === "/shop-dashboard";
+  if (hasAnyAuth && mustChangePassword) {
+    const role = (localStorage.getItem("userRole") || "").toLowerCase();
+    if (role === "shop") {
+      if (!isOnShopDashboard) {
+        return (
+          <Navigate
+            to="/shop-dashboard?tab=settings"
+            replace
+            state={{ forcePasswordChange: true }}
+          />
+        );
+      }
+    } else if (!isOnSettings) {
+      return <Navigate to="/settings" replace state={{ forcePasswordChange: true }} />;
+    }
+  }
   
   if (!hasAnyAuth) {
     // No auth at all - could show loading or let page handle
