@@ -11,22 +11,30 @@ import { getProductImageUrl } from "@/utils/imageUtils";
 import mam2 from "@/assets/mam2.jpg";
 import flowersHero from "@/assets/flowers-hero.jpg";
 import heroBanner from "@/assets/hero-banner.jpg";
+import type { Product as ApiProduct } from "@/services/apiService";
 
-type ProductCardProps = Product;
+type ProductCardProps = Product | (ApiProduct & Partial<Product>);
 
 const ProductCard = (product: ProductCardProps) => {
-  const {
-    id,
-    name,
-    price,
-    originalPrice,
-    image,
-    rating,
-    reviews,
-    category,
-    isNew,
-    isBestSeller,
-  } = product;
+  const id = (product as any).id;
+  const name = (product as any).name;
+
+  const category =
+    (product as any).category || (product as any).productCategoryName || "Sản phẩm";
+
+  const price: number =
+    (product as any).price ?? (product as any).basePrice ?? 0;
+
+  const originalPrice: number | undefined =
+    (product as any).originalPrice ?? (product as any).maxPrice;
+
+  const image = (product as any).image;
+  const rating: number = (product as any).rating ?? 4.5;
+  const reviews: number =
+    (product as any).reviews ?? (product as any).reviewCount ?? 0;
+
+  const isNew: boolean = (product as any).isNew ?? false;
+  const isBestSeller: boolean = (product as any).isBestSeller ?? (product as any).isPopular ?? false;
 
   // Support both 'image' (from mockData) and 'imageUrl' (from API)
   // Use getProductImageUrl to properly handle ImageUrls from backend
