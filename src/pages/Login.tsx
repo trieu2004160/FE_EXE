@@ -97,7 +97,7 @@ const Login = () => {
       }
     } catch (error) {
       console.error("Login error:", error);
-      setError("Không thể kết nối đến máy chủ. Vui lòng thử lại.");
+      setError("Mật khẩu hoặc email không đúng!");
     } finally {
       setLoading(false);
     }

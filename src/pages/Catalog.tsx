@@ -380,7 +380,6 @@ const Catalog = () => {
                   id={product.id}
                   name={product.name}
                   price={product.basePrice}
-                  originalPrice={product.maxPrice}
                   image={product.imageUrl || ""}
                   rating={4.5}
                   reviews={0}
@@ -426,12 +425,6 @@ const Catalog = () => {
                           <span className="text-lg font-semibold text-[#C99F4D]">
                             {product.basePrice.toLocaleString("vi-VN")}đ
                           </span>
-                          {product.maxPrice &&
-                            product.maxPrice > product.basePrice && (
-                              <span className="text-sm text-muted-foreground line-through">
-                                {product.maxPrice.toLocaleString("vi-VN")}đ
-                              </span>
-                            )}
                         </div>
                       </div>
                       <div className="flex flex-col gap-2">

@@ -110,7 +110,6 @@ export const shopApi = {
     features?: string;
     isPopular: boolean;
     basePrice: number;
-    maxPrice?: number;
     stockQuantity: number;
     productCategoryId: number;
     specifications?: Record<string, string>;
@@ -127,7 +126,6 @@ export const shopApi = {
     features?: string;
     isPopular?: boolean;
     basePrice?: number;
-    maxPrice?: number;
     stockQuantity?: number;
     productCategoryId?: number;
     specifications?: Record<string, string>;
@@ -223,7 +221,6 @@ export interface ShopProduct {
   imageFile?: File;
   isPopular: boolean;
   basePrice: number;
-  maxPrice?: number;
   stockQuantity: number;
   specifications?: {
     xuatXu?: string;
@@ -246,7 +243,6 @@ export interface ProductFormData {
   features?: string;
   isPopular: boolean;
   basePrice: number;
-  maxPrice?: number;
   stockQuantity: number;
   productCategoryId: number;
   // Multi-image support (Shop endpoints accept ImageUrls/ImageFiles arrays)

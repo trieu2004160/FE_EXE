@@ -218,7 +218,7 @@ const OrderDetail = () => {
                   const isPaid =
                     paymentMethod === "PayOS"
                       ? status !== "PendingPayment"
-                      : status === "Completed";
+                      : status === "Delivered" || status === "Completed";
 
                   return (
                     <div className="flex justify-between text-sm">
@@ -235,7 +235,11 @@ const OrderDetail = () => {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Phí vận chuyển</span>
-                  <span>Miễn phí</span>
+                  <span>
+                    {(order.shippingFee ?? 0) === 0
+                      ? "Miễn phí"
+                      : formatCurrency(order.shippingFee ?? 0)}
+                  </span>
                 </div>
                 <Separator />
                 <div className="flex justify-between font-medium text-lg">

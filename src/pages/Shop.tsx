@@ -88,6 +88,17 @@ const ShopPage = () => {
     ? normalizeImageUrl(shop.avatarBase64)
     : undefined;
 
+  const sortedProducts = [...products].sort((a, b) => {
+    const aRating = a.averageRating ?? 0;
+    const bRating = b.averageRating ?? 0;
+    const aReviews = a.reviewCount ?? 0;
+    const bReviews = b.reviewCount ?? 0;
+
+    if (bRating !== aRating) return bRating - aRating;
+    if (bReviews !== aReviews) return bReviews - aReviews;
+    return a.name.localeCompare(b.name);
+  });
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -160,7 +171,7 @@ const ShopPage = () => {
           <CardContent>
             {products.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {products.map((product) => (
+                {sortedProducts.map((product) => (
                   <ProductCard key={product.id} {...(product as any)} />
                 ))}
               </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -28,6 +28,9 @@ const Products = () => {
   const [selectedCategory, setSelectedCategory] = useState("Tất cả");
   const [sortBy, setSortBy] = useState("featured");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  // Stable random ordering for the session (avoid re-shuffling on every render)
+  const randomRankRef = useRef<Record<number, number>>({});
 
   // Fetch data from API
   useEffect(() => {
@@ -62,6 +65,13 @@ const Products = () => {
           ...product,
           imageUrl: getProductImageUrl(product),
         }));
+
+        // Assign stable random ranks for initial/featured ordering
+        for (const p of normalizedProducts) {
+          if (randomRankRef.current[p.id] == null) {
+            randomRankRef.current[p.id] = Math.random();
+          }
+        }
 
         console.log('[Products] Normalized products:', {
           count: normalizedProducts.length,
@@ -112,12 +122,13 @@ const Products = () => {
         return a.basePrice - b.basePrice;
       case "price-high":
         return b.basePrice - a.basePrice;
-      case "rating":
-        return 0; // API doesn't provide rating
       case "name":
         return a.name.localeCompare(b.name);
       default:
-        return 0;
+        // "featured" => stable random order
+        return (
+          (randomRankRef.current[a.id] ?? 0) - (randomRankRef.current[b.id] ?? 0)
+        );
     }
   });
 
@@ -267,7 +278,6 @@ const Products = () => {
                   <SelectItem value="featured">Nổi bật</SelectItem>
                   <SelectItem value="price-low">Giá thấp đến cao</SelectItem>
                   <SelectItem value="price-high">Giá cao đến thấp</SelectItem>
-                  <SelectItem value="rating">Đánh giá cao nhất</SelectItem>
                   <SelectItem value="name">Tên A-Z</SelectItem>
                 </SelectContent>
               </Select>
@@ -337,10 +347,9 @@ const Products = () => {
                   id={product.id}
                   name={product.name}
                   price={product.basePrice}
-                  originalPrice={product.maxPrice}
                   image={product.imageUrl || ""}
-                  rating={4.5}
-                  reviews={0}
+                  rating={product.averageRating ?? 0}
+                  reviews={product.reviewCount ?? 0}
                   category={
                     categories.find((c) => c.id === product.productCategoryId)
                       ?.name || "Sản phẩm"
