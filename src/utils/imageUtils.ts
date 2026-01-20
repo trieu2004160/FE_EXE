@@ -1,5 +1,45 @@
 // Image Utilities - Handle image URLs from backend
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function getProp(obj: Record<string, unknown>, key: string): unknown {
+  return obj[key];
+}
+
+function tryExtractGoogleDriveFileId(url: string): string | null {
+  if (!url) return null;
+  const u = url.trim();
+
+  // https://drive.google.com/file/d/<id>/view?...
+  const m1 = u.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/i);
+  if (m1?.[1]) return m1[1];
+
+  // https://drive.google.com/open?id=<id>
+  const m2 = u.match(/drive\.google\.com\/(?:open|uc)\?[^#]*\bid=([a-zA-Z0-9_-]+)/i);
+  if (m2?.[1]) return m2[1];
+
+  // https://drive.usercontent.google.com/download?id=<id>&...
+  const m2b = u.match(/drive\.usercontent\.google\.com\/(?:download|uc)\?[^#]*\bid=([a-zA-Z0-9_-]+)/i);
+  if (m2b?.[1]) return m2b[1];
+
+  // https://lh3.googleusercontent.com/d/<id>
+  const m3 = u.match(/googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/i);
+  if (m3?.[1]) return m3[1];
+
+  return null;
+}
+
+function normalizeGoogleDriveImageUrl(url: string): string {
+  const id = tryExtractGoogleDriveFileId(url);
+  if (!id) return url;
+
+  // Direct-view URL for <img>. Note: file must be shared/public.
+  // Use Google's content CDN; in practice this is more reliably embeddable than drive.google.com/uc.
+  return `https://lh3.googleusercontent.com/d/${id}`;
+}
+
 /**
  * Normalize image URL - handle relative paths, absolute URLs, and base64 data URLs from backend
  * Backend returns:
@@ -20,6 +60,13 @@ export function normalizeImageUrl(url: string | undefined | null): string | unde
     // Format: data:image/[type];base64,[base64string]
     if (trimmedUrl.startsWith('data:image/')) {
       return trimmedUrl;
+    }
+
+    // Google Drive share links are not directly embeddable; convert to a direct-view URL.
+    // This helps both previews (ShopDashboard) and product display (ProductDetail).
+    const driveNormalized = normalizeGoogleDriveImageUrl(trimmedUrl);
+    if (driveNormalized !== trimmedUrl) {
+      return driveNormalized;
     }
 
     // If already absolute URL (http:// or https://), return as is
@@ -88,44 +135,48 @@ export function normalizeImageUrl(url: string | undefined | null): string | unde
 /**
  * Get all image URLs from product
  */
-export function getAllProductImages(product: any): string[] {
+export function getAllProductImages(product: unknown): string[] {
   const images: string[] = [];
+
+  if (!isRecord(product)) return images;
   
   // Check for single imageUrl (camelCase or PascalCase)
-  const imageUrl = product.imageUrl || product.ImageUrl;
+  const imageUrl = getProp(product, "imageUrl") ?? getProp(product, "ImageUrl");
   if (imageUrl && typeof imageUrl === 'string') {
     const normalized = normalizeImageUrl(imageUrl);
     if (normalized) images.push(normalized);
   }
   
   // Check for array of images (camelCase or PascalCase) - List<string>
-  const imageArray = product.imageUrls || product.ImageUrls || [];
+  const imageArray =
+    (getProp(product, "imageUrls") ?? getProp(product, "ImageUrls")) as unknown;
   if (Array.isArray(imageArray)) {
-    imageArray.forEach((img: any) => {
-      if (img && typeof img === 'string') {
+    for (const img of imageArray) {
+      if (typeof img === "string") {
         const normalized = normalizeImageUrl(img);
         if (normalized && !images.includes(normalized)) {
           images.push(normalized);
         }
       }
-    });
+    }
   }
 
   // Check for array of image objects (camelCase or PascalCase) - List<ImageDto>
   // Backend returns: public List<ImageDto> Images { get; set; }
   // ImageDto: { Url: string }
-  const imageObjects = product.images || product.Images || [];
+  const imageObjects =
+    (getProp(product, "images") ?? getProp(product, "Images")) as unknown;
   if (Array.isArray(imageObjects)) {
-    imageObjects.forEach((imgObj: any) => {
-      // Handle object with Url/url property
-      const imgUrl = imgObj.url || imgObj.Url;
-      if (imgUrl && typeof imgUrl === 'string') {
+    for (const imgObj of imageObjects) {
+      if (!isRecord(imgObj)) continue;
+      const imgUrl = getProp(imgObj, "url") ?? getProp(imgObj, "Url");
+      if (typeof imgUrl === "string") {
         const normalized = normalizeImageUrl(imgUrl);
         if (normalized && !images.includes(normalized)) {
           images.push(normalized);
         }
       }
-    });
+    }
   }
   
   return images;
@@ -135,15 +186,15 @@ export function getAllProductImages(product: any): string[] {
  * Get the first image URL from product response
  * Backend returns ImageUrls (PascalCase array) from ProductResponseDto
  */
-export function getProductImageUrl(product: any): string | undefined {
+export function getProductImageUrl(product: unknown): string | undefined {
   try {
-    if (!product) return undefined;
+    if (!isRecord(product)) return undefined;
     
     // Backend returns ImageUrls (PascalCase) as List<string>
     // Check all possible field names
-    const imageUrl = product.imageUrl || product.ImageUrl;
-    const imageUrls = product.imageUrls || product.ImageUrls || [];
-    const imageObjects = product.images || product.Images || [];
+    const imageUrl = getProp(product, "imageUrl") ?? getProp(product, "ImageUrl");
+    const imageUrls = (getProp(product, "imageUrls") ?? getProp(product, "ImageUrls")) as unknown;
+    const imageObjects = (getProp(product, "images") ?? getProp(product, "Images")) as unknown;
     
     // Priority 1: single imageUrl
     if (imageUrl && typeof imageUrl === 'string') {
@@ -161,9 +212,11 @@ export function getProductImageUrl(product: any): string | undefined {
     // Priority 3: first from Images array (List<ImageDto>)
     if (Array.isArray(imageObjects) && imageObjects.length > 0) {
       const firstImageObj = imageObjects[0];
-      const firstImageUrl = firstImageObj.url || firstImageObj.Url;
-      if (firstImageUrl && typeof firstImageUrl === 'string') {
-        return normalizeImageUrl(firstImageUrl);
+      if (isRecord(firstImageObj)) {
+        const firstImageUrl = getProp(firstImageObj, "url") ?? getProp(firstImageObj, "Url");
+        if (typeof firstImageUrl === "string") {
+          return normalizeImageUrl(firstImageUrl);
+        }
       }
     }
     

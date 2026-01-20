@@ -328,6 +328,8 @@ const ProductDetail = () => {
                     src={mainImage}
                     alt={product.name}
                     className="w-full h-[450px] object-cover"
+                    referrerPolicy="no-referrer"
+                    crossOrigin="anonymous"
                     style={
                       {
                         imageRendering: "crisp-edges",
@@ -365,6 +367,8 @@ const ProductDetail = () => {
                           src={img}
                           alt={product.name}
                           className="w-full h-32 object-cover"
+                          referrerPolicy="no-referrer"
+                          crossOrigin="anonymous"
                           style={
                             {
                               imageRendering: "crisp-edges",

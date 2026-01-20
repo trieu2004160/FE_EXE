@@ -1968,6 +1968,16 @@ const ProductForm = ({
   const [imageMethod, setImageMethod] = useState<"url" | "file">("url");
   const [urlDraft, setUrlDraft] = useState<string>("");
   const [filePreviewUrls, setFilePreviewUrls] = useState<string[]>([]);
+  const [drivePreviewWarning, setDrivePreviewWarning] = useState(false);
+
+  const isGoogleDriveLink = (u: string) => {
+    const s = String(u || "").toLowerCase();
+    return (
+      s.includes("drive.google.com") ||
+      s.includes("drive.usercontent.google.com") ||
+      s.includes("googleusercontent.com")
+    );
+  };
 
   useEffect(() => {
     const urls = (formData.imageFiles ?? []).map((f) => URL.createObjectURL(f));
@@ -2314,6 +2324,13 @@ const ProductForm = ({
                             src={normalizeImageUrl(u)}
                             alt=""
                             className="h-24 w-full object-cover"
+                            referrerPolicy="no-referrer"
+                            crossOrigin="anonymous"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = "/placeholder.svg";
+                              if (isGoogleDriveLink(u)) setDrivePreviewWarning(true);
+                            }}
                           />
                           <button
                             type="button"
@@ -2326,6 +2343,17 @@ const ProductForm = ({
                         </div>
                       ))}
                     </div>
+                  ) : null}
+
+                  {drivePreviewWarning ? (
+                    <Alert className="border-amber-200 bg-amber-50">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        Không thể preview ảnh từ Google Drive. Hãy đảm bảo file Drive được chia sẻ
+                        "Anyone with the link" (Công khai) — nếu không, trình duyệt có thể chặn
+                        cookie bên thứ ba nên ảnh sẽ không hiển thị.
+                      </AlertDescription>
+                    </Alert>
                   ) : null}
                 </div>
               ) : (

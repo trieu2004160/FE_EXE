@@ -1752,6 +1752,7 @@ class ApiService {
     email: string;
     fullName: string;
     shopName: string;
+    contactPhoneNumber?: string;
   }): Promise<AdminShopDto> {
     return this.request<AdminShopDto>('/admin/shops/create-new', {
       method: 'POST',
