@@ -22,7 +22,6 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import AIAssistant from "@/components/AIAssistant";
 import ProductCard from "@/components/ProductCard";
-import ShopInfo from "@/components/ShopInfo";
 import { useToast } from "@/hooks/use-toast";
 import { useWishlist } from "@/contexts/WishlistContext";
 import {
@@ -31,7 +30,11 @@ import {
   ProductDetailResponse,
   ProductReview,
 } from "@/services/apiService";
-import { getProductImageUrl, getAllProductImages } from "@/utils/imageUtils";
+import {
+  getProductImageUrl,
+  getAllProductImages,
+  normalizeImageUrl,
+} from "@/utils/imageUtils";
 
 const ProductDetail = () => {
   const navigate = useNavigate();
@@ -54,6 +57,12 @@ const ProductDetail = () => {
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+
+  const [sellerShop, setSellerShop] = useState<{
+    id: number;
+    name: string;
+    avatarUrl?: string;
+  } | null>(null);
 
   // Fetch product data
   useEffect(() => {
@@ -121,6 +130,40 @@ const ProductDetail = () => {
     fetchProductData();
   }, [id]);
 
+  // Load seller shop info (public) for minimal display
+  useEffect(() => {
+    const shopId = product?.shop?.id;
+    const shopName = product?.shop?.shopName;
+    if (!shopId || !shopName) {
+      setSellerShop(null);
+      return;
+    }
+
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const profile = await apiService.getPublicShopProfile(shopId);
+        if (cancelled) return;
+        setSellerShop({
+          id: profile.id,
+          name: profile.name || shopName,
+          avatarUrl: profile.avatarBase64
+            ? normalizeImageUrl(profile.avatarBase64)
+            : undefined,
+        });
+      } catch (e) {
+        console.warn("Failed to load public shop profile:", e);
+        if (cancelled) return;
+        setSellerShop({ id: shopId, name: shopName });
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [product?.shop?.id, product?.shop?.shopName]);
+
   // Calculate discount
   const discount =
     product?.maxPrice && product.maxPrice > product.basePrice
@@ -128,24 +171,6 @@ const ProductDetail = () => {
           ((product.maxPrice - product.basePrice) / product.maxPrice) * 100
         )
       : 0;
-
-  // Get shop info from product data
-  const shop = product?.shop
-    ? {
-        id: product.shop.id,
-        name: product.shop.shopName,
-        avatar: "", // Will be fetched from shop API if needed
-        description: "",
-        address: "",
-        phone: "",
-        email: "",
-        isVerified: false,
-        rating: 0,
-        totalSales: 0,
-        totalProducts: 0,
-        joinedDate: "",
-      }
-    : null;
 
   const handleAddToCart = async () => {
     if (!product) return;
@@ -650,7 +675,37 @@ const ProductDetail = () => {
                       // Handle specifications - can be object, JSON string, or string
                       let specs: Record<string, string> | null = null;
 
-                      if (!product.specifications) {
+                      const rawSpecs =
+                        (product as any)?.specifications ??
+                        (product as any)?.Specifications;
+
+                      const normalizeSpecKey = (key: string): string => {
+                        return key
+                          .normalize("NFD")
+                          .replace(/[\u0300-\u036f]/g, "")
+                          .toLowerCase()
+                          .replace(/[^a-z0-9]/g, "");
+                      };
+
+                      const getSpecLabel = (key: string): string => {
+                        const normalized = normalizeSpecKey(key);
+                        if (normalized === "xuatxu" || normalized.includes("xuatxu")) {
+                          return "Xuất xứ";
+                        }
+                        if (normalized === "baoquan" || normalized.includes("baoquan")) {
+                          return "Bảo quản";
+                        }
+                        if (
+                          normalized === "hansudung" ||
+                          normalized.includes("hansudung") ||
+                          normalized === "hsd"
+                        ) {
+                          return "HSD";
+                        }
+                        return key;
+                      };
+
+                      if (!rawSpecs) {
                         return (
                           <div className="text-center py-8 text-muted-foreground">
                             Không có thông số kỹ thuật
@@ -660,19 +715,16 @@ const ProductDetail = () => {
 
                       // Case 1: Already an object (Dictionary from backend)
                       if (
-                        typeof product.specifications === "object" &&
-                        !Array.isArray(product.specifications)
+                        typeof rawSpecs === "object" &&
+                        !Array.isArray(rawSpecs)
                       ) {
-                        specs = product.specifications as Record<
-                          string,
-                          string
-                        >;
+                        specs = rawSpecs as Record<string, string>;
                       }
                       // Case 2: JSON string - try to parse
-                      else if (typeof product.specifications === "string") {
+                      else if (typeof rawSpecs === "string") {
                         try {
                           // Try parsing as JSON first
-                          const parsed = JSON.parse(product.specifications);
+                          const parsed = JSON.parse(rawSpecs);
                           if (
                             typeof parsed === "object" &&
                             !Array.isArray(parsed)
@@ -682,7 +734,7 @@ const ProductDetail = () => {
                         } catch (e) {
                           // If not JSON, treat as plain string format (backward compatibility)
                           // Format: "Key: Value\nKey2: Value2"
-                          const lines = product.specifications.split("\n");
+                          const lines = rawSpecs.split("\n");
                           const parsedSpecs: Record<string, string> = {};
                           lines.forEach((line) => {
                             const trimmed = line.trim();
@@ -720,7 +772,7 @@ const ProductDetail = () => {
                                       className="border-b border-border/50 last:border-0 hover:bg-gray-100/50 transition-colors"
                                     >
                                       <td className="py-3 px-4 font-medium text-foreground align-top w-1/3">
-                                        {key}
+                                        {getSpecLabel(key)}
                                       </td>
                                       <td className="py-3 px-4 text-muted-foreground align-top">
                                         {value || "N/A"}
@@ -905,20 +957,41 @@ const ProductDetail = () => {
             </Tabs>
           </CardContent>
         </Card>
-        {/* Shop Information Card */}
-        {shop && (
+        {/* Seller Shop Box (minimal) */}
+        {sellerShop && (
           <Card className="bg-white mb-8">
-            <CardContent className="p-8">
-              <div className="space-y-6">
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-foreground mb-2">
-                    Thông tin cửa hàng
-                  </h2>
-                  <p className="text-muted-foreground">
-                    Tìm hiểu thêm về shop bán sản phẩm này
-                  </p>
-                </div>
-                <ShopInfo shop={shop} />
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between gap-4">
+                <button
+                  type="button"
+                  className="flex items-center gap-3 text-left"
+                  onClick={() => navigate(`/shop/${sellerShop.id}`)}
+                >
+                  {sellerShop.avatarUrl ? (
+                    <img
+                      src={sellerShop.avatarUrl}
+                      alt={sellerShop.name}
+                      className="w-14 h-14 rounded-full object-cover border border-gray-200"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-full border border-gray-200 bg-gray-50 flex items-center justify-center font-semibold text-[#C99F4D]">
+                      {(sellerShop.name || "S").charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <div className="font-semibold text-foreground">
+                      {sellerShop.name}
+                    </div>
+                  </div>
+                </button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate(`/shop/${sellerShop.id}`)}
+                >
+                  Xem shop
+                </Button>
               </div>
             </CardContent>
           </Card>

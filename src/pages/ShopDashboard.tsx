@@ -166,10 +166,79 @@ const normalizeShopOrder = (raw: any): ShopOrder => {
   };
 };
 
+const normalizeSpecKey = (key: string): string => {
+  return key
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+};
+
+const normalizeSpecifications = (
+  rawSpecs: unknown
+): { xuatXu?: string; baoQuan?: string; hanSuDung?: string } | undefined => {
+  if (!rawSpecs) return undefined;
+
+  let obj: Record<string, unknown> | undefined;
+
+  if (typeof rawSpecs === "string") {
+    try {
+      const parsed = JSON.parse(rawSpecs);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        obj = parsed as Record<string, unknown>;
+      }
+    } catch {
+      return undefined;
+    }
+  } else if (typeof rawSpecs === "object" && !Array.isArray(rawSpecs)) {
+    obj = rawSpecs as Record<string, unknown>;
+  }
+
+  if (!obj) return undefined;
+
+  const mapped: { xuatXu?: string; baoQuan?: string; hanSuDung?: string } = {};
+
+  for (const [key, value] of Object.entries(obj)) {
+    const strValue = value == null ? "" : String(value);
+    if (!strValue) continue;
+
+    const normalizedKey = normalizeSpecKey(key);
+
+    if (normalizedKey === "xuatxu" || normalizedKey.includes("xuatxu")) {
+      mapped.xuatXu = strValue;
+      continue;
+    }
+
+    if (normalizedKey === "baoquan" || normalizedKey.includes("baoquan")) {
+      mapped.baoQuan = strValue;
+      continue;
+    }
+
+    if (
+      normalizedKey === "hansudung" ||
+      normalizedKey.includes("hansudung") ||
+      normalizedKey === "hsd"
+    ) {
+      mapped.hanSuDung = strValue;
+      continue;
+    }
+
+    // If backend already sent camelCase keys, accept them too
+    if (normalizedKey === "xuatxu" && !mapped.xuatXu) mapped.xuatXu = strValue;
+    if (normalizedKey === "baoquan" && !mapped.baoQuan) mapped.baoQuan = strValue;
+    if (normalizedKey === "hansudung" && !mapped.hanSuDung) mapped.hanSuDung = strValue;
+  }
+
+  return mapped.xuatXu || mapped.baoQuan || mapped.hanSuDung ? mapped : undefined;
+};
+
 const normalizeShopProduct = (raw: any): ShopProduct => {
   const imagesArray = raw?.images ?? raw?.Images ?? [];
   const firstImageUrl =
     imagesArray?.[0]?.url ?? imagesArray?.[0]?.Url ?? undefined;
+
+  const incomingSpecs = raw?.specifications ?? raw?.Specifications;
+  const specs = normalizeSpecifications(incomingSpecs);
 
   return {
     ...raw,
@@ -184,6 +253,7 @@ const normalizeShopProduct = (raw: any): ShopProduct => {
     productCategoryId: raw?.productCategoryId ?? raw?.ProductCategoryId ?? 0,
     imageUrl:
       raw?.imageUrl ?? raw?.ImageUrl ?? raw?.primaryImageUrl ?? firstImageUrl,
+    specifications: specs,
     // Keep both keys so existing UI code can read either
     images: imagesArray,
     Images: imagesArray,

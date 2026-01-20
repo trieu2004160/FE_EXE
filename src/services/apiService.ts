@@ -254,6 +254,18 @@ export interface GlobalSearchResponseDto {
   products: ProductSearchResultDto[];
 }
 
+// Public Shop Profile Types
+export interface PublicShopProfileDto {
+  id: number;
+  name: string;
+  ownerFullName: string;
+  description?: string;
+  address?: string;
+  avatarBase64?: string;
+  contactPhoneNumber?: string;
+  joinDate: string;
+}
+
 // Admin Types
 export interface GrantShopRoleRequest {
   userEmail: string;
@@ -422,6 +434,43 @@ class ApiService {
 
   constructor(baseURL: string = API_BASE_URL) {
     this.baseURL = baseURL;
+  }
+
+  private normalizeProduct(raw: unknown): Product {
+    if (!raw || typeof raw !== 'object') return raw as Product;
+
+    const obj = raw as Record<string, unknown>;
+    const shop = (obj.shop ?? obj.Shop) as Record<string, unknown> | undefined;
+
+    const specs = (obj.specifications ?? obj.Specifications) as unknown;
+
+    const shopId = (obj.shopId ?? obj.ShopId ?? shop?.id ?? shop?.Id) as unknown;
+    const shopName = (obj.shopName ?? obj.ShopName ?? shop?.shopName ?? shop?.ShopName) as unknown;
+
+    const normalized = { ...(obj as Record<string, unknown>) } as Record<string, unknown> & {
+      shop?: { id?: number; shopName?: string };
+    };
+
+    const hasShopId = shopId !== null && shopId !== undefined;
+    const hasShopName = shopName !== null && shopName !== undefined;
+
+    if (!normalized.shop && hasShopId && hasShopName) {
+      normalized.shop = {
+        id: Number(shopId),
+        shopName: String(shopName),
+      };
+    } else if (normalized.shop) {
+      if (normalized.shop.id == null && hasShopId) normalized.shop.id = Number(shopId);
+      if (normalized.shop.shopName == null && hasShopName) normalized.shop.shopName = String(shopName);
+    }
+
+    // Map backend PascalCase `Specifications` -> frontend camelCase `specifications`
+    // Specs can be an object (Dictionary) or a JSON string depending on endpoint/mapping.
+    if (normalized.specifications == null && specs != null) {
+      normalized.specifications = specs as any;
+    }
+
+    return normalized as unknown as Product;
   }
 
   private buildUrl(endpoint: string): string {
@@ -859,8 +908,8 @@ class ApiService {
    * GET /api/products
    */
   async getProducts(): Promise<Product[]> {
-    return this.request<Product[]>('/products', {
-    });
+    const raw = await this.request<unknown>('/products', {});
+    return Array.isArray(raw) ? raw.map(p => this.normalizeProduct(p)) : [];
   }
 
   /**
@@ -868,9 +917,41 @@ class ApiService {
    * GET /api/products/{id}
    */
   async getProductById(id: number): Promise<ProductDetailResponse> {
-    return this.request<ProductDetailResponse>(`/products/${id}`, {
-      method: 'GET',
-    });
+    const raw = await this.request<unknown>(`/products/${id}`, { method: 'GET' });
+    const envelope = (raw && typeof raw === 'object') ? (raw as Record<string, unknown>) : undefined;
+    const responseData = (envelope?.data && typeof envelope.data === 'object')
+      ? (envelope.data as Record<string, unknown>)
+      : envelope;
+
+    const product = responseData?.product ?? responseData?.Product;
+    const relatedProducts = responseData?.relatedProducts ?? responseData?.RelatedProducts ?? [];
+
+    return {
+      product: product ? this.normalizeProduct(product) : undefined,
+      relatedProducts: Array.isArray(relatedProducts)
+        ? relatedProducts.map((p: unknown) => this.normalizeProduct(p))
+        : [],
+    };
+  }
+
+  // ==================== PUBLIC SHOPS API ====================
+  // Base URL: /api/shops
+
+  /**
+   * Public shop profile
+   * GET /api/shops/{id}
+   */
+  async getPublicShopProfile(id: number): Promise<PublicShopProfileDto> {
+    return this.request<PublicShopProfileDto>(`/shops/${id}`, { method: 'GET' });
+  }
+
+  /**
+   * Public shop products
+   * GET /api/shops/{id}/products
+   */
+  async getProductsByShopId(id: number): Promise<Product[]> {
+    const raw = await this.request<unknown>(`/shops/${id}/products`, { method: 'GET' });
+    return Array.isArray(raw) ? raw.map(p => this.normalizeProduct(p)) : [];
   }
 
   /**
