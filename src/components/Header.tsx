@@ -129,7 +129,7 @@ const Header = () => {
     } else if (userRole === "shop") {
       navigate("/shop-dashboard?tab=settings");
     } else {
-      navigate("/settings");
+      navigate("/profile");
     }
   };
 

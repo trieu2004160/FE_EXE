@@ -17,25 +17,42 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
   // Only block if absolutely no auth info
   const hasAnyAuth = token || userRole || userData;
 
+  // Enforce role when provided
+  if (hasAnyAuth && requiredRole) {
+    const role = (localStorage.getItem("userRole") || "").toLowerCase();
+    // Stay lenient if role is missing; let the page/API decide.
+    if (!role) {
+      // no-op
+    } else if (role !== requiredRole) {
+      if (role === "admin") return <Navigate to="/admin" replace />;
+      if (role === "shop") return <Navigate to="/shop-dashboard?tab=settings" replace />;
+      // Unknown or missing role
+      return <Navigate to="/login" replace state={{ from: location }} />;
+    }
+  }
+
   // Enforce first-login password change if flagged
   const mustChangePassword = localStorage.getItem("mustChangePassword") === "true";
   const isOnSettings = location.pathname === "/settings";
-  const isOnShopDashboard = location.pathname === "/shop-dashboard";
+  const isOnShopFirstLogin = location.pathname === "/shop-first-login";
   if (hasAnyAuth && mustChangePassword) {
     const role = (localStorage.getItem("userRole") || "").toLowerCase();
     if (role === "shop") {
-      if (!isOnShopDashboard) {
-        return (
-          <Navigate
-            to="/shop-dashboard?tab=settings"
-            replace
-            state={{ forcePasswordChange: true }}
-          />
-        );
+      if (!isOnShopFirstLogin) {
+        return <Navigate to="/shop-first-login" replace />;
       }
     } else if (!isOnSettings) {
       return <Navigate to="/settings" replace state={{ forcePasswordChange: true }} />;
     }
+  }
+
+  // If user already changed password, don't allow staying on first-login page
+  if (hasAnyAuth && !mustChangePassword && isOnShopFirstLogin) {
+    const role = (localStorage.getItem("userRole") || "").toLowerCase();
+    if (role === "shop") {
+      return <Navigate to="/shop-dashboard?tab=settings" replace />;
+    }
+    return <Navigate to="/" replace />;
   }
   
   if (!hasAnyAuth) {

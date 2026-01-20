@@ -70,6 +70,10 @@ export interface ChangePasswordRequest {
   newPassword: string;
 }
 
+export interface ForceChangePasswordRequest {
+  newPassword: string;
+}
+
 export interface DeleteAccountRequest {
   password: string;
 }
@@ -655,6 +659,17 @@ class ApiService {
    */
   async changePassword(data: ChangePasswordRequest): Promise<ApiResponse> {
     return this.request<ApiResponse>('/accounts/changepassword', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * Force change password (first-login flow)
+   * POST /api/accounts/forcechangepassword
+   */
+  async forceChangePassword(data: ForceChangePasswordRequest): Promise<LoginResponse> {
+    return this.request<LoginResponse>('/accounts/forcechangepassword', {
       method: 'POST',
       body: JSON.stringify(data),
     });

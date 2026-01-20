@@ -14,11 +14,12 @@ import Checkout from "./pages/Checkout";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Wishlist from "./pages/Wishlist";
-import Settings from "./pages/Settings";
+import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import VerifyEmail from "./pages/VerifyEmail";
 import ForgotPassword from "./pages/ForgotPassword";
+import ShopFirstLogin from "./pages/ShopFirstLogin";
 import Catalog from "./pages/Catalog";
 import FlowersCategory from "./pages/FlowersCategory";
 import IncenseCategory from "./pages/IncenseCategory";
@@ -56,7 +57,22 @@ const App = () => (
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/wishlist" element={<Wishlist />} />
-            <Route path="/settings" element={<Settings />} />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute requiredRole="user">
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute requiredRole="user">
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/catalog" element={<Catalog />} />
             <Route path="/catalog/:category" element={<Catalog />} />
             <Route path="/category/hoa-tuoi" element={<FlowersCategory />} />
@@ -83,6 +99,14 @@ const App = () => (
             />
 
             {/* Shop Routes */}
+            <Route
+              path="/shop-first-login"
+              element={
+                <ProtectedRoute requiredRole="shop">
+                  <ShopFirstLogin />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/shop-dashboard"
               element={
