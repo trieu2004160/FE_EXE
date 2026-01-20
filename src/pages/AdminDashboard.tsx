@@ -690,6 +690,7 @@ const AdminDashboard = () => {
           email: formData.ownerEmail,
           fullName: formData.ownerFullName,
           shopName: formData.shopName,
+          contactPhoneNumber: formData.phone,
         });
         toast({
           title: "Thành công",
