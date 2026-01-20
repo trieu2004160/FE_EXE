@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Lock,
@@ -8,26 +8,50 @@ import {
   AlertTriangle,
   CheckCircle,
   Loader2,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
   apiService,
   ChangePasswordRequest,
   DeleteAccountRequest,
+  type UserProfile,
 } from "@/services/apiService";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { normalizeImageUrl } from "@/utils/imageUtils";
 
 const Settings = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const mustChangePassword = localStorage.getItem("mustChangePassword") === "true";
+  const userRole = (localStorage.getItem("userRole") || "user").toLowerCase();
+  const isShop = userRole === "shop";
+
+  // Personal profile (AppUser) - shown for non-shop accounts
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profileForm, setProfileForm] = useState<{
+    fullName: string;
+    email: string;
+    phoneNumber: string;
+    introduction: string;
+    avatarFile?: File;
+  }>({
+    fullName: "",
+    email: "",
+    phoneNumber: "",
+    introduction: "",
+    avatarFile: undefined,
+  });
+  const [profileAvatarPreviewUrl, setProfileAvatarPreviewUrl] = useState<string | null>(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   // Password change state
   const [passwordData, setPasswordData] = useState({
@@ -47,6 +71,88 @@ const Settings = () => {
   const [showDeletePassword, setShowDeletePassword] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  useEffect(() => {
+    if (isShop) return;
+
+    const load = async () => {
+      try {
+        const me = await apiService.getProfile();
+        setProfile(me);
+        setProfileForm({
+          fullName: me.fullName || "",
+          email: me.email || "",
+          phoneNumber: me.phoneNumber || "",
+          introduction: me.introduction || "",
+          avatarFile: undefined,
+        });
+      } catch (e) {
+        console.error("Failed to load profile:", e);
+      }
+    };
+
+    load();
+  }, [isShop]);
+
+  useEffect(() => {
+    if (!profileForm.avatarFile) {
+      setProfileAvatarPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(profileForm.avatarFile);
+    setProfileAvatarPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [profileForm.avatarFile]);
+
+  const handleSaveProfile = async () => {
+    if (isShop) {
+      navigate("/shop-dashboard?tab=settings", { replace: true });
+      return;
+    }
+
+    const fullName = (profileForm.fullName || "").trim();
+    if (!fullName) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng nhập họ tên.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSavingProfile(true);
+    try {
+      await apiService.updateProfile({
+        fullName,
+        phoneNumber: profileForm.phoneNumber?.trim() || undefined,
+        introduction: profileForm.introduction?.trim() || undefined,
+        avatarFile: profileForm.avatarFile,
+      });
+
+      const refreshed = await apiService.getProfile();
+      setProfile(refreshed);
+      setProfileForm((prev) => ({
+        ...prev,
+        email: refreshed.email || prev.email,
+        avatarFile: undefined,
+      }));
+      setProfileAvatarPreviewUrl(null);
+
+      toast({
+        title: "Thành công",
+        description: "Cập nhật thông tin cá nhân thành công.",
+      });
+    } catch (e) {
+      console.error("Error saving profile:", e);
+      toast({
+        title: "Lỗi",
+        description: "Không thể cập nhật thông tin cá nhân. Vui lòng thử lại.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
 
   const handlePasswordChange = (
     field: keyof typeof passwordData,
@@ -219,6 +325,136 @@ const Settings = () => {
                   Đây là lần đăng nhập đầu tiên với mật khẩu khởi tạo. Vui lòng đổi mật khẩu để tiếp tục.
                 </AlertDescription>
               </Alert>
+            )}
+
+            {isShop ? (
+              <Alert className="border-blue-200 bg-blue-50">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="flex items-start justify-between gap-4">
+                  <span>
+                    Tài khoản Shop không dùng trang Profile riêng. Vui lòng quản lý thông tin cá nhân trong
+                    phần <strong>Cài đặt Shop</strong>.
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => navigate("/shop-dashboard?tab=settings")}
+                  >
+                    Đi tới Cài đặt Shop
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    Thông Tin Cá Nhân
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <div className="space-y-3">
+                      <Label>Ảnh đại diện</Label>
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) =>
+                          setProfileForm((p) => ({
+                            ...p,
+                            avatarFile: e.target.files?.[0],
+                          }))
+                        }
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Xem trước</Label>
+                      <div className="rounded-lg border bg-white p-3 flex items-center justify-center min-h-32">
+                        {profileAvatarPreviewUrl ? (
+                          <img
+                            src={profileAvatarPreviewUrl}
+                            alt="avatar preview"
+                            className="max-h-28 rounded-md object-contain"
+                          />
+                        ) : profile?.avatarUrl ? (
+                          <img
+                            src={normalizeImageUrl(profile.avatarUrl)}
+                            alt="avatar"
+                            className="max-h-28 rounded-md object-contain"
+                          />
+                        ) : (
+                          <div className="text-sm text-gray-500">Chưa có ảnh</div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="fullName">Họ và tên</Label>
+                      <Input
+                        id="fullName"
+                        value={profileForm.fullName}
+                        onChange={(e) =>
+                          setProfileForm((p) => ({
+                            ...p,
+                            fullName: e.target.value,
+                          }))
+                        }
+                        placeholder="Nhập họ và tên"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input id="email" type="email" value={profileForm.email} disabled />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="phoneNumber">Số điện thoại</Label>
+                      <Input
+                        id="phoneNumber"
+                        value={profileForm.phoneNumber}
+                        onChange={(e) =>
+                          setProfileForm((p) => ({
+                            ...p,
+                            phoneNumber: e.target.value,
+                          }))
+                        }
+                        placeholder="Nhập số điện thoại"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="introduction">Giới thiệu</Label>
+                    <Textarea
+                      id="introduction"
+                      value={profileForm.introduction}
+                      onChange={(e) =>
+                        setProfileForm((p) => ({
+                          ...p,
+                          introduction: e.target.value,
+                        }))
+                      }
+                      placeholder="Giới thiệu ngắn về bạn"
+                      rows={4}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3">
+                    <Button type="button" onClick={handleSaveProfile} disabled={isSavingProfile}>
+                      {isSavingProfile ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Đang lưu...
+                        </>
+                      ) : (
+                        "Lưu thay đổi"
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             )}
             {/* Change Password Card */}
             <Card>

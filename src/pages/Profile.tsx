@@ -8,6 +8,11 @@ import {
   Edit2,
   Camera,
   Loader2,
+  Lock,
+  Trash2,
+  Eye,
+  EyeOff,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,19 +21,33 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { apiService, UserProfile, authUtils } from "@/services/apiService";
+import {
+  apiService,
+  UserProfile,
+  authUtils,
+  type ChangePasswordRequest,
+} from "@/services/apiService";
 import { normalizeImageUrl } from "@/utils/imageUtils";
 
 const Profile = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const mustChangePassword = localStorage.getItem("mustChangePassword") === "true";
+
+  const [mainTab, setMainTab] = useState<"info" | "settings">("info");
+  const [settingsTab, setSettingsTab] = useState<
+    "notifications" | "security" | "danger"
+  >(mustChangePassword ? "security" : "notifications");
   const [userInfo, setUserInfo] = useState<UserProfile>({
     fullName: "",
     email: "",
@@ -42,10 +61,87 @@ const Profile = () => {
   const [originalAvatarPreview, setOriginalAvatarPreview] =
     useState<string>("");
 
+  // Notification settings (stored locally)
+  const [notifyOrderEmail, setNotifyOrderEmail] = useState(true);
+  const [notifyPromotions, setNotifyPromotions] = useState(true);
+  const [notifyNewProducts, setNotifyNewProducts] = useState(false);
+
+  // Security (change password)
+  const [passwordData, setPasswordData] = useState({
+    oldPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [showPasswords, setShowPasswords] = useState({
+    old: false,
+    new: false,
+    confirm: false,
+  });
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // Danger (delete account)
+  const [deletePassword, setDeletePassword] = useState("");
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+  // Guard: this page is for regular users only
+  useEffect(() => {
+    const role = (localStorage.getItem("userRole") || "").toLowerCase();
+    if (role === "shop") {
+      navigate("/shop-dashboard?tab=settings", { replace: true });
+      return;
+    }
+    if (role === "admin") {
+      navigate("/admin", { replace: true });
+      return;
+    }
+  }, [navigate]);
+
+  // If redirected here for forced password change, open Security
+  useEffect(() => {
+    const state = location.state as any;
+    if (mustChangePassword || state?.forcePasswordChange) {
+      setMainTab("settings");
+      setSettingsTab("security");
+    }
+  }, [location.state, mustChangePassword]);
+
+  // Load notification settings from localStorage
+  useEffect(() => {
+    const getBool = (key: string, fallback: boolean) => {
+      const v = localStorage.getItem(key);
+      if (v === null) return fallback;
+      return v === "true";
+    };
+    setNotifyOrderEmail(getBool("notifyOrderEmail", true));
+    setNotifyPromotions(getBool("notifyPromotions", true));
+    setNotifyNewProducts(getBool("notifyNewProducts", false));
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("notifyOrderEmail", String(notifyOrderEmail));
+  }, [notifyOrderEmail]);
+  useEffect(() => {
+    localStorage.setItem("notifyPromotions", String(notifyPromotions));
+  }, [notifyPromotions]);
+  useEffect(() => {
+    localStorage.setItem("notifyNewProducts", String(notifyNewProducts));
+  }, [notifyNewProducts]);
+
   // Load user data from API
   useEffect(() => {
     const loadUserProfile = async () => {
       const userToken = localStorage.getItem("userToken");
+
+      const role = (localStorage.getItem("userRole") || "").toLowerCase();
+      if (role === "shop") {
+        navigate("/shop-dashboard?tab=settings", { replace: true });
+        return;
+      }
+      if (role === "admin") {
+        navigate("/admin", { replace: true });
+        return;
+      }
 
       if (!userToken || userToken === "authenticated") {
         // Redirect to login if no token
@@ -314,6 +410,113 @@ const Profile = () => {
     });
   };
 
+  const validatePassword = (password: string) => {
+    if (password.length < 6) return "Mật khẩu phải có ít nhất 6 ký tự";
+    return null;
+  };
+
+  const handleChangePassword = async () => {
+    if (!passwordData.oldPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng điền đầy đủ thông tin",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast({
+        title: "Lỗi",
+        description: "Mật khẩu mới và xác nhận mật khẩu không khớp",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const passwordError = validatePassword(passwordData.newPassword);
+    if (passwordError) {
+      toast({
+        title: "Lỗi",
+        description: passwordError,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const request: ChangePasswordRequest = {
+        oldPassword: passwordData.oldPassword,
+        newPassword: passwordData.newPassword,
+      };
+      await apiService.changePassword(request);
+
+      if (mustChangePassword) {
+        localStorage.removeItem("mustChangePassword");
+      }
+
+      toast({
+        title: "Thành công",
+        description: "Mật khẩu đã được thay đổi thành công",
+      });
+
+      setPasswordData({ oldPassword: "", newPassword: "", confirmPassword: "" });
+      setShowPasswords({ old: false, new: false, confirm: false });
+    } catch (err) {
+      console.error("Error changing password:", err);
+      toast({
+        title: "Lỗi",
+        description:
+          "Không thể thay đổi mật khẩu. Vui lòng kiểm tra mật khẩu cũ và thử lại.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng nhập mật khẩu để xác nhận",
+        variant: "destructive",
+      });
+      return;
+    }
+    const ok = window.confirm(
+      "Bạn có chắc chắn muốn xóa tài khoản? Hành động này không thể hoàn tác."
+    );
+    if (!ok) return;
+
+    setIsDeletingAccount(true);
+    try {
+      await apiService.deleteAccount({ password: deletePassword });
+
+      authUtils.removeToken();
+      localStorage.removeItem("userData");
+      localStorage.removeItem("userRole");
+      localStorage.removeItem("mustChangePassword");
+
+      toast({
+        title: "Tài khoản đã được xóa",
+        description: "Tài khoản của bạn đã được xóa thành công",
+      });
+      navigate("/", { replace: true });
+    } catch (err) {
+      console.error("Error deleting account:", err);
+      toast({
+        title: "Lỗi",
+        description:
+          "Không thể xóa tài khoản. Vui lòng kiểm tra mật khẩu và thử lại.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -399,21 +602,23 @@ const Profile = () => {
                   </div>
 
                   <div className="flex-1 text-center md:text-left">
-                    <h2 className="text-2xl font-bold text-foreground mb-2">
-                      {userInfo.fullName}
+                    <h2 className="text-2xl font-bold text-foreground mb-1">
+                      {userInfo.email}
                     </h2>
                     <p className="text-muted-foreground mb-4">
-                      {userInfo.introduction}
+                      {userInfo.fullName || ""}
                     </p>
                     <div className="flex flex-wrap gap-2 justify-center md:justify-start">
                       <Badge variant="secondary" className="gap-1">
                         <Mail className="h-3 w-3" />
                         {userInfo.email}
                       </Badge>
-                      <Badge variant="secondary" className="gap-1">
-                        <Phone className="h-3 w-3" />
-                        {userInfo.phoneNumber}
-                      </Badge>
+                      {userInfo.phoneNumber ? (
+                        <Badge variant="secondary" className="gap-1">
+                          <Phone className="h-3 w-3" />
+                          {userInfo.phoneNumber}
+                        </Badge>
+                      ) : null}
                     </div>
                   </div>
 
@@ -447,7 +652,7 @@ const Profile = () => {
             </Card>
 
             {/* Tabs */}
-            <Tabs defaultValue="info" className="space-y-6">
+            <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as any)} className="space-y-6">
               <TabsList className="grid grid-cols-2 md:grid-cols-2 w-full">
                 <TabsTrigger value="info">
                   <User className="h-4 w-4" />
@@ -558,77 +763,195 @@ const Profile = () => {
 
               {/* Settings Tab */}
               <TabsContent value="settings">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Cài Đặt Tài Khoản</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="space-y-4">
-                      <h4 className="font-medium">Thông báo</h4>
-                      <div className="space-y-2">
-                        <label className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            defaultChecked
-                            className="rounded"
-                          />
-                          <span className="text-sm">
-                            Nhận thông báo về đơn hàng qua email
-                          </span>
-                        </label>
-                        <label className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            defaultChecked
-                            className="rounded"
-                          />
-                          <span className="text-sm">
-                            Nhận thông báo khuyến mại
-                          </span>
-                        </label>
-                        <label className="flex items-center space-x-2">
-                          <input type="checkbox" className="rounded" />
-                          <span className="text-sm">
-                            Nhận tin tức sản phẩm mới
-                          </span>
-                        </label>
-                      </div>
-                    </div>
+                {mustChangePassword && (
+                  <Alert className="border-amber-200 bg-amber-50 mb-6">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                      Đây là lần đăng nhập đầu tiên với mật khẩu khởi tạo. Vui lòng đổi mật khẩu để tiếp tục.
+                    </AlertDescription>
+                  </Alert>
+                )}
 
-                    <div className="space-y-4">
-                      <h4 className="font-medium">Bảo mật</h4>
-                      <div className="space-y-2">
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start"
-                          onClick={() => navigate("/settings")}
-                        >
-                          Đổi mật khẩu
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start"
-                          onClick={() => navigate("/settings")}
-                        >
-                          Cài đặt bảo mật
-                        </Button>
-                      </div>
-                    </div>
+                <Tabs value={settingsTab} onValueChange={(v) => setSettingsTab(v as any)} className="space-y-6">
+                  <TabsList className="grid grid-cols-3 w-full">
+                    <TabsTrigger value="notifications">Thông báo</TabsTrigger>
+                    <TabsTrigger value="security">Bảo mật</TabsTrigger>
+                    <TabsTrigger value="danger">Xóa tài khoản</TabsTrigger>
+                  </TabsList>
 
-                    <div className="space-y-4">
-                      <h4 className="font-medium text-red-600">
-                        Vùng nguy hiểm
-                      </h4>
-                      <Button
-                        variant="destructive"
-                        className="w-full"
-                        onClick={() => navigate("/settings")}
-                      >
-                        Xóa tài khoản
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                  <TabsContent value="notifications">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Cài Đặt Thông Báo</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <label className="flex items-center gap-3">
+                          <Checkbox checked={notifyOrderEmail} onCheckedChange={(v) => setNotifyOrderEmail(Boolean(v))} />
+                          <span className="text-sm">Nhận thông báo về đơn hàng qua email</span>
+                        </label>
+                        <label className="flex items-center gap-3">
+                          <Checkbox checked={notifyPromotions} onCheckedChange={(v) => setNotifyPromotions(Boolean(v))} />
+                          <span className="text-sm">Nhận thông báo khuyến mại</span>
+                        </label>
+                        <label className="flex items-center gap-3">
+                          <Checkbox checked={notifyNewProducts} onCheckedChange={(v) => setNotifyNewProducts(Boolean(v))} />
+                          <span className="text-sm">Nhận tin tức sản phẩm mới</span>
+                        </label>
+                        <p className="text-xs text-muted-foreground">
+                          Các cài đặt này hiện được lưu trên trình duyệt của bạn.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  <TabsContent value="security">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Thay Đổi Mật Khẩu</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">Mật khẩu hiện tại</label>
+                          <div className="relative">
+                            <Input
+                              type={showPasswords.old ? "text" : "password"}
+                              value={passwordData.oldPassword}
+                              onChange={(e) => setPasswordData((p) => ({ ...p, oldPassword: e.target.value }))}
+                              placeholder="Nhập mật khẩu hiện tại"
+                              className="pr-10"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                              onClick={() => setShowPasswords((s) => ({ ...s, old: !s.old }))}
+                            >
+                              {showPasswords.old ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">Mật khẩu mới</label>
+                          <div className="relative">
+                            <Input
+                              type={showPasswords.new ? "text" : "password"}
+                              value={passwordData.newPassword}
+                              onChange={(e) => setPasswordData((p) => ({ ...p, newPassword: e.target.value }))}
+                              placeholder="Nhập mật khẩu mới"
+                              className="pr-10"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                              onClick={() => setShowPasswords((s) => ({ ...s, new: !s.new }))}
+                            >
+                              {showPasswords.new ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">Xác nhận mật khẩu mới</label>
+                          <div className="relative">
+                            <Input
+                              type={showPasswords.confirm ? "text" : "password"}
+                              value={passwordData.confirmPassword}
+                              onChange={(e) => setPasswordData((p) => ({ ...p, confirmPassword: e.target.value }))}
+                              placeholder="Nhập lại mật khẩu mới"
+                              className="pr-10"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                              onClick={() => setShowPasswords((s) => ({ ...s, confirm: !s.confirm }))}
+                            >
+                              {showPasswords.confirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-end">
+                          <Button
+                            type="button"
+                            onClick={handleChangePassword}
+                            disabled={isChangingPassword}
+                            className="bg-[#C99F4D] hover:bg-[#B8904A]"
+                          >
+                            {isChangingPassword ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Đang đổi...
+                              </>
+                            ) : (
+                              <>
+                                <Lock className="h-4 w-4 mr-2" />
+                                Đổi mật khẩu
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  <TabsContent value="danger">
+                    <Card className="border-red-200">
+                      <CardHeader>
+                        <CardTitle className="text-red-600">Vùng nguy hiểm</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <p className="text-sm text-muted-foreground">
+                          Xóa tài khoản sẽ xóa vĩnh viễn dữ liệu của bạn và không thể hoàn tác.
+                        </p>
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">Nhập mật khẩu để xác nhận</label>
+                          <div className="relative">
+                            <Input
+                              type={showDeletePassword ? "text" : "password"}
+                              value={deletePassword}
+                              onChange={(e) => setDeletePassword(e.target.value)}
+                              placeholder="Mật khẩu"
+                              className="pr-10"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                              onClick={() => setShowDeletePassword((s) => !s)}
+                            >
+                              {showDeletePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                        </div>
+                        <Button
+                          variant="destructive"
+                          className="w-full"
+                          onClick={handleDeleteAccount}
+                          disabled={isDeletingAccount}
+                        >
+                          {isDeletingAccount ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Đang xóa...
+                            </>
+                          ) : (
+                            <>
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Xóa tài khoản
+                            </>
+                          )}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
               </TabsContent>
             </Tabs>
           </div>

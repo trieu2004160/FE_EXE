@@ -81,10 +81,7 @@ const Login = () => {
       // Navigate based on role
       if (localStorage.getItem("mustChangePassword") === "true") {
         if (primaryRole === "shop") {
-          navigate("/shop-dashboard?tab=settings", {
-            replace: true,
-            state: { forcePasswordChange: true },
-          });
+          navigate("/shop-first-login", { replace: true });
         } else {
           navigate("/settings", {
             replace: true,
