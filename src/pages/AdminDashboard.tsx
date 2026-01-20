@@ -63,17 +63,21 @@ import {
   ChevronDown,
   Check,
   X,
+  TicketPercent,
+  BadgePercent,
 } from "lucide-react";
 import Header from "@/components/Header";
 
 import {
   apiService,
   AdminCategoryDto,
+  AdminDiscountCodeDto,
   AdminShopDto,
   AdminProductDto,
   CommissionConfig,
   RevenueStats,
   RevenueByShop,
+  UpsertDiscountCodeDto,
 } from "@/services/apiService";
 import { DISPLAY_CATEGORIES } from "@/config/displayCategories";
 
@@ -92,6 +96,19 @@ interface ShopFormData {
   phone?: string;
   address?: string;
   isActive: boolean;
+}
+
+interface DiscountCodeFormData {
+  code: string;
+  name: string;
+  validFrom: string; // YYYY-MM-DD (local)
+  validTo: string; // YYYY-MM-DD (local)
+  isActive: boolean;
+  discountType: number; // 1=Percentage, 2=FixedAmount
+  discountValue: number;
+  maxDiscountAmount: number;
+  minimumPurchaseAmount: number;
+  maxUses: number;
 }
 
 interface SystemLog {
@@ -230,6 +247,38 @@ const AdminDashboard = () => {
     "daily" | "weekly" | "monthly" | "yearly"
   >("daily");
 
+  // State for discount codes (Admin)
+  const [discountCodes, setDiscountCodes] = useState<AdminDiscountCodeDto[]>([]);
+  const [discountCodesLoading, setDiscountCodesLoading] = useState(false);
+  const [showDiscountCodeForm, setShowDiscountCodeForm] = useState(false);
+  const [editingDiscountCode, setEditingDiscountCode] =
+    useState<AdminDiscountCodeDto | null>(null);
+  const [discountCodeForm, setDiscountCodeForm] = useState<DiscountCodeFormData>(() => {
+    const start = new Date();
+    const end = new Date();
+    end.setDate(end.getDate() + 7);
+
+    const random = () => {
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      let out = "NOVA";
+      for (let i = 0; i < 8; i++) out += chars[Math.floor(Math.random() * chars.length)];
+      return out;
+    };
+
+    return {
+      code: random(),
+      name: "",
+      validFrom: formatDateInput(start),
+      validTo: formatDateInput(end),
+      isActive: true,
+      discountType: 1,
+      discountValue: 10,
+      maxDiscountAmount: 50000,
+      minimumPurchaseAmount: 0,
+      maxUses: 100,
+    };
+  });
+
   // Revenue filters (Admin)
   const [revenueShopFilter, setRevenueShopFilter] = useState<string>("all");
   // Default view: show Today via date picker
@@ -266,6 +315,8 @@ const AdminDashboard = () => {
     } else if (activeTab === "revenue") {
       // Revenue data is loaded by the dedicated revenue effect below.
       if (shops.length === 0) loadShops();
+    } else if (activeTab === "discount-codes") {
+      loadDiscountCodes();
     } else if (activeTab === "logs") {
       loadSystemLogs();
     }
@@ -489,6 +540,9 @@ const AdminDashboard = () => {
             revenue: toNumber(
               row.revenue ?? row.totalRevenue ?? row.revenueAmount ?? row.amount
             ),
+            shippingFees: toNumber(
+              row.shippingFees ?? row.totalShippingFees ?? row.shippingFeeTotal
+            ),
             commission: toNumber(
               row.commission ?? row.totalCommission ?? row.commissionAmount
             ),
@@ -510,6 +564,137 @@ const AdminDashboard = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadDiscountCodes = async () => {
+    try {
+      setDiscountCodesLoading(true);
+      const data = await apiService.getAdminDiscountCodes();
+      setDiscountCodes(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Failed to load discount codes:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải danh sách mã giảm giá",
+        variant: "destructive",
+      });
+    } finally {
+      setDiscountCodesLoading(false);
+    }
+  };
+
+  const openCreateDiscountCode = () => {
+    const start = new Date();
+    const end = new Date();
+    end.setDate(end.getDate() + 7);
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let out = "NOVA";
+    for (let i = 0; i < 8; i++) out += chars[Math.floor(Math.random() * chars.length)];
+
+    setEditingDiscountCode(null);
+    setDiscountCodeForm({
+      code: out,
+      name: "",
+      validFrom: formatDateInput(start),
+      validTo: formatDateInput(end),
+      isActive: true,
+      discountType: 1,
+      discountValue: 10,
+      maxDiscountAmount: 50000,
+      minimumPurchaseAmount: 0,
+      maxUses: 100,
+    });
+    setShowDiscountCodeForm(true);
+  };
+
+  const openEditDiscountCode = (item: AdminDiscountCodeDto) => {
+    setEditingDiscountCode(item);
+    setDiscountCodeForm({
+      code: item.code,
+      name: item.name,
+      validFrom: formatDateInput(new Date(item.validFromUtc)),
+      validTo: formatDateInput(new Date(item.validToUtc)),
+      isActive: item.isActive,
+      discountType: Number(item.discountType ?? 1),
+      discountValue: Number(item.discountValue ?? 0),
+      maxDiscountAmount: Number(item.maxDiscountAmount ?? 0),
+      minimumPurchaseAmount: Number(item.minimumPurchaseAmount ?? 0),
+      maxUses: Number(item.maxUses ?? 1),
+    });
+    setShowDiscountCodeForm(true);
+  };
+
+  const saveDiscountCode = async () => {
+    const code = discountCodeForm.code.trim().toUpperCase();
+    const name = discountCodeForm.name.trim();
+    if (!code || code.length < 6) {
+      toast({
+        title: "Thiếu mã",
+        description: "Mã giảm giá phải có ít nhất 6 ký tự",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!name) {
+      toast({
+        title: "Thiếu tên",
+        description: "Vui lòng nhập tên mã giảm giá",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!discountCodeForm.validFrom || !discountCodeForm.validTo) {
+      toast({
+        title: "Thiếu thời gian",
+        description: "Vui lòng chọn thời gian hiệu lực",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const fromIso = new Date(`${discountCodeForm.validFrom}T00:00:00Z`).toISOString();
+    const toIso = new Date(`${discountCodeForm.validTo}T23:59:59Z`).toISOString();
+
+    const dto: UpsertDiscountCodeDto = {
+      code,
+      name,
+      validFromUtc: fromIso,
+      validToUtc: toIso,
+      isActive: discountCodeForm.isActive,
+      discountType: Number(discountCodeForm.discountType),
+      discountValue: Number(discountCodeForm.discountValue),
+      maxDiscountAmount:
+        Number(discountCodeForm.discountType) === 1
+          ? Number(discountCodeForm.maxDiscountAmount)
+          : 0,
+      minimumPurchaseAmount: Number(discountCodeForm.minimumPurchaseAmount),
+      maxUses: Number(discountCodeForm.maxUses),
+    };
+
+    try {
+      setDiscountCodesLoading(true);
+      if (editingDiscountCode) {
+        await apiService.updateAdminDiscountCode(editingDiscountCode.id, dto);
+        toast({ title: "Đã cập nhật mã giảm giá" });
+      } else {
+        await apiService.createAdminDiscountCode(dto);
+        toast({ title: "Đã tạo mã giảm giá" });
+      }
+      setShowDiscountCodeForm(false);
+      setEditingDiscountCode(null);
+      await loadDiscountCodes();
+    } catch (error: unknown) {
+      console.error("Failed to save discount code:", error);
+      toast({
+        title: "Lỗi",
+        description:
+          (error instanceof Error ? error.message : undefined) ||
+          "Không thể lưu mã giảm giá",
+        variant: "destructive",
+      });
+    } finally {
+      setDiscountCodesLoading(false);
     }
   };
 
@@ -863,8 +1048,9 @@ const AdminDashboard = () => {
     { id: "categories", label: "Quản lý Danh Mục", icon: Package },
     { id: "shops", label: "Quản lý Shop", icon: Store },
     { id: "products", label: "Quản lý Sản Phẩm", icon: Package },
-    { id: "config", label: "Hoa Hồng", icon: Settings },
+    { id: "config", label: "Hoa Hồng", icon: BadgePercent },
     { id: "revenue", label: "Doanh Thu", icon: DollarSign },
+    { id: "discount-codes", label: "Mã Giảm Giá", icon: TicketPercent },
     { id: "logs", label: "Nhật Ký", icon: Activity },
   ];
 
@@ -1747,6 +1933,7 @@ const AdminDashboard = () => {
                             <TableRow>
                               <TableHead>Shop</TableHead>
                               <TableHead>Doanh Thu</TableHead>
+                              <TableHead>Phí Vận Chuyển</TableHead>
                               <TableHead>Hoa Hồng</TableHead>
                               <TableHead>Đơn Hàng</TableHead>
                               <TableHead>Tỷ Lệ Hoa Hồng</TableHead>
@@ -1773,6 +1960,11 @@ const AdminDashboard = () => {
                                     </div>
                                   </TableCell>
                                   <TableCell>
+                                    <div className="font-medium text-blue-600">
+                                      {(item.shippingFees ?? 0).toLocaleString("vi-VN")}đ
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
                                     <div className="font-medium text-green-600">
                                       {(item.commission ?? 0).toLocaleString("vi-VN")}đ
                                     </div>
@@ -1792,7 +1984,7 @@ const AdminDashboard = () => {
                             ) : (
                               <TableRow>
                                 <TableCell
-                                  colSpan={5}
+                                  colSpan={6}
                                   className="text-center py-8 text-gray-500"
                                 >
                                   {revenueDate
@@ -1808,6 +2000,332 @@ const AdminDashboard = () => {
                   </Card>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Discount Code */}
+          {activeTab === "discount-codes" && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-xl font-semibold">Discount Code</h3>
+                  <p className="text-gray-600">
+                    Tạo và quản lý mã giảm giá áp dụng cho tổng bill (bao gồm phí vận chuyển)
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={loadDiscountCodes}
+                    disabled={discountCodesLoading}
+                    variant="outline"
+                  >
+                    {discountCodesLoading ? (
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    Tải Lại
+                  </Button>
+                  <Button
+                    onClick={openCreateDiscountCode}
+                    className="bg-[#C99F4D] hover:bg-[#B8944A]"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Tạo mã
+                  </Button>
+                </div>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Discount Code</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {discountCodesLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <RefreshCw className="h-6 w-6 animate-spin text-[#C99F4D] mr-3" />
+                      <span className="text-gray-600">Đang tải...</span>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Mã</TableHead>
+                            <TableHead>Tên</TableHead>
+                            <TableHead>Loại</TableHead>
+                            <TableHead>Giá trị</TableHead>
+                            <TableHead>Giảm tối đa</TableHead>
+                            <TableHead>Đơn tối thiểu</TableHead>
+                            <TableHead>Hiệu lực</TableHead>
+                            <TableHead>Lượt dùng</TableHead>
+                            <TableHead>Trạng thái</TableHead>
+                            <TableHead className="text-right">Thao tác</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {discountCodes.length > 0 ? (
+                            discountCodes.map((dc) => (
+                              <TableRow key={dc.id}>
+                                <TableCell className="font-mono font-semibold">
+                                  {dc.code}
+                                </TableCell>
+                                <TableCell>{dc.name}</TableCell>
+                                <TableCell>
+                                  {Number(dc.discountType) === 1 ? "%" : "VND"}
+                                </TableCell>
+                                <TableCell>
+                                  {Number(dc.discountType) === 1
+                                    ? `${(dc.discountValue ?? 0).toLocaleString("vi-VN")}%`
+                                    : `${(dc.discountValue ?? 0).toLocaleString("vi-VN")}đ`}
+                                </TableCell>
+                                <TableCell>
+                                  {Number(dc.discountType) === 1
+                                    ? `${(dc.maxDiscountAmount ?? 0).toLocaleString("vi-VN")}đ`
+                                    : "-"}
+                                </TableCell>
+                                <TableCell>
+                                  {(dc.minimumPurchaseAmount ?? 0) > 0
+                                    ? `${(dc.minimumPurchaseAmount ?? 0).toLocaleString("vi-VN")}đ`
+                                    : "-"}
+                                </TableCell>
+                                <TableCell>
+                                  <div className="text-sm text-gray-700">
+                                    {new Date(dc.validFromUtc).toLocaleDateString("vi-VN")} –{" "}
+                                    {new Date(dc.validToUtc).toLocaleDateString("vi-VN")}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  {(dc.usedCount ?? 0)}/{dc.maxUses}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    variant={dc.isActive ? "default" : "outline"}
+                                  >
+                                    {dc.isActive ? "Đang bật" : "Tắt"}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => openEditDiscountCode(dc)}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          ) : (
+                            <TableRow>
+                              <TableCell
+                                colSpan={10}
+                                className="text-center py-10 text-gray-500"
+                              >
+                                Chưa có mã giảm giá nào
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Dialog open={showDiscountCodeForm} onOpenChange={setShowDiscountCodeForm}>
+                <DialogContent className="max-w-xl">
+                  <DialogHeader>
+                    <DialogTitle>
+                      {editingDiscountCode ? "Cập nhật mã giảm giá" : "Tạo mã giảm giá"}
+                    </DialogTitle>
+                  </DialogHeader>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Mã (10–15 ký tự)</Label>
+                        <Input
+                          value={discountCodeForm.code}
+                          onChange={(e) =>
+                            setDiscountCodeForm((p) => ({
+                              ...p,
+                              code: e.target.value.toUpperCase(),
+                            }))
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Trạng thái</Label>
+                        <div className="flex items-center gap-3">
+                          <Switch
+                            checked={discountCodeForm.isActive}
+                            onCheckedChange={(v) =>
+                              setDiscountCodeForm((p) => ({ ...p, isActive: v }))
+                            }
+                          />
+                          <span className="text-sm text-gray-600">
+                            {discountCodeForm.isActive ? "Đang bật" : "Tắt"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Tên</Label>
+                      <Input
+                        value={discountCodeForm.name}
+                        onChange={(e) =>
+                          setDiscountCodeForm((p) => ({
+                            ...p,
+                            name: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Từ ngày</Label>
+                        <Input
+                          type="date"
+                          value={discountCodeForm.validFrom}
+                          onChange={(e) =>
+                            setDiscountCodeForm((p) => ({
+                              ...p,
+                              validFrom: e.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Đến ngày</Label>
+                        <Input
+                          type="date"
+                          value={discountCodeForm.validTo}
+                          onChange={(e) =>
+                            setDiscountCodeForm((p) => ({
+                              ...p,
+                              validTo: e.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Loại giảm</Label>
+                        <Select
+                          value={String(discountCodeForm.discountType)}
+                          onValueChange={(v) =>
+                            setDiscountCodeForm((p) => ({
+                              ...p,
+                              discountType: Number(v),
+                              maxDiscountAmount: Number(v) === 1 ? p.maxDiscountAmount : 0,
+                            }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Chọn loại" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">Theo %</SelectItem>
+                            <SelectItem value="2">Trừ tiền (VND)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>
+                          Giá trị {discountCodeForm.discountType === 1 ? "(%)" : "(VND)"}
+                        </Label>
+                        <Input
+                          type="number"
+                          value={discountCodeForm.discountValue}
+                          onChange={(e) =>
+                            setDiscountCodeForm((p) => ({
+                              ...p,
+                              discountValue: Number(e.target.value || 0),
+                            }))
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Giảm tối đa (VND) (chỉ áp dụng cho mã %)</Label>
+                      <Input
+                        type="number"
+                        value={discountCodeForm.maxDiscountAmount}
+                        disabled={Number(discountCodeForm.discountType) !== 1}
+                        onChange={(e) =>
+                          setDiscountCodeForm((p) => ({
+                            ...p,
+                            maxDiscountAmount: Number(e.target.value || 0),
+                          }))
+                        }
+                      />
+                      {Number(discountCodeForm.discountType) !== 1 && (
+                        <p className="text-xs text-gray-500">
+                          Mã giảm tiền trực tiếp (VND) không dùng giới hạn này.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Đơn tối thiểu (VND)</Label>
+                        <Input
+                          type="number"
+                          value={discountCodeForm.minimumPurchaseAmount}
+                          onChange={(e) =>
+                            setDiscountCodeForm((p) => ({
+                              ...p,
+                              minimumPurchaseAmount: Number(e.target.value || 0),
+                            }))
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Lượt dùng tối đa</Label>
+                        <Input
+                          type="number"
+                          value={discountCodeForm.maxUses}
+                          onChange={(e) =>
+                            setDiscountCodeForm((p) => ({
+                              ...p,
+                              maxUses: Number(e.target.value || 0),
+                            }))
+                          }
+                        />
+                        {editingDiscountCode && (
+                          <p className="text-xs text-gray-500">
+                            Đã dùng: {editingDiscountCode.usedCount}/{editingDiscountCode.maxUses}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowDiscountCodeForm(false)}
+                    >
+                      Hủy
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={saveDiscountCode}
+                      className="bg-[#C99F4D] hover:bg-[#B8944A]"
+                      disabled={discountCodesLoading}
+                    >
+                      Lưu
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           )}
 

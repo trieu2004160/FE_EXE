@@ -27,7 +27,6 @@ import { useWishlist } from "@/contexts/WishlistContext";
 import {
   apiService,
   Product,
-  ProductDetailResponse,
   ProductReview,
 } from "@/services/apiService";
 import {
@@ -58,6 +57,13 @@ const ProductDetail = () => {
   const [reviewComment, setReviewComment] = useState("");
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
+  // Reply-to-review state
+  const [replyingToReviewId, setReplyingToReviewId] = useState<number | null>(
+    null
+  );
+  const [replyText, setReplyText] = useState("");
+  const [isSubmittingReply, setIsSubmittingReply] = useState(false);
+
   const [sellerShop, setSellerShop] = useState<{
     id: number;
     name: string;
@@ -75,33 +81,23 @@ const ProductDetail = () => {
       try {
         // Only use API data - no fallback to mock data
         const productId = parseInt(id);
-        const response: any = await apiService.getProductById(productId);
+        const response = await apiService.getProductById(productId);
+        const apiProduct = response.product;
 
-        // Backend returns PascalCase (Product, RelatedProducts), map to camelCase
-        // Also handle if response is wrapped in { data: ... } or direct
-        const responseData = response.data || response;
-        const product = responseData.product || responseData.Product;
-        const relatedProducts =
-          responseData.relatedProducts || responseData.RelatedProducts || [];
-
-        if (!product) {
-          console.error("Product data missing in response:", response);
-          throw new Error("Product not found in response");
+        if (!apiProduct) {
+          throw new Error("Không tìm thấy sản phẩm.");
         }
 
-        // Normalize image URLs from backend
-        const normalizedProduct = {
-          ...product,
-          imageUrl: getProductImageUrl(product),
+        const normalizedProduct: Product = {
+          ...apiProduct,
+          imageUrl: getProductImageUrl(apiProduct),
         };
 
-        // Normalize related products images
-        const normalizedRelatedProducts = Array.isArray(relatedProducts)
-          ? relatedProducts.map((p: Product) => ({
-              ...p,
-              imageUrl: getProductImageUrl(p),
-            }))
-          : [];
+        const normalizedRelatedProducts: Product[] =
+          response.relatedProducts?.map((p) => ({
+            ...p,
+            imageUrl: getProductImageUrl(p),
+          })) ?? [];
 
         setProduct(normalizedProduct);
         setRelatedProducts(normalizedRelatedProducts);
@@ -117,10 +113,12 @@ const ProductDetail = () => {
           console.warn("Failed to fetch reviews:", reviewError);
           setReviews([]);
         }
-      } catch (apiError: any) {
+      } catch (apiError: unknown) {
         console.error("Error fetching product:", apiError);
         setError(
-          apiError?.message || "Không thể tải sản phẩm. Vui lòng thử lại sau."
+          apiError instanceof Error
+            ? apiError.message
+            : "Không thể tải sản phẩm. Vui lòng thử lại sau."
         );
       } finally {
         setLoading(false);
@@ -163,14 +161,6 @@ const ProductDetail = () => {
       cancelled = true;
     };
   }, [product?.shop?.id, product?.shop?.shopName]);
-
-  // Calculate discount
-  const discount =
-    product?.maxPrice && product.maxPrice > product.basePrice
-      ? Math.round(
-          ((product.maxPrice - product.basePrice) / product.maxPrice) * 100
-        )
-      : 0;
 
   const handleAddToCart = async () => {
     if (!product) return;
@@ -226,7 +216,7 @@ const ProductDetail = () => {
       rating: 4.5, // Default rating since API doesn't provide it
       reviews: reviews.length,
       category: "Product", // Default category
-      originalPrice: product.maxPrice,
+      originalPrice: undefined,
       isNew: false, // Default values
       isBestSeller: product.isPopular,
       shopId: product.shop?.id || 1,
@@ -294,6 +284,65 @@ const ProductDetail = () => {
     }
   };
 
+  const handleOpenReply = (reviewId: number) => {
+    setReplyingToReviewId((current) => (current === reviewId ? null : reviewId));
+    setReplyText("");
+  };
+
+  const handleSubmitReply = async (reviewId: number) => {
+    if (!id) return;
+
+    const token = localStorage.getItem("userToken");
+    if (!token || token === "authenticated") {
+      toast({
+        title: "Vui lòng đăng nhập",
+        description: "Bạn cần đăng nhập để phản hồi đánh giá.",
+        variant: "destructive",
+      });
+      navigate("/login");
+      return;
+    }
+
+    if (!replyText.trim()) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng nhập nội dung phản hồi.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsSubmittingReply(true);
+      const productId = parseInt(id);
+      const updated = await apiService.replyToProductReview(productId, reviewId, {
+        replyComment: replyText.trim(),
+      });
+
+      setReviews((prev) => prev.map((r) => (r.id === reviewId ? updated : r)));
+      setReplyingToReviewId(null);
+      setReplyText("");
+
+      toast({
+        title: "Đã gửi phản hồi",
+        description: "Phản hồi của bạn đã được đăng.",
+      });
+    } catch (error) {
+      console.error("Error replying to review:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Không thể gửi phản hồi. Vui lòng thử lại.";
+      toast({
+        title: "Lỗi",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingReply(false);
+    }
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -320,6 +369,12 @@ const ProductDetail = () => {
 
   const allImages = getAllProductImages(product);
   const mainImage = allImages[activeImageIndex] || product.imageUrl || "/placeholder.svg";
+
+  const reviewCount = reviews.length;
+  const averageRating = reviewCount
+    ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviewCount
+    : 0;
+  const roundedRating = Math.round(averageRating);
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -423,11 +478,6 @@ const ProductDetail = () => {
                       ⭐ Bán chạy
                     </Badge>
                   )}
-                  {discount > 0 && (
-                    <Badge className="bg-gradient-to-r from-red-500 to-pink-600 text-white border-0 px-3 py-1.5 shadow-md">
-                      -{discount}%
-                    </Badge>
-                  )}
                   <Badge className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white border-0 px-3 py-1.5 shadow-md">
                     Sản phẩm
                   </Badge>
@@ -440,24 +490,28 @@ const ProductDetail = () => {
                   </h1>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                     <div className="flex items-center gap-2">
-                      <div className="flex">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-5 w-5 ${
-                              i < 4
-                                ? "text-yellow-400 fill-yellow-400"
-                                : "text-gray-300"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-sm font-medium text-gray-700">
-                        4.5
-                      </span>
-                      <span className="text-sm text-gray-500">
-                        ({reviews.length} đánh giá)
-                      </span>
+                      {reviewCount > 0 ? (
+                        <>
+                          <div className="flex">
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                className={`h-5 w-5 ${
+                                  i < roundedRating
+                                    ? "text-yellow-400 fill-yellow-400"
+                                    : "text-gray-300"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-sm font-medium text-gray-700">
+                            {averageRating.toFixed(1)}
+                          </span>
+                          <span className="text-sm text-gray-500">
+                            ({reviewCount} đánh giá)
+                          </span>
+                        </>
+                      ) : null}
                     </div>
                     <div className="h-4 w-px bg-gray-300 hidden sm:block" />
                     <div className="flex items-center gap-2">
@@ -483,12 +537,6 @@ const ProductDetail = () => {
                     <span className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
                       {product.basePrice.toLocaleString("vi-VN")}đ
                     </span>
-                    {product.maxPrice &&
-                      product.maxPrice > product.basePrice && (
-                        <span className="text-lg text-gray-500 line-through">
-                          {product.maxPrice.toLocaleString("vi-VN")}đ
-                        </span>
-                      )}
                   </div>
                 </div>
 
@@ -861,14 +909,67 @@ const ProductDetail = () => {
                                   {review.comment ||
                                     "Khách hàng đã đánh giá sản phẩm này."}
                                 </p>
+
+                                {review.reply?.comment ? (
+                                  <div className="mt-3 rounded-lg border border-border bg-muted/40 p-3">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm font-semibold text-foreground">
+                                        {review.reply.user?.fullName || "Shop"}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground">
+                                        {new Date(
+                                          review.reply.createdAt
+                                        ).toLocaleDateString("vi-VN")}
+                                      </span>
+                                    </div>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                      {review.reply.comment}
+                                    </p>
+                                  </div>
+                                ) : null}
+
                                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                                   <button className="hover:text-primary transition-colors">
                                     👍 Hữu ích (0)
                                   </button>
-                                  <button className="hover:text-primary transition-colors">
+                                  <button
+                                    className="hover:text-primary transition-colors"
+                                    onClick={() => handleOpenReply(review.id)}
+                                  >
                                     💬 Trả lời
                                   </button>
                                 </div>
+
+                                {replyingToReviewId === review.id ? (
+                                  <div className="mt-3 space-y-2">
+                                    <textarea
+                                      placeholder="Nhập phản hồi của bạn..."
+                                      className="w-full p-3 border border-border rounded-lg resize-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                      rows={3}
+                                      value={replyText}
+                                      onChange={(e) => setReplyText(e.target.value)}
+                                    />
+                                    <div className="flex gap-2">
+                                      <Button
+                                        size="sm"
+                                        className="bg-primary hover:bg-primary/90"
+                                        onClick={() => handleSubmitReply(review.id)}
+                                        disabled={isSubmittingReply}
+                                      >
+                                        {isSubmittingReply
+                                          ? "Đang gửi..."
+                                          : "Gửi phản hồi"}
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => setReplyingToReviewId(null)}
+                                      >
+                                        Hủy
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ) : null}
                               </div>
                             </div>
                           ))
@@ -1017,7 +1118,6 @@ const ProductDetail = () => {
                       id={relatedProduct.id}
                       name={relatedProduct.name}
                       price={relatedProduct.basePrice}
-                      originalPrice={relatedProduct.maxPrice}
                       image={relatedProduct.imageUrl || ""}
                       rating={4.5}
                       reviews={0}

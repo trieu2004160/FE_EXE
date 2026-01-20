@@ -68,6 +68,9 @@ const Checkout = () => {
   // Promo code and shipping
   const [promoCode, setPromoCode] = useState("");
   const [promoApplied, setPromoApplied] = useState(false);
+  const [promoApplying, setPromoApplying] = useState(false);
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [promoAppliedLabel, setPromoAppliedLabel] = useState<string>("");
 
   // Payment method
   const [paymentMethod, setPaymentMethod] = useState<
@@ -175,10 +178,18 @@ const Checkout = () => {
     (sum, item) => sum + item.price * item.quantity,
     0
   );
-  const shipping = subtotal > 500000 ? 0 : 30000;
-  const discount =
-    promoCode === "TOTNGHIEP10" && promoApplied ? subtotal * 0.1 : 0;
-  const total = subtotal + shipping - discount;
+  // Shipping fee is calculated per shop-split order (consistent with backend).
+  const shipping = groupedItems.reduce((acc, shop) => {
+    const shopSubtotal = shop.items.reduce(
+      (s, item) => s + item.price * item.quantity,
+      0
+    );
+    const shopShipping =
+      shopSubtotal > 300000 ? 0 : shopSubtotal >= 150000 ? 15000 : 30000;
+    return acc + shopShipping;
+  }, 0);
+  const discount = promoApplied ? discountAmount : 0;
+  const total = Math.max(0, subtotal + shipping - discount);
 
   // Handle address selection
   const handleSelectAddress = (address: AddressResponseDto) => {
@@ -331,19 +342,62 @@ const Checkout = () => {
   };
 
   // Handle apply promo code
-  const handleApplyPromo = () => {
-    if (promoCode === "TOTNGHIEP10") {
-      setPromoApplied(true);
+  const handleApplyPromo = async () => {
+    if (promoApplied) {
+      setPromoApplied(false);
+      setDiscountAmount(0);
+      setPromoAppliedLabel("");
+      return;
+    }
+
+    const code = promoCode.trim();
+    if (!code) {
       toast({
-        title: "Thành công",
-        description: "Đã áp dụng mã giảm giá 10%",
-      });
-    } else {
-      toast({
-        title: "Mã không hợp lệ",
-        description: "Mã giảm giá không tồn tại",
+        title: "Vui lòng nhập mã",
+        description: "Bạn cần nhập mã giảm giá để áp dụng",
         variant: "destructive",
       });
+      return;
+    }
+
+    try {
+      setPromoApplying(true);
+      const res = await apiService.previewDiscount({ code });
+
+      if (!res.isValid) {
+        setPromoApplied(false);
+        setDiscountAmount(0);
+        setPromoAppliedLabel("");
+        toast({
+          title: "Mã không hợp lệ",
+          description: res.message || "Mã giảm giá không hợp lệ",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setPromoApplied(true);
+      setDiscountAmount(res.discountAmount ?? 0);
+      setPromoAppliedLabel(res.code ? `✓ Đã áp dụng mã: ${res.code}` : "✓ Đã áp dụng mã giảm giá");
+
+      toast({
+        title: "Thành công",
+        description: res.message || "Đã áp dụng mã giảm giá",
+      });
+    } catch (error: unknown) {
+      console.error("Error applying promo code:", error);
+      setPromoApplied(false);
+      setDiscountAmount(0);
+      setPromoAppliedLabel("");
+      toast({
+        title: "Lỗi",
+        description:
+          (error instanceof Error ? error.message : undefined) ||
+          "Không thể áp dụng mã giảm giá. Vui lòng thử lại.",
+        variant: "destructive",
+      });
+    } finally {
+      setPromoApplying(false);
     }
   };
 
@@ -396,6 +450,7 @@ const Checkout = () => {
       const orderData: CreateOrderRequest = {
         shippingAddress,
         paymentMethod,
+        discountCode: promoApplied ? promoCode.trim() : undefined,
       };
 
       console.log("[Checkout] Order data prepared:", orderData);
@@ -1001,22 +1056,22 @@ const Checkout = () => {
                         placeholder="Nhập mã giảm giá"
                         value={promoCode}
                         onChange={(e) => setPromoCode(e.target.value)}
-                        disabled={promoApplied}
+                        disabled={promoApplied || promoApplying}
                         className="flex-1  focus-visible:ring-0 focus-visible:ring-offset-0"
                       />
                       <Button
                         type="button"
                         onClick={handleApplyPromo}
-                        disabled={promoApplied}
+                        disabled={promoApplying}
                         className="bg-[#A67C42] hover:bg-[#8B6835] whitespace-nowrap"
                       >
-                        {promoApplied ? "Đã áp dụng" : "Áp dụng"}
+                        {promoApplying ? "Đang xử lý..." : promoApplied ? "Bỏ" : "Áp dụng"}
                       </Button>
                     </div>
-                    {promoApplied && promoCode === "TOTNGHIEP10" && (
+                    {promoApplied && (
                       <div className="bg-green-50 border border-green-200 rounded-lg p-2">
                         <p className="text-sm text-green-700 font-medium">
-                          ✓ Đã áp dụng mã giảm giá 10%
+                          {promoAppliedLabel || "✓ Đã áp dụng mã giảm giá"}
                         </p>
                       </div>
                     )}
@@ -1056,7 +1111,7 @@ const Checkout = () => {
                     {shipping === 0 && (
                       <div className="bg-green-50 border border-green-200 rounded-lg p-2">
                         <p className="text-xs text-green-700">
-                          ✓ Miễn phí vận chuyển cho đơn hàng trên 500,000đ
+                          ✓ Miễn phí vận chuyển cho đơn hàng trên 300,000đ
                         </p>
                       </div>
                     )}

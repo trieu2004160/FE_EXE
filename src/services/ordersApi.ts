@@ -18,6 +18,7 @@ export interface OrderItem {
 export interface CreateOrderRequest {
   shippingAddress?: ShippingAddress; // Optional - can use address from user profile
   paymentMethod?: 'cash_on_delivery' | 'payos';
+  discountCode?: string;
 }
 
 export interface OrderResponseDto {

@@ -248,7 +248,6 @@ const normalizeShopProduct = (raw: any): ShopProduct => {
     features: raw?.features ?? raw?.Features,
     isPopular: raw?.isPopular ?? raw?.IsPopular ?? false,
     basePrice: raw?.basePrice ?? raw?.BasePrice ?? 0,
-    maxPrice: raw?.maxPrice ?? raw?.MaxPrice,
     stockQuantity: raw?.stockQuantity ?? raw?.StockQuantity ?? 0,
     productCategoryId: raw?.productCategoryId ?? raw?.ProductCategoryId ?? 0,
     imageUrl:
@@ -478,7 +477,6 @@ const ShopDashboard = () => {
             features: "Ý nghĩa cao quý;Màu sắc rực rỡ",
             isPopular: true,
             basePrice: 150000,
-            maxPrice: 300000,
             stockQuantity: 50,
             productCategoryId: 1,
             imageUrl:
@@ -799,7 +797,6 @@ const ShopDashboard = () => {
           features: formData.features,
           isPopular: formData.isPopular,
           basePrice: formData.basePrice,
-          maxPrice: formData.maxPrice,
           stockQuantity: formData.stockQuantity,
           productCategoryId: formData.productCategoryId,
           specifications: (formData.specifications as any) || undefined,
@@ -823,7 +820,6 @@ const ShopDashboard = () => {
           features: formData.features,
           isPopular: formData.isPopular,
           basePrice: formData.basePrice,
-          maxPrice: formData.maxPrice,
           stockQuantity: formData.stockQuantity,
           productCategoryId: formData.productCategoryId,
           specifications: (formData.specifications as any) || undefined,
@@ -1137,10 +1133,6 @@ const ShopDashboard = () => {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                               {product.basePrice.toLocaleString("vi-VN")}đ
-                              {product.maxPrice &&
-                                ` - ${product.maxPrice.toLocaleString(
-                                  "vi-VN"
-                                )}đ`}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <Badge
@@ -2022,7 +2014,6 @@ const ProductForm = ({
     features: product?.features || "",
     isPopular: product?.isPopular ?? false,
     basePrice: product?.basePrice || 0,
-    maxPrice: product?.maxPrice ?? undefined,
     stockQuantity: product?.stockQuantity || 0,
     productCategoryId: product?.productCategoryId ?? 0,
     imageUrls: [],
@@ -2229,10 +2220,10 @@ const ProductForm = ({
                 Giá và tồn kho
               </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">
-                    Giá gốc (VNĐ) <span className="text-red-500">*</span>
+                    Giá (VNĐ) <span className="text-red-500">*</span>
                   </label>
                   <Input
                     type="number"
@@ -2246,26 +2237,6 @@ const ProductForm = ({
                     }
                     placeholder="150000"
                     required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Giá tối đa (VNĐ)
-                  </label>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={formData.maxPrice ?? ""}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        maxPrice: e.target.value
-                          ? Number(e.target.value)
-                          : undefined,
-                      })
-                    }
-                    placeholder="300000"
                   />
                 </div>
 

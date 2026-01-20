@@ -376,7 +376,19 @@ const Cart = () => {
   const subtotal =
     cartData?.totalPrice ||
     selectedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shipping = subtotal > 500000 ? 0 : 30000;
+  // Shipping fee is calculated per shop-split order (consistent with backend).
+  const shipping = cartData
+    ? cartData.shops
+        .filter((shop) => shop.items.some((item) => item.isSelected))
+        .reduce((acc, shop) => {
+          const shopSubtotal = shop.items
+            .filter((item) => item.isSelected)
+            .reduce((s, item) => s + item.price * item.quantity, 0);
+          const shopShipping =
+            shopSubtotal > 300000 ? 0 : shopSubtotal >= 150000 ? 15000 : 30000;
+          return acc + shopShipping;
+        }, 0)
+    : 0;
   const discount = promoCode === "TOTNGHIEP10" ? subtotal * 0.1 : 0;
   const total = subtotal + shipping - discount;
 
@@ -674,29 +686,12 @@ const Cart = () => {
                               {subtotal.toLocaleString("vi-VN")}đ
                             </span>
                           </div>
-                          <div className="flex justify-between text-gray-600">
-                            <span>Phí vận chuyển</span>
-                            <span className="font-semibold text-gray-800">
-                              {shipping === 0 ? (
-                                <span className="text-green-600">Miễn phí</span>
-                              ) : (
-                                `${shipping.toLocaleString("vi-VN")}đ`
-                              )}
-                            </span>
-                          </div>
                           {discount > 0 && (
                             <div className="flex justify-between text-green-600">
                               <span>Giảm giá</span>
                               <span className="font-semibold">
                                 -{discount.toLocaleString("vi-VN")}đ
                               </span>
-                            </div>
-                          )}
-                          {shipping === 0 && (
-                            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                              <p className="text-sm text-green-700 font-medium">
-                                Miễn phí vận chuyển cho đơn hàng trên 500,000đ
-                              </p>
                             </div>
                           )}
                         </div>

@@ -25,13 +25,11 @@ const ProductCard = (product: ProductCardProps) => {
   const price: number =
     (product as any).price ?? (product as any).basePrice ?? 0;
 
-  const originalPrice: number | undefined =
-    (product as any).originalPrice ?? (product as any).maxPrice;
-
   const image = (product as any).image;
-  const rating: number = (product as any).rating ?? 4.5;
+  const rating: number =
+    (product as any).averageRating ?? (product as any).AverageRating ?? (product as any).rating ?? 0;
   const reviews: number =
-    (product as any).reviews ?? (product as any).reviewCount ?? 0;
+    (product as any).reviewCount ?? (product as any).ReviewCount ?? (product as any).reviews ?? 0;
 
   const isNew: boolean = (product as any).isNew ?? false;
   const isBestSeller: boolean = (product as any).isBestSeller ?? (product as any).isPopular ?? false;
@@ -54,9 +52,7 @@ const ProductCard = (product: ProductCardProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const discount = originalPrice
-    ? Math.round(((originalPrice - price) / originalPrice) * 100)
-    : 0;
+  const discount = 0;
 
   const isWishlisted = isInWishlist(id);
 
@@ -146,11 +142,6 @@ const ProductCard = (product: ProductCardProps) => {
                 Bán chạy
               </Badge>
             )}
-            {discount > 0 && (
-              <Badge className="bg-red-500 text-white text-xs">
-                -{discount}%
-              </Badge>
-            )}
           </div>
 
           {/* Wishlist */}
@@ -184,26 +175,26 @@ const ProductCard = (product: ProductCardProps) => {
           </h3>
         </Link>
 
-        <div className="flex items-center gap-1 mb-2">
-          {[...Array(5)].map((_, i) => (
-            <Star
-              key={i}
-              className={`h-3.5 w-3.5 ${i < rating ? "text-yellow-400 fill-current" : "text-gray-300"
+        {reviews > 0 ? (
+          <div className="flex items-center gap-1 mb-2">
+            {[...Array(5)].map((_, i) => (
+              <Star
+                key={i}
+                className={`h-3.5 w-3.5 ${
+                  i < Math.round(rating)
+                    ? "text-yellow-400 fill-current"
+                    : "text-gray-300"
                 }`}
-            />
-          ))}
-          <span className="text-xs text-gray-500">({reviews})</span>
-        </div>
+              />
+            ))}
+            <span className="text-xs text-gray-500">({reviews})</span>
+          </div>
+        ) : null}
 
         <div className="flex items-center gap-2">
           <span className="text-lg font-semibold text-slate-950">
             {price.toLocaleString("vi-VN")}đ
           </span>
-          {originalPrice && (
-            <span className="text-sm text-gray-400 line-through">
-              {originalPrice.toLocaleString("vi-VN")}đ
-            </span>
-          )}
         </div>
       </CardContent>
 

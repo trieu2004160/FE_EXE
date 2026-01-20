@@ -155,6 +155,10 @@ export interface Product {
   stockQuantity: number;
   specifications?: string | Record<string, string>; // Can be JSON string or Dictionary object
   productCategoryId: number;
+  averageRating?: number;
+  reviewCount?: number;
+  AverageRating?: number;
+  ReviewCount?: number;
   shop?: {
     id: number;
     shopName: string;
@@ -198,7 +202,7 @@ export interface ProductDetailResponse {
 // Review Types
 export interface ProductReview {
   id: number;
-  userId: string;
+  userId?: string;
   productId: number;
   rating: number;
   comment?: string;
@@ -206,11 +210,22 @@ export interface ProductReview {
   user?: {
     fullName: string;
   };
+  reply?: {
+    comment?: string;
+    createdAt: string;
+    user?: {
+      fullName: string;
+    };
+  };
 }
 
 export interface CreateReviewRequest {
   rating: number;
   comment?: string;
+}
+
+export interface ReplyToReviewRequest {
+  replyComment?: string;
 }
 
 // Search Types
@@ -335,6 +350,7 @@ export interface ShippingAddressDto {
 export interface CreateOrderDto {
   shippingAddress?: ShippingAddressDto;
   paymentMethod?: 'cash_on_delivery' | 'payos';
+  discountCode?: string;
 }
 
 export interface OrderItemResponseDto {
@@ -349,10 +365,15 @@ export interface OrderItemResponseDto {
 
 export interface OrderResponseDto {
   id: number;
+  orderCode?: string;
+  // Backward-compat (some older code used orderNumber)
   orderNumber?: string;
   status: string;
   total: number;
   subtotal: number;
+  shippingFee?: number;
+  discountAmount?: number;
+  appliedDiscountCode?: string;
   orderDate: string;
   paymentMethod?: string;
   shippingAddress: ShippingAddressDto;
@@ -369,6 +390,24 @@ export interface OrderHistoryResponseDto {
   totalItems: number;
   primaryProductName: string;
   primaryProductImage?: string;
+}
+
+export interface DiscountPreviewRequestDto {
+  code?: string;
+}
+
+export interface DiscountPreviewResponseDto {
+  isValid: boolean;
+  message: string;
+  code?: string;
+  name?: string;
+  discountType?: number;
+  discountValue?: number;
+  maxDiscountAmount?: number;
+  subtotal: number;
+  shippingFee: number;
+  discountAmount: number;
+  total: number;
 }
 
 // Admin Types
@@ -423,9 +462,38 @@ export interface RevenueByShop {
   shopId: number;
   shopName: string;
   revenue: number;
+  shippingFees?: number;
   commission: number;
   orderCount: number;
   commissionRate: number;
+}
+
+export interface AdminDiscountCodeDto {
+  id: number;
+  code: string;
+  name: string;
+  validFromUtc: string;
+  validToUtc: string;
+  isActive: boolean;
+  discountType: number;
+  discountValue: number;
+  maxDiscountAmount: number;
+  minimumPurchaseAmount: number;
+  maxUses: number;
+  usedCount: number;
+}
+
+export interface UpsertDiscountCodeDto {
+  code: string;
+  name: string;
+  validFromUtc: string;
+  validToUtc: string;
+  isActive: boolean;
+  discountType: number;
+  discountValue: number;
+  maxDiscountAmount: number;
+  minimumPurchaseAmount: number;
+  maxUses: number;
 }
 
 // API service class
@@ -443,6 +511,9 @@ class ApiService {
     const shop = (obj.shop ?? obj.Shop) as Record<string, unknown> | undefined;
 
     const specs = (obj.specifications ?? obj.Specifications) as unknown;
+
+    const avg = (obj.averageRating ?? obj.AverageRating) as unknown;
+    const cnt = (obj.reviewCount ?? obj.ReviewCount) as unknown;
 
     const shopId = (obj.shopId ?? obj.ShopId ?? shop?.id ?? shop?.Id) as unknown;
     const shopName = (obj.shopName ?? obj.ShopName ?? shop?.shopName ?? shop?.ShopName) as unknown;
@@ -468,6 +539,14 @@ class ApiService {
     // Specs can be an object (Dictionary) or a JSON string depending on endpoint/mapping.
     if (normalized.specifications == null && specs != null) {
       normalized.specifications = specs as any;
+    }
+
+    if ((normalized as any).averageRating == null && avg != null) {
+      (normalized as any).averageRating = Number(avg);
+    }
+
+    if ((normalized as any).reviewCount == null && cnt != null) {
+      (normalized as any).reviewCount = Number(cnt);
     }
 
     return normalized as unknown as Product;
@@ -1010,6 +1089,13 @@ class ApiService {
     });
   }
 
+  async replyToProductReview(productId: number, reviewId: number, data: ReplyToReviewRequest): Promise<ProductReview> {
+    return this.request<ProductReview>(`/products/${productId}/reviews/${reviewId}/reply`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   // ==================== SEARCH API ====================
   // Base URL: /api/search
 
@@ -1245,7 +1331,6 @@ class ApiService {
     features?: string;
     isPopular: boolean;
     basePrice: number;
-    maxPrice?: number;
     stockQuantity: number;
     specifications?: Record<string, string>;
     productCategoryId: number;
@@ -1259,7 +1344,6 @@ class ApiService {
     if (productData.features !== undefined) formData.append('Features', productData.features);
     formData.append('IsPopular', String(productData.isPopular));
     formData.append('BasePrice', String(productData.basePrice));
-    if (productData.maxPrice !== undefined) formData.append('MaxPrice', String(productData.maxPrice));
     formData.append('StockQuantity', String(productData.stockQuantity));
     if (productData.specifications) {
       for (const [key, value] of Object.entries(productData.specifications)) {
@@ -1300,7 +1384,6 @@ class ApiService {
     features?: string;
     isPopular?: boolean;
     basePrice?: number;
-    maxPrice?: number;
     stockQuantity?: number;
     specifications?: Record<string, string>;
     productCategoryId?: number;
@@ -1315,7 +1398,6 @@ class ApiService {
     if (productData.features !== undefined) formData.append('Features', productData.features);
     if (productData.isPopular !== undefined) formData.append('IsPopular', String(productData.isPopular));
     if (productData.basePrice !== undefined) formData.append('BasePrice', String(productData.basePrice));
-    if (productData.maxPrice !== undefined) formData.append('MaxPrice', String(productData.maxPrice));
     if (productData.stockQuantity !== undefined) formData.append('StockQuantity', String(productData.stockQuantity));
     if (productData.specifications) {
       for (const [key, value] of Object.entries(productData.specifications)) {
@@ -1638,6 +1720,20 @@ class ApiService {
   // Base URL: /api/orders
 
   /**
+   * Preview discount for current cart selection
+   * POST /api/discounts/preview
+   * Requires authentication
+   */
+  async previewDiscount(data: DiscountPreviewRequestDto): Promise<DiscountPreviewResponseDto> {
+    return this.request<DiscountPreviewResponseDto>('/discounts/preview', {
+      method: 'POST',
+      body: JSON.stringify({
+        code: data.code,
+      }),
+    });
+  }
+
+  /**
    * Create order from cart (selected items only)
    * POST /api/orders
    * Requires authentication
@@ -1652,11 +1748,13 @@ class ApiService {
       city: string;
     };
     paymentMethod?: 'cash_on_delivery' | 'payos';
+    discountCode?: string;
   }): Promise<OrderResponseDto> {
     // Backend expects PaymentMethod enum as number: COD=0, PayOS=1
     const payload: {
       shippingAddress?: typeof data.shippingAddress;
       paymentMethod?: 0 | 1;
+      discountCode?: string;
     } = {};
 
     if (data.shippingAddress) {
@@ -1665,6 +1763,10 @@ class ApiService {
 
     if (data.paymentMethod) {
       payload.paymentMethod = data.paymentMethod === 'payos' ? 1 : 0;
+    }
+
+    if (data.discountCode && data.discountCode.trim() !== '') {
+      payload.discountCode = data.discountCode.trim();
     }
 
     console.log('[apiService] Creating order:', payload);
@@ -2042,6 +2144,38 @@ class ApiService {
 
     return this.request(endpoint, {
       method: 'GET',
+    });
+  }
+
+  /**
+   * Get discount codes (Admin)
+   * GET /api/admin/discount-codes
+   */
+  async getAdminDiscountCodes(): Promise<AdminDiscountCodeDto[]> {
+    return this.request<AdminDiscountCodeDto[]>('/admin/discount-codes', {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Create discount code (Admin)
+   * POST /api/admin/discount-codes
+   */
+  async createAdminDiscountCode(data: UpsertDiscountCodeDto): Promise<AdminDiscountCodeDto> {
+    return this.request<AdminDiscountCodeDto>('/admin/discount-codes', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * Update discount code (Admin)
+   * PUT /api/admin/discount-codes/{id}
+   */
+  async updateAdminDiscountCode(id: number, data: UpsertDiscountCodeDto): Promise<void> {
+    return this.request<void>(`/admin/discount-codes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
     });
   }
 

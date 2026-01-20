@@ -64,7 +64,6 @@ export interface ShopProduct {
   features?: string;
   isPopular: boolean;
   basePrice: number;
-  maxPrice?: number;
   stockQuantity: number;
   productCategoryId: number;
   imageUrl?: string;
@@ -83,7 +82,6 @@ export interface CreateProductRequest {
   features?: string;
   isPopular: boolean;
   basePrice: number;
-  maxPrice?: number;
   stockQuantity: number;
   productCategoryId: number;
   imageFile?: File;
@@ -188,7 +186,6 @@ export const shopApiService = {
       if (productData.features) formData.append('features', productData.features);
       formData.append('isPopular', productData.isPopular.toString());
       formData.append('basePrice', productData.basePrice.toString());
-      if (productData.maxPrice) formData.append('maxPrice', productData.maxPrice.toString());
       formData.append('stockQuantity', productData.stockQuantity.toString());
       formData.append('productCategoryId', productData.productCategoryId.toString());
       
