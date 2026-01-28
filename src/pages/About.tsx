@@ -162,32 +162,6 @@ const About = () => {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-16 bg-gradient-to-br from-[#C99F4D]/5 to-[#8B7355]/5">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground mb-4">
-              Thành Tựu Của Chúng Tôi
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Những con số ấn tượng chứng minh chất lượng dịch vụ
-            </p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <div key={index} className="text-center group">
-                <div className="bg-gradient-to-br from-[#C99F4D] to-[#8B7355] bg-clip-text text-transparent text-4xl md:text-5xl font-bold mb-2 group-hover:scale-110 transition-transform duration-300">
-                  {stat.number}
-                </div>
-                <p className="text-muted-foreground font-medium group-hover:text-[#C99F4D] transition-colors duration-300">
-                  {stat.label}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Team Section */}
       <section className="py-16 bg-muted/30">
         <div className="container mx-auto px-4">
