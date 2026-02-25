@@ -37,9 +37,8 @@ const PhotoServiceCategory = () => {
         const mappedCategoryId = mapping?.mappings?.[displayKey];
 
         if (typeof mappedCategoryId === "number" && mappedCategoryId > 0) {
-          const mappedProducts = await apiService.getProductsByCategory(
-            mappedCategoryId
-          );
+          const mappedProducts =
+            await apiService.getProductsByCategory(mappedCategoryId);
           setProducts(mappedProducts);
           return;
         }
@@ -55,14 +54,14 @@ const PhotoServiceCategory = () => {
             cat.name.toLowerCase().includes("chụp ảnh") ||
             cat.name.toLowerCase().includes("photo") ||
             cat.name.toLowerCase().includes("dịch vụ") ||
-            cat.name.toLowerCase().includes("service")
+            cat.name.toLowerCase().includes("service"),
         );
 
         if (photoCategory) {
           setProducts(
             allProducts.filter(
-              (product) => product.productCategoryId === photoCategory.id
-            )
+              (product) => product.productCategoryId === photoCategory.id,
+            ),
           );
           return;
         }
@@ -73,8 +72,8 @@ const PhotoServiceCategory = () => {
             (product) =>
               product.name.toLowerCase().includes("chụp ảnh") ||
               product.name.toLowerCase().includes("photo") ||
-              product.name.toLowerCase().includes("dịch vụ")
-          )
+              product.name.toLowerCase().includes("dịch vụ"),
+          ),
         );
       } catch (apiError) {
         console.error("Error fetching products:", apiError);
@@ -603,47 +602,6 @@ const PhotoServiceCategory = () => {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-20 bg-gradient-to-br from-amber-50/50 via-yellow-50/30 to-orange-50/50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <Badge className="bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 border-amber-200 mb-4 px-4 py-2 font-semibold">
-              Khách Hàng Nói Gì
-            </Badge>
-            <h3 className="text-4xl md:text-4xl font-bold text-[#C99F4D] mb-6">
-              Đánh Giá Từ Khách Hàng
-            </h3>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {testimonials.map((testimonial, index) => (
-              <Card
-                key={index}
-                className="hover:shadow-xl transition-all duration-300 border-amber-200 bg-white/80 backdrop-blur-sm"
-              >
-                <CardContent className="p-8">
-                  <div className="flex items-center mb-4">
-                    {Array.from({ length: testimonial.rating }).map((_, i) => (
-                      <Star
-                        key={i}
-                        className="h-5 w-5 text-yellow-500 fill-current"
-                      />
-                    ))}
-                  </div>
-                  <p className="text-gray-700 italic mb-6 leading-relaxed">
-                    "{testimonial.content}"
-                  </p>
-                  <div>
-                    <p className="font-semibold text-gray-800">
-                      {testimonial.name}
-                    </p>
-                    <p className="text-sm text-gray-600">{testimonial.role}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
 
       <Footer />
     </div>

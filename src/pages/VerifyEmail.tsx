@@ -75,7 +75,7 @@ const VerifyEmail = () => {
       <div className="w-full max-w-md bg-gray-900 border border-gray-800 rounded-lg p-6">
         <h1 className="text-2xl font-semibold mb-2">Xác minh email</h1>
         <p className="text-sm text-gray-300 mb-6">
-          Nhập OTP đã được gửi đến email của bạn (hiệu lực 15 phút).
+          Nhập OTP đã được gửi đến email của bạn (hiệu lực 15 phút), nếu không nhận được mail vui lòng kiểm tra thư rác.
         </p>
 
         {error && (
